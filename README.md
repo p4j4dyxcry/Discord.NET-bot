@@ -18,6 +18,10 @@ It supports chat generation, automatic reactions, R18 word detection, and schedu
 - 会話を促す自動メッセージ投稿
   Posts prompts automatically to encourage conversation
 
+## コードデザイン / Code Design
+- 機能の中核は `TsDiscordBot.Core` に集約し、実行エントリは `TsDiscordBot.Entry` プロジェクトでホストしています。
+- 設定や機能拡張を容易にするため、依存性注入とモジュラー構成を採用しています。
+
 ## 必要な環境変数 / Required Environment Variables
 - `DISCORD_TOKEN` : Discord ボットのトークン
   Discord bot token
