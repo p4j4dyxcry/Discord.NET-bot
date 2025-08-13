@@ -45,4 +45,24 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
 
         await RespondAsync($"このチャンネルで{t}時間ごとにメッセージを送信するように設定したよ！");
     }
+
+    [SlashCommand("remove-auto-message", "AIで会話を促す自動メッセージの設定を解除します。")]
+    public async Task UnregisterAutoMessage()
+    {
+        var channelId = Context.Channel.Id;
+        var guildId = Context.Guild.Id;
+
+        var existing = _databaseService.FindAll<AutoMessageChannel>(AutoMessageChannel.TableName)
+            .FirstOrDefault(x => x.ChannelId == channelId && x.GuildId == guildId);
+
+        if (existing is null)
+        {
+            await RespondAsync("このチャンネルでは自動メッセージは設定されていないよ！");
+            return;
+        }
+
+        _databaseService.Delete(AutoMessageChannel.TableName, existing.Id);
+
+        await RespondAsync("このチャンネルでの自動メッセージ設定を解除したよ！");
+    }
 }
