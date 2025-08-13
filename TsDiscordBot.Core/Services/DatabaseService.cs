@@ -14,7 +14,7 @@ public class DatabaseService : IDisposable
     {
         _logger = logger;
 
-        string databasePath = Envs.LIGHTDB_PATH;
+        string databasePath = Envs.LITEDB_PATH;
 
         if (string.IsNullOrWhiteSpace(databasePath))
         {
