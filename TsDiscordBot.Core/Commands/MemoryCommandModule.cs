@@ -1,3 +1,5 @@
+
+
 ﻿using System.Text;
 using Discord.Interactions;
 using Discord.WebSocket;
@@ -13,7 +15,7 @@ public class MemoryCommandModule: InteractionModuleBase<SocketInteractionContext
     private readonly DatabaseService _databaseService;
     private readonly OpenAIService _openAiService;
 
-    public MemoryCommandModule(ILogger<ReactionCommandModule> logger, DatabaseService databaseService,OpenAIService openAiService)
+    public MemoryCommandModule(ILogger<MemoryCommandModule> logger, DatabaseService databaseService, OpenAIService openAiService)
     {
         _logger = logger;
         _databaseService = databaseService;

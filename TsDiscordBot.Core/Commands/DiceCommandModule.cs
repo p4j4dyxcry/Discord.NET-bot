@@ -11,7 +11,7 @@ public class DiceCommandModule: InteractionModuleBase<SocketInteractionContext>
     private readonly DatabaseService _databaseService;
     private readonly Random _rand = new();
 
-    public DiceCommandModule(ILogger<ReactionCommandModule> logger, DatabaseService databaseService)
+    public DiceCommandModule(ILogger<DiceCommandModule> logger, DatabaseService databaseService)
     {
         _logger = logger;
         _databaseService = databaseService;
@@ -23,7 +23,7 @@ public class DiceCommandModule: InteractionModuleBase<SocketInteractionContext>
         StringBuilder builder = new();
         string message = string.Empty;
 
-        int result = (_rand.Next() % 6);
+        int result = _rand.Next(6);
 
         string[] dice_characters =
         {
