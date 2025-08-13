@@ -18,7 +18,7 @@ public class DatabaseService : IDisposable
 
         if (string.IsNullOrWhiteSpace(databasePath))
         {
-            databasePath = configuration["database_path"] ?? string.Empty;
+            databasePath = configuration["database_path"] ?? "default.db";
         }
 
         _databasePath = databasePath;
