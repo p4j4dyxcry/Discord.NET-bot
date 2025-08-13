@@ -1,4 +1,5 @@
-﻿using Discord;
+﻿using System;
+using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -22,7 +23,13 @@ public class DiscordStartupService : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await _discord.LoginAsync(TokenType.Bot, _config["token"]);
+        var token = Environment.GetEnvironmentVariable("DISCORD_TOKEN");
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            token = _config["token"];
+        }
+
+        await _discord.LoginAsync(TokenType.Bot, token);
         await _discord.StartAsync();
     }
 
