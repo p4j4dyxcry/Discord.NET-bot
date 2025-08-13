@@ -13,7 +13,15 @@ public class DatabaseService : IDisposable
     public DatabaseService(ILogger<DatabaseService> logger, IConfiguration configuration)
     {
         _logger = logger;
-        _databasePath = configuration["database_path"] ?? "./reaction.db";
+
+        string databasePath = Envs.LIGHTDB_PATH;
+
+        if (string.IsNullOrWhiteSpace(databasePath))
+        {
+            databasePath = configuration["database_path"] ?? string.Empty;
+        }
+
+        _databasePath = databasePath;
 
         try
         {
