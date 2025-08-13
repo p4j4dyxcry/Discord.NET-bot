@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -45,8 +46,14 @@ public class AutoMessageService : BackgroundService
 
                         if (channel is not null)
                         {
+                            var previousMessages = (await channel.GetMessagesAsync(30).FlattenAsync())
+                                .Where(x => !x.Author.IsBot)
+                                .Select(ConvertFromDiscord)
+                                .OrderBy(x => x.Date)
+                                .ToArray();
+
                             var prompt = new OpenAIService.Message("会話を促す短いメッセージを作って", "system", DateTimeOffset.Now);
-                            var message = await _openAiService.GetResponse(guildId, prompt, Array.Empty<OpenAIService.Message>());
+                            var message = await _openAiService.GetResponse(guildId, prompt, previousMessages);
                             await channel.SendMessageAsync(message);
 
                             config.LastPostedUtc = DateTime.UtcNow;
@@ -62,5 +69,14 @@ public class AutoMessageService : BackgroundService
 
             await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
         }
+    }
+
+    private OpenAIService.Message ConvertFromDiscord(IMessage message)
+    {
+        string author = message.Author is SocketGuildUser guildUser
+            ? guildUser.Nickname ?? guildUser.Username
+            : message.Author.Username;
+
+        return new(message.Content, author, message.CreatedAt.ToLocalTime());
     }
 }
