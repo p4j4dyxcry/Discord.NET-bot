@@ -24,17 +24,6 @@ namespace TsDiscordBot.Core.Services
             {
                 apiKey = config["open_ai_api_key"];
             }
-            if (string.IsNullOrWhiteSpace(apiKey))
-            {
-                try
-                {
-                    apiKey = File.ReadAllText(Path.Combine("secret", "open_ai_api_key.txt")).Trim();
-                }
-                catch
-                {
-                    apiKey = string.Empty;
-                }
-            }
 
             _client = new(model: "gpt-5-nano", apiKey: apiKey);
 
