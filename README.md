@@ -13,8 +13,8 @@ It supports chat generation, automatic reactions, R18 word detection, and schedu
   Control via slash commands
 - 特定ワードへのリアクション設定
   Custom reactions triggered by keywords
-- R18 ワードの検知とメッセージ削除
-  Detects R18 words and deletes offending messages
+- 禁止 ワードの検知とメッセージ削除
+  Detects banned words and deletes offending messages
 - 会話を促す自動メッセージ投稿
   Posts prompts automatically to encourage conversation
 
