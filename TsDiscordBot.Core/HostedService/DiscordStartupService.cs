@@ -23,7 +23,7 @@ public class DiscordStartupService : IHostedService
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        var token = Environment.GetEnvironmentVariable("DISCORD_TOKEN");
+        var token = Envs.DISCORD_TOKEN;
         if (string.IsNullOrWhiteSpace(token))
         {
             token = _config["token"];

@@ -10,7 +10,7 @@ using TsDiscordBot.Core.Services;
 using IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration(config =>
     {
-        config.AddYamlFile("_config.yml", false);
+        config.AddYamlFile("_config.yml", true);
     })
     .ConfigureServices(services =>
     {

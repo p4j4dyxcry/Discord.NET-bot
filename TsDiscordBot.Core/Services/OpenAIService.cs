@@ -19,7 +19,7 @@ namespace TsDiscordBot.Core.Services
         {
             _databaseService = databaseService;
 
-            var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+            var apiKey = Envs.OPENAI_API_KEY;
             if (string.IsNullOrWhiteSpace(apiKey))
             {
                 apiKey = config["open_ai_api_key"];
@@ -27,7 +27,7 @@ namespace TsDiscordBot.Core.Services
 
             _client = new(model: "gpt-5-nano", apiKey: apiKey);
 
-            var systemPrompt = Environment.GetEnvironmentVariable("OPENAI_PROMPT");
+            var systemPrompt = Envs.OPENAI_PROMPT;
             if (string.IsNullOrWhiteSpace(systemPrompt))
             {
                 systemPrompt = config["open_ai_prompt"];
