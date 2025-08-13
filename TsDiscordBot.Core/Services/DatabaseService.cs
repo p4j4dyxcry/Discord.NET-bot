@@ -68,7 +68,7 @@ public class DatabaseService : IDisposable
     {
         if (_litedb is null)
         {
-            _logger.LogError($"Failed to insert DB path:{_databasePath} table name:{tableName}");
+            _logger.LogError($"Failed to find DB path:{_databasePath} table name:{tableName}");
             return ArraySegment<T>.Empty;
         }
 
@@ -79,7 +79,7 @@ public class DatabaseService : IDisposable
         }
         catch(Exception e)
         {
-            _logger.LogError(e,$"Failed to insert DB path:{_databasePath} table name:{tableName}");
+            _logger.LogError(e,$"Failed to find DB path:{_databasePath} table name:{tableName}");
             return ArraySegment<T>.Empty;
         }
     }
