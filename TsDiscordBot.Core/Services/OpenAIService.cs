@@ -27,15 +27,25 @@ namespace TsDiscordBot.Core.Services
 
             _client = new(model: "gpt-5-nano", apiKey: apiKey);
 
-            _systemPrompt = string.Empty;
-            try
+            var systemPrompt = Environment.GetEnvironmentVariable("OPENAI_PROMPT");
+            if (string.IsNullOrWhiteSpace(systemPrompt))
             {
-                _systemPrompt = File.ReadAllText("_prompt.txt");
+                systemPrompt = config["open_ai_prompt"];
             }
-            catch
+
+            if (string.IsNullOrWhiteSpace(systemPrompt))
             {
-                //ignored.
+                try
+                {
+                    systemPrompt = File.ReadAllText("_prompt.txt");
+                }
+                catch
+                {
+                    systemPrompt = string.Empty;
+                }
             }
+
+            _systemPrompt = systemPrompt ?? string.Empty;
         }
 
         public string GetEducationPrompt(ulong guildId)
