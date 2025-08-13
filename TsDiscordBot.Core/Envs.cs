@@ -1,4 +1,6 @@
-﻿namespace TsDiscordBot.Core
+﻿using Microsoft.Extensions.Logging;
+
+namespace TsDiscordBot.Core
 {
     public static class Envs
     {
@@ -6,5 +8,17 @@
         public static string OPENAI_PROMPT => Environment.GetEnvironmentVariable(nameof(OPENAI_PROMPT)) ?? string.Empty;
         public static string DISCORD_TOKEN => Environment.GetEnvironmentVariable(nameof(DISCORD_TOKEN)) ?? string.Empty;
         public static string LITEDB_PATH => Environment.GetEnvironmentVariable(nameof(LITEDB_PATH)) ?? string.Empty;
+
+        public static void LogEnvironmentVariables()
+        {
+            Console.WriteLine(
+                "ENV present: OPENAI_API_KEY={0}, DISCORD_TOKEN={1}",
+                !string.IsNullOrWhiteSpace(OPENAI_API_KEY),
+                !string.IsNullOrWhiteSpace(DISCORD_TOKEN));
+
+            Console.WriteLine("ENV values: OPENAI_PROMPT={0}, LITEDB_PATH={1}",
+                OPENAI_PROMPT,
+                LITEDB_PATH);
+        }
     }
 }

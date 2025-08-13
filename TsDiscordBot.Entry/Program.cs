@@ -4,8 +4,12 @@ using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using TsDiscordBot.Core;
 using TsDiscordBot.Core.HostedService;
 using TsDiscordBot.Core.Services;
+
+// logging
+Envs.LogEnvironmentVariables();
 
 using IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureAppConfiguration(config =>
