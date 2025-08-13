@@ -16,7 +16,7 @@ public class ReactionCommandModule : InteractionModuleBase<SocketInteractionCont
         _databaseService = databaseService;
     }
 
-    [SlashCommand("add-trigger-reaction", "Register a reaction for a specific word")]
+    [SlashCommand("add-trigger-reaction", "特定の言葉にリアクションをつけさせます。")]
     public async Task AddReaction(string triggerWord, string reaction)
     {
         try
@@ -39,7 +39,7 @@ public class ReactionCommandModule : InteractionModuleBase<SocketInteractionCont
         }
     }
 
-    [SlashCommand("remove-trigger-reaction", "Remove a reaction for a specific word")]
+    [SlashCommand("remove-trigger-reaction", "特定の言葉からリアクションを解除します。")]
     public async Task RemoveReaction(string triggerWord)
     {
         try

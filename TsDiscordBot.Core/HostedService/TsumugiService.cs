@@ -50,7 +50,6 @@ namespace TsDiscordBot.Core.HostedService
                     return;
                 }
 
-
                 if (message.MentionedUsers.Any(x=>x.Id == _client.CurrentUser.Id) ||
                     message.Content.StartsWith("!つむぎ"))
                 {
@@ -68,7 +67,7 @@ namespace TsDiscordBot.Core.HostedService
                         .Take(30)
                         .ToArray();
 
-                    string result = await _openAiService.GetResponse(messageStruct,previousMessages);
+                    string result = await _openAiService.GetResponse(guildChannel.Guild.Id,messageStruct,previousMessages);
 
                     await message.Channel.SendMessageAsync(result);
                 }

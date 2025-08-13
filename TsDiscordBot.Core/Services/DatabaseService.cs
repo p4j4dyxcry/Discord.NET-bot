@@ -36,6 +36,7 @@ public class DatabaseService : IDisposable
         {
             var col = _litedb.GetCollection<T>(tableName);
             _ = col.Insert(data);
+
         }
         catch(Exception e)
         {

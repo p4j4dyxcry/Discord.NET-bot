@@ -33,6 +33,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<InteractionHandlingService>();
         services.AddHostedService<DiscordStartupService>();
         services.AddHostedService<TriggerReactionService>();
+        services.AddHostedService<R18MessageCheckerService>();
         services.AddHostedService<NauAriService>();
         services.AddHostedService<TsumugiService>();
     })

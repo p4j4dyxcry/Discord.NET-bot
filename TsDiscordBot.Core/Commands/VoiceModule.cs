@@ -1,11 +1,9 @@
 ﻿using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Text;
 using Discord;
 using Discord.Audio;
 using Discord.Commands;
 using Discord.Interactions;
-using Newtonsoft.Json;
 using VoicevoxClientSharp;
 using RunMode = Discord.Interactions.RunMode;
 
@@ -64,6 +62,8 @@ public class VoiceCommands : InteractionModuleBase<SocketInteractionContext>
     [SlashCommand("say","say something")]
     public async Task Say([Remainder] string text)
     {
+        await EnsureFreshAudioClientAsync();
+
         var audioClient = GetCurrentAudioClient();
 
         if (audioClient is null)
@@ -85,7 +85,7 @@ public class VoiceCommands : InteractionModuleBase<SocketInteractionContext>
         // AudioClient を使って音声データをストリームとして送信
         var audioStream = new MemoryStream(result.Wav);
 
-        var tempFilePath = Path.GetTempFileName(); // 一時ファイルを作成
+        var tempFilePath = $"{Path.GetTempFileName()}.wav"; // 一時ファイルを作成
         await using (var fileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write))
         {
             await audioStream.CopyToAsync(fileStream);
@@ -98,26 +98,53 @@ public class VoiceCommands : InteractionModuleBase<SocketInteractionContext>
     {
         // Create FFmpeg using the previous example
         using (var ffmpeg = CreateStream(path)!)
-        using (var output = ffmpeg.StandardOutput.BaseStream)
-        using (var discord = client.CreatePCMStream(AudioApplication.Mixed))
+        await using (var output = ffmpeg.StandardOutput.BaseStream)
+        await using (var discordAudioOutStream = client.CreatePCMStream(AudioApplication.Music))
         {
             try
             {
-                await output.CopyToAsync(discord);
+                await output.CopyToAsync(discordAudioOutStream);
             }
             finally
             {
-                await discord.FlushAsync();
+                await discordAudioOutStream.FlushAsync();
             }
         }
     }
 
+    private async Task<IAudioClient> EnsureFreshAudioClientAsync()
+    {
+        var user = Context.User as IGuildUser;
+        var vc = user?.VoiceChannel;
+        if (vc == null) throw new InvalidOperationException("VoiceChannel が null");
+
+        // if (_audioClients.TryGetValue(vc.Id, out var client))
+        // {
+        //     await client.StopAsync();
+        //     await Task.Delay(300);
+        // }
+
+        var newClient = await vc.ConnectAsync();
+        _audioClients[vc.Id] = newClient;
+        return newClient;
+    }
+
     private Process? CreateStream(string path) {
-        return Process.Start(new ProcessStartInfo {
-            FileName = "ffmpeg.exe",
-            Arguments = $"-hide_banner -loglevel panic -i \"{path}\" -ac 2 -f s16le -ar 48000 pipe:1",
-            UseShellExecute = false,
-            RedirectStandardOutput = true
-        });
+        try
+        {
+            var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = "ffmpeg.exe",
+                Arguments = $"-hide_banner -loglevel panic -i \"{path}\" -ac 2 -f s16le -ar 48000 pipe:1",
+                UseShellExecute = false,
+                RedirectStandardOutput = true
+            });
+            return process;
+        }
+        catch
+        {
+            Debug.WriteLine("Failed to start process");
+            return null;
+        }
     }
 }
