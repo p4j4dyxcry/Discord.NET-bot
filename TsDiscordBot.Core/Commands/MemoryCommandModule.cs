@@ -62,13 +62,13 @@ public class MemoryCommandModule: InteractionModuleBase<SocketInteractionContext
     }
 
     [SlashCommand("show-memories", "つむぎちゃんが覚えていること一覧を表示させる")]
-    private  async Task ShowMemories()
+    public async Task ShowMemories()
     {
         var guildId = Context.Guild.Id;
         LongTermMemory[] memories =
-        _databaseService.FindAll<LongTermMemory>(LongTermMemory.TableName)
-            .Where(x => x.GuildId == guildId)
-            .ToArray();
+            _databaseService.FindAll<LongTermMemory>(LongTermMemory.TableName)
+                .Where(x => x.GuildId == guildId)
+                .ToArray();
 
         StringBuilder builder = new();
 
@@ -76,6 +76,7 @@ public class MemoryCommandModule: InteractionModuleBase<SocketInteractionContext
         {
             builder.AppendLine($"ID = {memory.Id}: {memory.Content} by {memory.Author}");
         }
+
         await RespondAsync(builder.ToString());
     }
 }

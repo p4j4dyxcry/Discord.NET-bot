@@ -116,7 +116,7 @@ namespace TsDiscordBot.Core.HostedService
 
             if (reply is not null)
             {
-                body = $">> {reply.Author}({reply.Date}):{reply.Content}${body}";
+                body = $">> {reply.Author}({reply.Date}):{reply.Content}\n{body}";
             }
 
             author ??= message.Author.Username;
