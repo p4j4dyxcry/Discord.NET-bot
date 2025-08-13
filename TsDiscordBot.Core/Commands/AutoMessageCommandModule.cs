@@ -25,8 +25,15 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
         var channelId = Context.Channel.Id;
         var guildId = Context.Guild.Id;
 
-        var existing = _databaseService.FindAll<AutoMessageChannel>(AutoMessageChannel.TableName)
-            .FirstOrDefault(x => x.ChannelId == channelId && x.GuildId == guildId);
+        var existing = _databaseService
+            .FindAll<AutoMessageChannel>(AutoMessageChannel.TableName)
+            .FirstOrDefault(x => x.GuildId == guildId);
+
+        if (existing is not null && existing.ChannelId != channelId)
+        {
+            await RespondAsync($"このサーバーでは既に自動メッセージが<#{existing.ChannelId}>に設定されているよ！まずは`/remove-auto-message`で解除してね。");
+            return;
+        }
 
         if (existing is not null)
         {
@@ -49,20 +56,20 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
     [SlashCommand("remove-auto-message", "AIで会話を促す自動メッセージの設定を解除します。")]
     public async Task UnregisterAutoMessage()
     {
-        var channelId = Context.Channel.Id;
         var guildId = Context.Guild.Id;
 
-        var existing = _databaseService.FindAll<AutoMessageChannel>(AutoMessageChannel.TableName)
-            .FirstOrDefault(x => x.ChannelId == channelId && x.GuildId == guildId);
+        var existing = _databaseService
+            .FindAll<AutoMessageChannel>(AutoMessageChannel.TableName)
+            .FirstOrDefault(x => x.GuildId == guildId);
 
         if (existing is null)
         {
-            await RespondAsync("このチャンネルでは自動メッセージは設定されていないよ！");
+            await RespondAsync("このサーバーでは自動メッセージは設定されていないよ！");
             return;
         }
 
         _databaseService.Delete(AutoMessageChannel.TableName, existing.Id);
 
-        await RespondAsync("このチャンネルでの自動メッセージ設定を解除したよ！");
+        await RespondAsync($"チャンネル<#{existing.ChannelId}>での自動メッセージ設定を解除したよ！");
     }
 }
