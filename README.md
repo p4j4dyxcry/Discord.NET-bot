@@ -1,10 +1,10 @@
 # Discord.NET ボット
 
 このプロジェクトは、Discord.NET と OpenAI を利用して実装された多機能な Discord ボットです。
-会話の生成、定型リアクション、R18 ワード検知、自動メッセージ送信などをサポートします。
+会話の生成、定型リアクション、禁止ワード検知、自動メッセージ送信などをサポートします。
 
 This project is a feature-rich Discord bot built with Discord.NET and OpenAI.
-It supports chat generation, automatic reactions, R18 word detection, and scheduled messages.
+It supports chat generation, automatic reactions, banned word detection, and scheduled messages.
 
 ## 特徴 / Features
 - OpenAI を用いた対話機能
