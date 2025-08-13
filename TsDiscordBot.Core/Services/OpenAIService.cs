@@ -15,10 +15,17 @@ namespace TsDiscordBot.Core.Services
         private readonly string _systemPrompt;
         private readonly LimitedQueue<ChatMessage> _history = new(20);
 
-        public OpenAIService(IConfiguration config,DatabaseService databaseService)
+        public OpenAIService(IConfiguration config, DatabaseService databaseService)
         {
             _databaseService = databaseService;
-            _client = new(model: "gpt-5-nano", apiKey: config["open_ai_api_key"]);
+
+            var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                apiKey = config["open_ai_api_key"];
+            }
+
+            _client = new(model: "gpt-5-nano", apiKey: apiKey);
 
             _systemPrompt = string.Empty;
             try
