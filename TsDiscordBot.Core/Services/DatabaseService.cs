@@ -72,6 +72,25 @@ public class DatabaseService : IDisposable
         }
     }
 
+    public void Update<T>(string tableName, T data)
+    {
+        if (_litedb is null)
+        {
+            _logger.LogError($"Failed to update DB path:{_databasePath} table name:{tableName}");
+            return;
+        }
+
+        try
+        {
+            var col = _litedb.GetCollection<T>(tableName);
+            _ = col.Update(data);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e,$"Failed to update DB path:{_databasePath} table name:{tableName}");
+        }
+    }
+
     public IEnumerable<T> FindAll<T>(string tableName)
     {
         if (_litedb is null)

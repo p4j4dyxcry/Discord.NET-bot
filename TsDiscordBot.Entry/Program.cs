@@ -40,6 +40,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<R18MessageCheckerService>();
         services.AddHostedService<NauAriService>();
         services.AddHostedService<TsumugiService>();
+        services.AddHostedService<AutoMessageService>();
     })
     .Build();
 
