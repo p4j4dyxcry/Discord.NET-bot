@@ -47,7 +47,6 @@ public class AutoMessageService : BackgroundService
                         if (channel is not null)
                         {
                             var previousMessages = (await channel.GetMessagesAsync(30).FlattenAsync())
-                                .Where(x => !x.Author.IsBot)
                                 .Select(ConvertFromDiscord)
                                 .OrderBy(x => x.Date)
                                 .ToArray();
