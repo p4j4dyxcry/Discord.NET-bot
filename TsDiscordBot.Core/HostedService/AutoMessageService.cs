@@ -52,7 +52,7 @@ public class AutoMessageService : BackgroundService
                                 .OrderBy(x => x.Date)
                                 .ToArray();
 
-                            var prompt = new ConvertedMessage("会話を促す短いメッセージを作って", "system", DateTimeOffset.Now,false);
+                            var prompt = new ConvertedMessage("会話を促す短いメッセージを独り言として作成してください。", "system", DateTimeOffset.Now,false,true);
                             var message = await _openAiService.GetResponse(guildId, prompt, previousMessages);
                             await channel.SendMessageAsync(message);
 
