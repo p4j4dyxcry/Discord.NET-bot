@@ -67,7 +67,7 @@ namespace TsDiscordBot.Core.HostedService
                     previousMessages = _firstHistory[message.Channel.Id]
                         .Concat(previousMessages)
                         .OrderBy(x => x.Date)
-                        .Take(30)
+                        .TakeLast(30)
                         .ToArray();
 
                     string result = await _openAiService.GetResponse(guildChannel.Guild.Id, messageStruct, previousMessages);
