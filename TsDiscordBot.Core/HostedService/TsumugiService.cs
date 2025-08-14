@@ -70,7 +70,7 @@ namespace TsDiscordBot.Core.HostedService
                         .TakeLast(30)
                         .ToArray();
 
-                    string result = await _openAiService.GetResponse(guildChannel.Guild.Id, messageStruct, previousMessages);
+                    string result = await _openAiService.GetResponse(guildChannel.Guild.Id, null, previousMessages);
 
                     await message.Channel.SendMessageAsync(result);
                 }
