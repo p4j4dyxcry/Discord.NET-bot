@@ -13,7 +13,6 @@ namespace TsDiscordBot.Core.Services
         private readonly ChatClient _client;
 
         private readonly string _systemPrompt;
-        private readonly LimitedQueue<ChatMessage> _history = new(20);
 
         public OpenAIService(IConfiguration config, DatabaseService databaseService)
         {
@@ -48,11 +47,18 @@ namespace TsDiscordBot.Core.Services
             _systemPrompt = systemPrompt ?? string.Empty;
         }
 
-        public string GetEducationPrompt(ulong guildId)
+        private bool HasEducation(ulong guildId)
+        {
+            return _databaseService
+                .FindAll<LongTermMemory>(LongTermMemory.TableName)
+                .Any(x => x.GuildId == guildId);
+        }
+
+        private string GetEducationPrompt(ulong guildId)
         {
             StringBuilder sb = new StringBuilder();
 
-            sb.AppendLine("# 以下は長期つむぎの長期記憶です。 Discord に参加してもらったユーザーから教えてもらった大事な情報です。");
+            sb.AppendLine("# 以下は長期つむぎの長期記憶です。 Discord に参加してもらったユーザーから教えてもらった情報です。");
 
             var memories = _databaseService.FindAll<LongTermMemory>(LongTermMemory.TableName)
                 .Where(x => x.GuildId == guildId)
@@ -66,55 +72,59 @@ namespace TsDiscordBot.Core.Services
             return sb.ToString();
         }
 
-        public record Message(string Content, string Author, DateTimeOffset Date);
-
-        public async Task<string> GetResponse(ulong guildId,Message message,Message[] previousMessages)
+        public async Task<string> GetResponse(ulong guildId,ConvertedMessage convertedMessage,ConvertedMessage[] previousMessages)
         {
-            StringBuilder serverContextBuilder = new();
-            serverContextBuilder.AppendLine("#Discord サーバー内の直前のやりとり");
+            var recent = previousMessages
+                .OrderBy(x => x.Date)
+                .TakeLast(20);
 
-            if (previousMessages.Length > 0)
-            {
-                foreach (Message previousMessage in previousMessages)
-                {
-                    serverContextBuilder.AppendLine($"{previousMessage.Author}({previousMessage.Date}):{previousMessage.Content}");
-                }
-            }
-            else
-            {
-                serverContextBuilder.AppendLine("メッセージはありません。");
-            }
+            ChatMessage.CreateSystemMessage(GetEducationPrompt(guildId));
 
-            StringBuilder sb = new();
+            var conversationHistory = ToChatHistoryWithSparseNames(recent);
+            conversationHistory.AddRange(ToChatHistoryWithSparseNames([convertedMessage]));
 
-            sb.AppendLine("# 送信者情報");
-            sb.AppendLine($"{message.Author},{message.Date}");
-            sb.AppendLine("# 入力メッセージ");
-            sb.AppendLine(message.Content);
-
-            string prompt = sb.ToString();
-
-            ChatMessage userMessage = ChatMessage.CreateUserMessage(prompt);
-            _history.Enqueue(userMessage);
             ChatCompletion completion = await _client
                 .CompleteChatAsync(
                     new[]{
                             ChatMessage.CreateSystemMessage(_systemPrompt),
-                            ChatMessage.CreateSystemMessage( GetEducationPrompt(guildId)),
-                            ChatMessage.CreateSystemMessage(serverContextBuilder.ToString())
-                        }
-                    .Concat(_history));
-
-            string response = completion.Content[0].Text;
-
-            _history.Enqueue(ChatMessage.CreateAssistantMessage(response));
+                            HasEducation(guildId) ? ChatMessage.CreateSystemMessage(GetEducationPrompt(guildId)) : null
+                        }.Where(x=> x is not null)
+                    .Concat(conversationHistory));
 
             return completion.Content[0].Text;
         }
 
-        public void ClearHistory()
+        List<ChatMessage> ToChatHistoryWithSparseNames(IEnumerable<ConvertedMessage> msgs)
         {
-            _history.Clear();
+            var list = msgs.OrderBy(m => m.Date).ToList();
+            var result = new List<ChatMessage>();
+            string lastUser = string.Empty;
+
+            foreach (var m in list)
+            {
+                var text = m.Content.Trim();
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    continue;
+                }
+
+                if (!m.FromTsumugi && lastUser != m.Author)
+                {
+                    text = $"@{m.Author}: {text}";
+                }
+
+                if (m.FromTsumugi)
+                {
+                    result.Add(ChatMessage.CreateAssistantMessage(text));
+                }
+                else
+                {
+                    result.Add(ChatMessage.CreateUserMessage(text));
+                }
+
+                lastUser = m.Author;
+            }
+            return result;
         }
     }
 }
