@@ -72,7 +72,7 @@ namespace TsDiscordBot.Core.Services
             return sb.ToString();
         }
 
-        public async Task<string> GetResponse(ulong guildId,ConvertedMessage convertedMessage,ConvertedMessage[] previousMessages)
+        public async Task<string> GetResponse(ulong guildId,ConvertedMessage? convertedMessage,ConvertedMessage[] previousMessages)
         {
             var recent = previousMessages
                 .OrderBy(x => x.Date)
@@ -81,7 +81,10 @@ namespace TsDiscordBot.Core.Services
             ChatMessage.CreateSystemMessage(GetEducationPrompt(guildId));
 
             var conversationHistory = ToChatHistoryWithSparseNames(recent);
-            conversationHistory.AddRange(ToChatHistoryWithSparseNames([convertedMessage]));
+            if (convertedMessage is not null)
+            {
+                conversationHistory.AddRange(ToChatHistoryWithSparseNames([convertedMessage]));
+            }
 
             ChatCompletion completion = await _client
                 .CompleteChatAsync(
