@@ -1,21 +1,24 @@
 ﻿using System.Collections.Concurrent;
+using System.Text;
+using System.Text.RegularExpressions;
 using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Services;
+using TsDiscordBot.Core.Utility;
 
 namespace TsDiscordBot.Core.HostedService
 {
-    public class TsumugiService: IHostedService
+    public class TsumugiService : IHostedService
     {
         private readonly DiscordSocketClient _client;
         private readonly ILogger<NauAriService> _logger;
         private readonly OpenAIService _openAiService;
 
-        private readonly ConcurrentDictionary<ulong, OpenAIService.Message[]> _firstHistory = new();
+        private readonly ConcurrentDictionary<ulong, ConvertedMessage[]> _firstHistory = new();
 
-        public TsumugiService(DiscordSocketClient client, ILogger<NauAriService> logger,OpenAIService openAiService)
+        public TsumugiService(DiscordSocketClient client, ILogger<NauAriService> logger, OpenAIService openAiService)
         {
             _client = client;
             _logger = logger;
@@ -40,8 +43,9 @@ namespace TsDiscordBot.Core.HostedService
             {
                 if (!_firstHistory.TryGetValue(message.Channel.Id, out var cache))
                 {
-                    _firstHistory[message.Channel.Id] = (await message.Channel.GetMessagesAsync().FlattenAsync())
-                        .Select(ConvertFromDiscord)
+                    _firstHistory[message.Channel.Id] = (await message.Channel.GetMessagesAsync()
+                            .FlattenAsync())
+                        .Select(DiscordToOpenAIMessageConverter.ConvertFromDiscord)
                         .ToArray();
                 }
 
@@ -50,79 +54,47 @@ namespace TsDiscordBot.Core.HostedService
                     return;
                 }
 
-                if (message.MentionedUsers.Any(x=>x.Id == _client.CurrentUser.Id) ||
+                if (message.MentionedUsers.Any(x => x.Id == _client.CurrentUser.Id) ||
                     message.Content.StartsWith("!つむぎ"))
                 {
-
                     var reply = await GetReplyReferenceAsync(message);
-                    var messageStruct = ConvertFromDiscord(message,reply);
+                    var messageStruct = DiscordToOpenAIMessageConverter.ConvertFromDiscord(message, reply);
 
-                    var previousMessages= message.Channel.GetCachedMessages(100)
-                        .Select(ConvertFromDiscord)
+                    var previousMessages = message.Channel.GetCachedMessages(100)
+                        .Select(DiscordToOpenAIMessageConverter.ConvertFromDiscord)
                         .ToArray();
 
                     previousMessages = _firstHistory[message.Channel.Id]
                         .Concat(previousMessages)
-                        .OrderBy(x=>x.Date)
+                        .OrderBy(x => x.Date)
                         .Take(30)
                         .ToArray();
 
-                    string result = await _openAiService.GetResponse(guildChannel.Guild.Id,messageStruct,previousMessages);
+                    string result = await _openAiService.GetResponse(guildChannel.Guild.Id, messageStruct, previousMessages);
 
                     await message.Channel.SendMessageAsync(result);
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                _logger.LogError(e,"Failed to Nauari");
+                _logger.LogError(e, "Failed to Nauari");
             }
         }
 
-        private async Task<OpenAIService.Message?> GetReplyReferenceAsync(IMessage message)
+        private async Task<ConvertedMessage?> GetReplyReferenceAsync(IMessage message)
         {
-            OpenAIService.Message? reply = null;
+            ConvertedMessage? reply = null;
             if (message.Reference?.MessageId.IsSpecified == true)
             {
                 var referencedMessage = await message.Channel.GetMessageAsync(message.Reference.MessageId.Value);
 
                 if (referencedMessage != null)
                 {
-                    reply = ConvertFromDiscord(referencedMessage);
+                    reply = DiscordToOpenAIMessageConverter.ConvertFromDiscord(referencedMessage);
                 }
             }
 
             return reply;
         }
-
-        private OpenAIService.Message ConvertFromDiscord(IMessage message)
-        {
-            return ConvertFromDiscord(message, null);
-        }
-
-        private OpenAIService.Message ConvertFromDiscord(IMessage message, OpenAIService.Message? reply = null)
-        {
-            string? author = null;
-            if (message.Author is SocketGuildUser guildUser)
-            {
-                author = guildUser.Nickname;
-            }
-
-            string body = message.Content;
-
-            if (message.Content.StartsWith("!つむぎ"))
-            {
-                body = message.Content.Substring("!つむぎ".Length).Trim();
-            }
-
-            if (reply is not null)
-            {
-                body = $">> {reply.Author}({reply.Date}):{reply.Content}\n{body}";
-            }
-
-            author ??= message.Author.Username;
-
-            return new(body, author, message.CreatedAt.ToLocalTime());
-        }
-
     }
 }

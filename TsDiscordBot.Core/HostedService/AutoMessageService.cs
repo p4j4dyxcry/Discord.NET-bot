@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Services;
+using TsDiscordBot.Core.Utility;
 
 namespace TsDiscordBot.Core.HostedService;
 
@@ -46,12 +47,12 @@ public class AutoMessageService : BackgroundService
 
                         if (channel is not null)
                         {
-                            var previousMessages = (await channel.GetMessagesAsync(30).FlattenAsync())
-                                .Select(ConvertFromDiscord)
+                            var previousMessages = (await channel.GetMessagesAsync(20).FlattenAsync())
+                                .Select(DiscordToOpenAIMessageConverter.ConvertFromDiscord)
                                 .OrderBy(x => x.Date)
                                 .ToArray();
 
-                            var prompt = new OpenAIService.Message("会話を促す短いメッセージを作って", "system", DateTimeOffset.Now);
+                            var prompt = new ConvertedMessage("会話を促す短いメッセージを作って", "system", DateTimeOffset.Now,false);
                             var message = await _openAiService.GetResponse(guildId, prompt, previousMessages);
                             await channel.SendMessageAsync(message);
 
@@ -68,14 +69,5 @@ public class AutoMessageService : BackgroundService
 
             await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
         }
-    }
-
-    private OpenAIService.Message ConvertFromDiscord(IMessage message)
-    {
-        string author = message.Author is SocketGuildUser guildUser
-            ? guildUser.Nickname ?? guildUser.Username
-            : message.Author.Username;
-
-        return new(message.Content, author, message.CreatedAt.ToLocalTime());
     }
 }
