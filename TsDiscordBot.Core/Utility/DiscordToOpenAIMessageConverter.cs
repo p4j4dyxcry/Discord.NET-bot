@@ -5,7 +5,7 @@ using Discord.WebSocket;
 
 namespace TsDiscordBot.Core.Utility
 {
-    public record ConvertedMessage(string Content, string Author, DateTimeOffset Date, bool FromTsumugi);
+    public record ConvertedMessage(string Content, string Author, DateTimeOffset Date, bool FromTsumugi, bool FromSystem);
 
     public static class DiscordToOpenAIMessageConverter
     {
@@ -59,7 +59,7 @@ namespace TsDiscordBot.Core.Utility
 
             bool isTsumugi = message.Author.Id == _tsumugiId;
 
-            return new ConvertedMessage(body, author, when, isTsumugi);
+            return new ConvertedMessage(body, author, when, isTsumugi,false);
         }
 
         private static string StripBotPrefixes(string text, IEnumerable<string> prefixes)

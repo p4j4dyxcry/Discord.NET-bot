@@ -111,11 +111,15 @@ namespace TsDiscordBot.Core.Services
                     continue;
                 }
 
-                if (!m.FromTsumugi && lastUser != m.Author)
+                if (!m.FromTsumugi && !m.FromSystem && lastUser != m.Author)
                 {
                     text = $"@{m.Author}: {text}";
                 }
 
+                if (m.FromSystem)
+                {
+                    result.Add(ChatMessage.CreateSystemMessage(text));
+                }
                 if (m.FromTsumugi)
                 {
                     result.Add(ChatMessage.CreateAssistantMessage(text));
