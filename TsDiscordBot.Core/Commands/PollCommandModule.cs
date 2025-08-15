@@ -24,7 +24,7 @@ public class PollCommandModule : InteractionModuleBase<SocketInteractionContext>
 
         if (options.Length < 2)
         {
-            await RespondAsync("選択肢は2つ以上指定してください。", ephemeral: true);
+            await RespondAsync("選択肢は2つ以上指定してね！", ephemeral: true);
             return;
         }
 
