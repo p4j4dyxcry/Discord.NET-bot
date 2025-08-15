@@ -22,7 +22,8 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
     [SlashCommand("auto-message", "AIで会話を促す自動メッセージを設定します。")]
     public async Task RegisterAutoMessage(
         [Summary("t", "メッセージを送信する間隔(時間)")] int t = 1,
-        [Summary("c", "メッセージを送信するチャンネル")] SocketTextChannel? channel = null)
+        [Summary("c", "メッセージを送信するチャンネル")] SocketTextChannel? channel = null,
+        [Summary("s", "最初のメッセージを送信する時刻 (HH:mm)")] string? startTime = null)
     {
         var channelId = channel?.Id ?? Context.Channel.Id;
         var guildId = Context.Guild.Id;
@@ -42,17 +43,47 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
             _databaseService.Delete(AutoMessageChannel.TableName, existing.Id);
         }
 
+        DateTime lastPostedUtc;
+        string startMessage;
+
+        if (!string.IsNullOrWhiteSpace(startTime))
+        {
+            if (TimeSpan.TryParse(startTime, out var time))
+            {
+                var now = DateTime.Now;
+                var startLocal = new DateTime(now.Year, now.Month, now.Day, time.Hours, time.Minutes, 0);
+                if (startLocal <= now)
+                {
+                    startLocal = startLocal.AddDays(1);
+                }
+
+                var startUtc = startLocal.ToUniversalTime();
+                lastPostedUtc = startUtc.AddHours(-t);
+                startMessage = $"{startLocal:HH:mm}から";
+            }
+            else
+            {
+                await RespondAsync("開始時刻の形式が正しくないよ！（例: 09:00）");
+                return;
+            }
+        }
+        else
+        {
+            lastPostedUtc = DateTime.UtcNow;
+            startMessage = "今";
+        }
+
         var data = new AutoMessageChannel
         {
             GuildId = guildId,
             ChannelId = channelId,
             IntervalHours = t,
-            LastPostedUtc = DateTime.UtcNow
+            LastPostedUtc = lastPostedUtc
         };
 
         _databaseService.Insert(AutoMessageChannel.TableName, data);
 
-        await RespondAsync($"チャンネル<#{channelId}>で{t}時間ごとにメッセージを送信するように設定したよ！");
+        await RespondAsync($"チャンネル<#{channelId}>で{startMessage}{t}時間ごとにメッセージを送信するように設定したよ！");
     }
 
     [SlashCommand("remove-auto-message", "AIで会話を促す自動メッセージの設定を解除します。")]
