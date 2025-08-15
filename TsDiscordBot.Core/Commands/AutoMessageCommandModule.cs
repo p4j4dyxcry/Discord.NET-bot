@@ -133,7 +133,7 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
 
     [SlashCommand("overwrite-auto-message", "AIで会話を促す自動メッセージの設定を上書きします。")]
     public async Task OverwriteAutoMessage(
-        [Summary("t", "メッセージを送信する間隔(時間)")] int t = 1,
+        [Summary("t", "メッセージを送信する間隔(時間)")] int t = -1,
         [Summary("c", "メッセージを送信するチャンネル")] SocketTextChannel? channel = null,
         [Summary("s", "最初のメッセージを送信する時刻 (HH:mm, 日本時間 GMT+9:00)")] string? startTime = null)
     {
@@ -147,6 +147,18 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
         if (existing is not null)
         {
             _databaseService.Delete(AutoMessageChannel.TableName, existing.Id);
+
+            if (t is -1)
+            {
+                t = existing.IntervalHours;
+            }
+        }
+        else
+        {
+            if (t is -1)
+            {
+                t = 1;
+            }
         }
 
         DateTime lastPostedUtc;
