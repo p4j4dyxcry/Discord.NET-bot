@@ -55,6 +55,40 @@ public class ReminderCommandModule : InteractionModuleBase<SocketInteractionCont
         await RespondAsync($"{confirmLocal:yyyy/MM/dd HH:mm}にリマインドするね！");
     }
 
+    [SlashCommand("remind-list", "あなたのリマインドを一覧表示します。")]
+    public async Task ListReminder()
+    {
+        var guildId = Context.Guild.Id;
+        var userId = Context.User.Id;
+
+        var reminders = _databaseService
+            .FindAll<Reminder>(Reminder.TableName)
+            .Where(x => x.GuildId == guildId && x.UserId == userId)
+            .ToArray();
+
+        if (reminders.Length == 0)
+        {
+            await RespondAsync("リマインドは登録されていないよ！");
+            return;
+        }
+
+        TimeZoneInfo jst;
+        try
+        {
+            jst = TimeZoneInfo.FindSystemTimeZoneById("Asia/Tokyo");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            jst = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
+        }
+
+        var lines = reminders
+            .Select(x => TimeZoneInfo.ConvertTimeFromUtc(x.RemindAtUtc, jst))
+            .Select(time => $"- {time:yyyy/MM/dd HH:mm}");
+
+        await RespondAsync("登録されているリマインドは以下の通りだよ:\n" + string.Join('\n', lines));
+    }
+
     [SlashCommand("remind-remove", "あなたのリマインドを全て削除します。")]
     public async Task RemoveReminder()
     {
