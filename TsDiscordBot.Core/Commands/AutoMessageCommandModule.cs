@@ -5,6 +5,7 @@ using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Services;
+using TsDiscordBot.Core.Utility;
 
 namespace TsDiscordBot.Core.Commands;
 
@@ -12,11 +13,13 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
 {
     private readonly ILogger _logger;
     private readonly DatabaseService _databaseService;
+    private readonly OpenAIService _openAiService;
 
-    public AutoMessageCommandModule(ILogger<AutoMessageCommandModule> logger, DatabaseService databaseService)
+    public AutoMessageCommandModule(ILogger<AutoMessageCommandModule> logger, DatabaseService databaseService, OpenAIService openAiService)
     {
         _logger = logger;
         _databaseService = databaseService;
+        _openAiService = openAiService;
     }
 
     [SlashCommand("auto-message", "AIで会話を促す自動メッセージを設定します。")]
@@ -129,6 +132,45 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
 
         var nextLocal = TimeZoneInfo.ConvertTimeFromUtc(nextUtc.AddHours(existing.IntervalHours), jst);
         await RespondAsync($"チャンネル<#{existing.ChannelId}>で{existing.IntervalHours}時間ごとにメッセージを送信するよう設定されているよ！次の送信予定時刻は{nextLocal:yyyy/MM/dd HH:mm}だよ。");
+    }
+
+    [SlashCommand("debug-auto-message", "デバッグ用に自動メッセージを今すぐ送信します。")]
+    public async Task DebugAutoMessage()
+    {
+        var guildId = Context.Guild.Id;
+
+        var existing = _databaseService
+            .FindAll<AutoMessageChannel>(AutoMessageChannel.TableName)
+            .FirstOrDefault(x => x.GuildId == guildId);
+
+        if (existing is null)
+        {
+            await RespondAsync("このサーバーでは自動メッセージは設定されていないよ！");
+            return;
+        }
+
+        SocketTextChannel? channel = Context.Client.GetChannel(existing.ChannelId) as SocketTextChannel
+            ?? Context.Guild.GetTextChannel(existing.ChannelId);
+
+        if (channel is null)
+        {
+            await RespondAsync("設定されているチャンネルが見つからないよ！");
+            return;
+        }
+
+        var previousMessages = (await channel.GetMessagesAsync(20).FlattenAsync())
+            .Select(DiscordToOpenAIMessageConverter.ConvertFromDiscord)
+            .OrderBy(x => x.Date)
+            .ToArray();
+
+        var prompt = new ConvertedMessage("会話を促す短いメッセージを独り言として作成してください。", "system", DateTimeOffset.Now, false, true);
+        var message = await _openAiService.GetResponse(guildId, prompt, previousMessages);
+        await channel.SendMessageAsync(message);
+
+        existing.LastPostedUtc = DateTime.UtcNow;
+        _databaseService.Update(AutoMessageChannel.TableName, existing);
+
+        await RespondAsync($"チャンネル<#{existing.ChannelId}>で自動メッセージを送信したよ！");
     }
 
     [SlashCommand("overwrite-auto-message", "AIで会話を促す自動メッセージの設定を上書きします。")]
