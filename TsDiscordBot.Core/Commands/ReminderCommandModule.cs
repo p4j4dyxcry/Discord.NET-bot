@@ -21,7 +21,7 @@ public class ReminderCommandModule : InteractionModuleBase<SocketInteractionCont
 
     [SlashCommand("remind", "指定した時刻にリマインドを設定します。")]
     public async Task RegisterReminder(
-        [Summary("time", "リマインドする時刻 (yyyy/MM/dd HH:mm)")] string time,
+        [Summary("time", "リマインドする時刻 (yyyy/MM/dd HH:mm JST)")] string time,
         [Summary("message", "リマインド内容")] string message)
     {
         if (!DateTime.TryParse(time, out var localTime))
@@ -30,18 +30,29 @@ public class ReminderCommandModule : InteractionModuleBase<SocketInteractionCont
             return;
         }
 
+        TimeZoneInfo jst;
+        try
+        {
+            jst = TimeZoneInfo.FindSystemTimeZoneById("Asia/Tokyo");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            jst = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
+        }
+
         var data = new Reminder
         {
             GuildId = Context.Guild.Id,
             ChannelId = Context.Channel.Id,
             UserId = Context.User.Id,
-            RemindAtUtc = localTime.ToUniversalTime(),
+            RemindAtUtc = TimeZoneInfo.ConvertTimeToUtc(localTime, jst),
             Message = message
         };
 
         _databaseService.Insert(Reminder.TableName, data);
 
-        await RespondAsync($"{localTime:yyyy/MM/dd HH:mm}にリマインドするね！");
+        var confirmLocal = TimeZoneInfo.ConvertTimeFromUtc(data.RemindAtUtc, jst);
+        await RespondAsync($"{confirmLocal:yyyy/MM/dd HH:mm}にリマインドするね！");
     }
 
     [SlashCommand("remind-remove", "あなたのリマインドを全て削除します。")]
