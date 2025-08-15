@@ -121,7 +121,13 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
             jst = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
         }
 
-        var nextLocal = TimeZoneInfo.ConvertTimeFromUtc(existing.LastPostedUtc.AddHours(existing.IntervalHours), jst);
+        var nextUtc = existing.LastPostedUtc;
+        if (nextUtc.Kind != DateTimeKind.Utc)
+        {
+            nextUtc = DateTime.SpecifyKind(nextUtc, DateTimeKind.Utc);
+        }
+
+        var nextLocal = TimeZoneInfo.ConvertTimeFromUtc(nextUtc.AddHours(existing.IntervalHours), jst);
         await RespondAsync($"チャンネル<#{existing.ChannelId}>で{existing.IntervalHours}時間ごとにメッセージを送信するよう設定されているよ！次の送信予定時刻は{nextLocal:yyyy/MM/dd HH:mm}だよ。");
     }
 
