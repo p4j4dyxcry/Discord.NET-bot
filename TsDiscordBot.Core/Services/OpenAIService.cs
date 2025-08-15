@@ -120,7 +120,7 @@ namespace TsDiscordBot.Core.Services
                 {
                     result.Add(ChatMessage.CreateSystemMessage(text));
                 }
-                if (m.FromTsumugi)
+                else if (m.FromTsumugi)
                 {
                     result.Add(ChatMessage.CreateAssistantMessage(text));
                 }
