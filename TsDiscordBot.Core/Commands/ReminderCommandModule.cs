@@ -61,12 +61,12 @@ public class ReminderCommandModule : InteractionModuleBase<SocketInteractionCont
     [SlashCommand("remind-list", "あなたのリマインドを一覧表示します。")]
     public async Task ListReminder()
     {
-        var guildId = Context.Guild.Id;
         var userId = Context.User.Id;
+        var guildId = Context.Guild?.Id;
 
         var reminders = _databaseService
             .FindAll<Reminder>(Reminder.TableName)
-            .Where(x => x.GuildId == guildId && x.UserId == userId)
+            .Where(x => x.UserId == userId && (guildId == null || x.GuildId == guildId))
             .ToArray();
 
         if (reminders.Length == 0)
@@ -86,7 +86,9 @@ public class ReminderCommandModule : InteractionModuleBase<SocketInteractionCont
         }
 
         var lines = reminders
-            .Select(x => TimeZoneInfo.ConvertTimeFromUtc(x.RemindAtUtc, jst))
+            .Select(x =>
+                TimeZoneInfo.ConvertTimeFromUtc(
+                    DateTime.SpecifyKind(x.RemindAtUtc, DateTimeKind.Utc), jst))
             .Select(time => $"- {time:yyyy/MM/dd HH:mm}");
 
         await RespondAsync("登録されているリマインドは以下の通りだよ:\n" + string.Join('\n', lines));

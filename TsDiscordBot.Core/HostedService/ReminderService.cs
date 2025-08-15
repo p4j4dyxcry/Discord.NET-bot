@@ -34,7 +34,9 @@ public class ReminderService : BackgroundService
 
                 foreach (var reminder in reminders)
                 {
-                    if (DateTime.UtcNow >= reminder.RemindAtUtc)
+                    var remindAtUtc = DateTime.SpecifyKind(reminder.RemindAtUtc, DateTimeKind.Utc);
+
+                    if (DateTime.UtcNow >= remindAtUtc)
                     {
                         if (_client.GetChannel(reminder.ChannelId) is ISocketMessageChannel channel)
                         {
