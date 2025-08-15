@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
@@ -22,7 +23,9 @@ public class ReminderCommandModule : InteractionModuleBase<SocketInteractionCont
     [SlashCommand("remind", "指定した時刻にリマインドを設定します。")]
     public async Task RegisterReminder(
         [Summary("time", "リマインドする時刻 (yyyy/MM/dd HH:mm JST)")] string time,
-        [Summary("message", "リマインド内容")] string message)
+        [Summary("message", "リマインド内容")] string message,
+        [Summary("channel", "リマインドを送信するチャンネル")]
+        [ChannelTypes(ChannelType.Text)] ITextChannel? channel = null)
     {
         if (!DateTime.TryParse(time, out var localTime))
         {
@@ -43,7 +46,7 @@ public class ReminderCommandModule : InteractionModuleBase<SocketInteractionCont
         var data = new Reminder
         {
             GuildId = Context.Guild.Id,
-            ChannelId = Context.Channel.Id,
+            ChannelId = channel?.Id ?? Context.Channel.Id,
             UserId = Context.User.Id,
             RemindAtUtc = TimeZoneInfo.ConvertTimeToUtc(localTime, jst),
             Message = message
