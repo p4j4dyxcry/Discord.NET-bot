@@ -23,7 +23,7 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
     public async Task RegisterAutoMessage(
         [Summary("t", "メッセージを送信する間隔(時間)")] int t = 1,
         [Summary("c", "メッセージを送信するチャンネル")] SocketTextChannel? channel = null,
-        [Summary("s", "最初のメッセージを送信する時刻 (HH:mm)")] string? startTime = null)
+        [Summary("s", "最初のメッセージを送信する時刻 (HH:mm, 日本時間 GMT+9:00)")] string? startTime = null)
     {
         var channelId = channel?.Id ?? Context.Channel.Id;
         var guildId = Context.Guild.Id;
@@ -50,14 +50,24 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
         {
             if (TimeSpan.TryParse(startTime, out var time))
             {
-                var now = DateTime.Now;
-                var startLocal = new DateTime(now.Year, now.Month, now.Day, time.Hours, time.Minutes, 0);
-                if (startLocal <= now)
+                TimeZoneInfo jst;
+                try
+                {
+                    jst = TimeZoneInfo.FindSystemTimeZoneById("Asia/Tokyo");
+                }
+                catch (TimeZoneNotFoundException)
+                {
+                    jst = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
+                }
+
+                var nowJst = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, jst);
+                var startLocal = new DateTime(nowJst.Year, nowJst.Month, nowJst.Day, time.Hours, time.Minutes, 0);
+                if (startLocal <= nowJst)
                 {
                     startLocal = startLocal.AddDays(1);
                 }
 
-                var startUtc = startLocal.ToUniversalTime();
+                var startUtc = TimeZoneInfo.ConvertTimeToUtc(startLocal, jst);
                 lastPostedUtc = startUtc.AddHours(-t);
                 startMessage = $"{startLocal:HH:mm}から";
             }
@@ -101,7 +111,17 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
             return;
         }
 
-        var nextLocal = existing.LastPostedUtc.AddHours(existing.IntervalHours).ToLocalTime();
+        TimeZoneInfo jst;
+        try
+        {
+            jst = TimeZoneInfo.FindSystemTimeZoneById("Asia/Tokyo");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            jst = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
+        }
+
+        var nextLocal = TimeZoneInfo.ConvertTimeFromUtc(existing.LastPostedUtc.AddHours(existing.IntervalHours), jst);
         await RespondAsync($"チャンネル<#{existing.ChannelId}>で{existing.IntervalHours}時間ごとにメッセージを送信するよう設定されているよ！次の送信予定時刻は{nextLocal:yyyy/MM/dd HH:mm}だよ。");
     }
 
@@ -109,7 +129,7 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
     public async Task OverwriteAutoMessage(
         [Summary("t", "メッセージを送信する間隔(時間)")] int t = 1,
         [Summary("c", "メッセージを送信するチャンネル")] SocketTextChannel? channel = null,
-        [Summary("s", "最初のメッセージを送信する時刻 (HH:mm)")] string? startTime = null)
+        [Summary("s", "最初のメッセージを送信する時刻 (HH:mm, 日本時間 GMT+9:00)")] string? startTime = null)
     {
         var channelId = channel?.Id ?? Context.Channel.Id;
         var guildId = Context.Guild.Id;
@@ -130,14 +150,24 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
         {
             if (TimeSpan.TryParse(startTime, out var time))
             {
-                var now = DateTime.Now;
-                var startLocal = new DateTime(now.Year, now.Month, now.Day, time.Hours, time.Minutes, 0);
-                if (startLocal <= now)
+                TimeZoneInfo jst;
+                try
+                {
+                    jst = TimeZoneInfo.FindSystemTimeZoneById("Asia/Tokyo");
+                }
+                catch (TimeZoneNotFoundException)
+                {
+                    jst = TimeZoneInfo.FindSystemTimeZoneById("Tokyo Standard Time");
+                }
+
+                var nowJst = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, jst);
+                var startLocal = new DateTime(nowJst.Year, nowJst.Month, nowJst.Day, time.Hours, time.Minutes, 0);
+                if (startLocal <= nowJst)
                 {
                     startLocal = startLocal.AddDays(1);
                 }
 
-                var startUtc = startLocal.ToUniversalTime();
+                var startUtc = TimeZoneInfo.ConvertTimeToUtc(startLocal, jst);
                 lastPostedUtc = startUtc.AddHours(-t);
                 startMessage = $"{startLocal:HH:mm}から";
             }
