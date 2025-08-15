@@ -41,6 +41,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<NauAriService>();
         services.AddHostedService<TsumugiService>();
         services.AddHostedService<AutoMessageService>();
+        services.AddHostedService<ReminderService>();
     })
     .Build();
 
