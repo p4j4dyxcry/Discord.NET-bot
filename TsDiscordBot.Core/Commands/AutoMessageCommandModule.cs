@@ -20,9 +20,11 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
     }
 
     [SlashCommand("auto-message", "AIで会話を促す自動メッセージを設定します。")]
-    public async Task RegisterAutoMessage([Summary("t", "メッセージを送信する間隔(時間)")] int t = 1)
+    public async Task RegisterAutoMessage(
+        [Summary("t", "メッセージを送信する間隔(時間)")] int t = 1,
+        [Summary("c", "メッセージを送信するチャンネル")] SocketTextChannel? channel = null)
     {
-        var channelId = Context.Channel.Id;
+        var channelId = channel?.Id ?? Context.Channel.Id;
         var guildId = Context.Guild.Id;
 
         var existing = _databaseService
@@ -50,7 +52,7 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
 
         _databaseService.Insert(AutoMessageChannel.TableName, data);
 
-        await RespondAsync($"このチャンネルで{t}時間ごとにメッセージを送信するように設定したよ！");
+        await RespondAsync($"チャンネル<#{channelId}>で{t}時間ごとにメッセージを送信するように設定したよ！");
     }
 
     [SlashCommand("remove-auto-message", "AIで会話を促す自動メッセージの設定を解除します。")]
