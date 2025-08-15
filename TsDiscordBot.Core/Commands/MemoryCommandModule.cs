@@ -79,6 +79,13 @@ public class MemoryCommandModule: InteractionModuleBase<SocketInteractionContext
             builder.AppendLine($"ID = {memory.Id}: {memory.Content} by {memory.Author}");
         }
 
-        await RespondAsync(builder.ToString());
+        if (builder.Length == 0)
+        {
+            await RespondAsync("何も覚えていないよ！");
+        }
+        else
+        {
+            await RespondAsync(builder.ToString());
+        }
     }
 }
