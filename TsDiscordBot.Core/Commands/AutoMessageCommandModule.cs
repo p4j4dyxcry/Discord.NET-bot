@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
@@ -161,6 +162,8 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
         var previousMessages = (await channel.GetMessagesAsync(20).FlattenAsync())
             .Select(DiscordToOpenAIMessageConverter.ConvertFromDiscord)
             .OrderBy(x => x.Date)
+            .Where(x=>!x.FromTsumugi)
+            .Where(x=>!x.FromSystem)
             .ToArray();
 
         var prompt = new ConvertedMessage("会話を促す短いメッセージを独り言として作成してください。", "system", DateTimeOffset.Now, false, true);
