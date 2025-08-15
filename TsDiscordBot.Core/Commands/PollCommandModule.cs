@@ -1,10 +1,9 @@
 using System.Text;
-using System.Linq;
 using Discord;
 using Discord.Interactions;
 using Microsoft.Extensions.Logging;
-using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Services;
+using Poll = TsDiscordBot.Core.Data.Poll;
 
 namespace TsDiscordBot.Core.Commands;
 
