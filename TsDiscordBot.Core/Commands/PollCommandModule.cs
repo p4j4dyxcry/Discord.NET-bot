@@ -59,7 +59,7 @@ public class PollCommandModule : InteractionModuleBase<SocketInteractionContext>
         var emojis = new[] { "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣" };
         var lines = message.Content.Split('\n');
         StringBuilder builder = new();
-        builder.AppendLine($"結果: {lines.FirstOrDefault()}");
+        builder.AppendLine($"結果発表！！: {lines.FirstOrDefault()}");
 
         for (int i = 1; i < lines.Length && i - 1 < emojis.Length; i++)
         {
