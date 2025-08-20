@@ -75,7 +75,12 @@ public sealed class OpenAIImageService : IOpenAIImageService
 
         try
         {
-            var response = await _client.GenerateImagesAsync(prompt, count, cancellationToken:ct).ConfigureAwait(false);
+            var response = await _client.GenerateImagesAsync(prompt, count,
+                new ImageGenerationOptions
+                {
+                    Quality = GeneratedImageQuality.Standard,
+                },
+                cancellationToken:ct).ConfigureAwait(false);
 
             if (response.Value.Count == 0)
                 return Array.Empty<GeneratedImageResult>();
