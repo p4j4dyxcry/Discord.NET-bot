@@ -32,6 +32,14 @@ using IHost host = Host.CreateDefaultBuilder(args)
         });
         services.AddSingleton<DatabaseService>();
         services.AddSingleton<OpenAIService>();
+        services.AddSingleton<IOpenAIImageService>(_ =>
+        {
+            var opts = new OpenAIImageOptions
+            {
+                ApiKey = Envs.OPENAI_API_KEY,
+            };
+            return OpenAIImageService.Create(opts);
+        });
 
         // Add hosted services
         services.AddHostedService<InteractionHandlingService>();
