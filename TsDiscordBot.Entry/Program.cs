@@ -32,6 +32,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         });
         services.AddSingleton<DatabaseService>();
         services.AddSingleton<OpenAIService>();
+        services.AddSingleton<IUserCommandLimitService, UserCommandLimitService>();
         services.AddSingleton<IOpenAIImageService>(_ =>
         {
             var opts = new OpenAIImageOptions
