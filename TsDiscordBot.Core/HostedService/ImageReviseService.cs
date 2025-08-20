@@ -17,12 +17,14 @@ namespace TsDiscordBot.Core.HostedService
         private readonly DiscordSocketClient _client;
         private readonly ILogger<ImageReviseService> _logger;
         private readonly IOpenAIImageService _imageService;
+        private readonly IUserCommandLimitService _limitService;
 
-        public ImageReviseService(DiscordSocketClient client, ILogger<ImageReviseService> logger, IOpenAIImageService imageService)
+        public ImageReviseService(DiscordSocketClient client, ILogger<ImageReviseService> logger, IOpenAIImageService imageService, IUserCommandLimitService limitService)
         {
             _client = client;
             _logger = logger;
             _imageService = imageService;
+            _limitService = limitService;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
@@ -100,6 +102,12 @@ namespace TsDiscordBot.Core.HostedService
                 var attachment = referenced.Attachments.FirstOrDefault(a => a.ContentType?.StartsWith("image/") == true);
                 if (attachment is null)
                     return;
+
+                if (!_limitService.TryAdd(message.Author.Id, "image"))
+                {
+                    await message.Channel.SendMessageAsync("このコマンドは1時間に3回まで利用できます。", messageReference: new MessageReference(message.Id));
+                    return;
+                }
 
                 var prompt = message.Content.Substring("!revise ".Length);
 
