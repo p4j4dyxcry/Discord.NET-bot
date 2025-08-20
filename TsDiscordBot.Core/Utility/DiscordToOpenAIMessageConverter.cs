@@ -2,10 +2,19 @@
 using System.Text.RegularExpressions;
 using Discord;
 using Discord.WebSocket;
+using System.Collections.Generic;
 
 namespace TsDiscordBot.Core.Utility
 {
-    public record ConvertedMessage(string Content, string Author, DateTimeOffset Date, bool FromTsumugi, bool FromSystem);
+    public record AttachmentInfo(string Url, string ContentType);
+
+    public record ConvertedMessage(
+        string Content,
+        string Author,
+        DateTimeOffset Date,
+        bool FromTsumugi,
+        bool FromSystem,
+        IReadOnlyList<AttachmentInfo>? Attachments = null);
 
     public static class DiscordToOpenAIMessageConverter
     {
@@ -59,7 +68,18 @@ namespace TsDiscordBot.Core.Utility
 
             bool isTsumugi = message.Author.Id == _tsumugiId;
 
-            return new ConvertedMessage(body, author, when, isTsumugi,false);
+            IReadOnlyList<AttachmentInfo>? attachments = null;
+            if (message is IUserMessage um && um.Attachments.Count > 0)
+            {
+                var list = new List<AttachmentInfo>();
+                foreach (var a in um.Attachments)
+                {
+                    list.Add(new AttachmentInfo(a.Url, a.ContentType ?? "application/octet-stream"));
+                }
+                attachments = list;
+            }
+
+            return new ConvertedMessage(body, author, when, isTsumugi, false, attachments);
         }
 
         private static string StripBotPrefixes(string text, IEnumerable<string> prefixes)
