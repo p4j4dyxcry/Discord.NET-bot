@@ -10,8 +10,14 @@ It supports chat generation, automatic reactions, banned word detection, and sch
 - OpenAI を用いた対話機能 / OpenAI-based conversational replies
 - スラッシュコマンドによる操作 / Control via slash commands
 - 特定ワードへのリアクション設定 / Custom reactions triggered by keywords
-- 禁止 ワードの検知とメッセージ削除 / Detects banned words and deletes offending messages
+- R18 ワードの検知とメッセージ削除 / Detects registered R18 words and deletes messages
 - 会話を促す自動メッセージ投稿 / Posts prompts automatically to encourage conversation
+- AI を使った画像生成・編集 / Generate and edit images with AI
+- 投票機能（作成・集計） / Create polls and tally results
+- 指定時刻にメッセージを送るリマインダー / Schedule reminders at specific times
+- ダイスを振る簡単なゲーム / Roll dice for simple games
+- 長期記憶の追加・削除・一覧表示 / Manage long-term memories (add/remove/list)
+- 「なう(20xx/xx/xx ...)」への自動応答 / Automatic response to messages starting with "なう(20"
 
 ## 必要な環境変数 / Required Environment Variables
 - `DISCORD_TOKEN` : Discord ボットのトークン / Discord bot token
