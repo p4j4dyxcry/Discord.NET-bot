@@ -28,7 +28,7 @@ public interface IOpenAIImageService
     Task<IReadOnlyList<GeneratedImageResult>> GenerateAsync(
         string prompt,
         int count = 1,
-        int size = 256,
+        int size = 256, // Obsolete
         CancellationToken ct = default);
 }
 
@@ -66,16 +66,9 @@ public sealed class OpenAIImageService : IOpenAIImageService
         // 実運用での上限は適宜調整（レート制限・コスト管理）
         count = Math.Clamp(count, 1, 3);
 
-        var options = new ImageGenerationOptions
-        {
-            Size = new GeneratedImageSize(size, size),
-            // TransparentBackground = true, // 必要なら
-            // Model = "gpt-image-1",        // SDK/環境に合わせて
-        };
-
         try
         {
-            var response = await _client.GenerateImagesAsync(prompt, count, options, ct).ConfigureAwait(false);
+            var response = await _client.GenerateImagesAsync(prompt, count, cancellationToken:ct).ConfigureAwait(false);
 
             if (response.Value.Count == 0)
                 return Array.Empty<GeneratedImageResult>();
