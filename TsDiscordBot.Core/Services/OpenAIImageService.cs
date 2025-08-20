@@ -7,7 +7,7 @@ namespace TsDiscordBot.Core.Services;
 public sealed class OpenAIImageOptions
 {
     [Required] public string ApiKey { get; init; } = "";
-    public string? Endpoint { get; init; } // null なら SDK 既定
+    public string? Model { get; init; }
 }
 
 public sealed record GeneratedImageResult(
@@ -28,7 +28,7 @@ public interface IOpenAIImageService
     Task<IReadOnlyList<GeneratedImageResult>> GenerateAsync(
         string prompt,
         int count = 1,
-        int size = 1024,
+        int size = 256,
         CancellationToken ct = default);
 }
 
@@ -44,14 +44,14 @@ public sealed class OpenAIImageService : IOpenAIImageService
 
     public static OpenAIImageService Create(OpenAIImageOptions opts)
     {
-        string defaultEndpoint = "https://api.openai.com/v1";
+        string defaultModel = "gpt-image-1";
 
         if (opts is null) throw new ArgumentNullException(nameof(opts));
         if (string.IsNullOrWhiteSpace(opts.ApiKey))
             throw new InvalidOperationException("OpenAI API key is not configured.");
 
-        var endpoint = string.IsNullOrWhiteSpace(opts.Endpoint) ? null : opts.Endpoint;
-        var client = string.IsNullOrWhiteSpace(endpoint) ? new ImageClient(defaultEndpoint, opts.ApiKey) : new ImageClient(endpoint, opts.ApiKey);
+        var model = string.IsNullOrWhiteSpace(opts.Model) ? defaultModel : opts.Model;
+        var client = new ImageClient(model, opts.ApiKey);
         return new OpenAIImageService(client);
     }
 
