@@ -26,7 +26,7 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
 
         try
         {
-            var results = await _imageService.GenerateAsync(description, 1, 1024);
+            var results = await _imageService.GenerateAsync(description, 1, 256);
             if (results.Count == 0)
             {
                 await FollowupAsync("画像生成に失敗しました。");
