@@ -54,7 +54,7 @@ namespace TsDiscordBot.Core.HostedService
                     return;
                 }
 
-                if (message.Content.StartsWith("/revise"))
+                if (message.Content.StartsWith("!revise"))
                 {
                     return;
                 }
