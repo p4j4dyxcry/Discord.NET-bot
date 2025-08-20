@@ -27,7 +27,7 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
             while (!token.IsCancellationRequested)
             {
                 StringBuilder builder = new(original);
-                builder.AppendLine($"{stopwatch.Elapsed.Seconds}秒経過中...");
+                builder.AppendLine($"{(int)stopwatch.Elapsed.TotalSeconds}秒経過中...");
 
                 await ModifyOriginalResponseAsync(msg => msg.Content = builder.ToString());
                 try
@@ -85,8 +85,8 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
             {
                 await cts.CancelAsync();
                 await progressTask;
-                await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description,stopWatch.Elapsed.Seconds));
-                await FollowupAsync(GetFailedMessage(description,stopWatch.Elapsed.Seconds));
+                await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
+                await FollowupAsync(GetFailedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
                 return;
             }
 
@@ -106,8 +106,8 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
             {
                 await cts.CancelAsync();
                 await progressTask;
-                await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description,stopWatch.Elapsed.Seconds));
-                await FollowupAsync(GetFailedMessage(description,stopWatch.Elapsed.Seconds));
+                await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
+                await FollowupAsync(GetFailedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
                 return;
             }
 
@@ -118,7 +118,7 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
 
             cts.Cancel();
             await progressTask;
-            await ModifyOriginalResponseAsync(msg => msg.Content = GetSucceedMessage(description,stopWatch.Elapsed.Seconds));
+            await ModifyOriginalResponseAsync(msg => msg.Content = GetSucceedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
             await FollowupWithFileAsync(filePath);
         }
         catch (Exception ex)
@@ -126,8 +126,8 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
             cts.Cancel();
             await progressTask;
             _logger.LogError(ex, "Failed to generate image");
-            await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description,stopWatch.Elapsed.Seconds));
-            await FollowupAsync(GetFailedMessage(description,stopWatch.Elapsed.Seconds));
+            await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
+            await FollowupAsync(GetFailedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
         }
     }
 
@@ -156,8 +156,8 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
             {
                 cts.Cancel();
                 await progressTask;
-                await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description,stopWatch.Elapsed.Seconds));
-                await FollowupAsync(GetFailedMessage(description,stopWatch.Elapsed.Seconds));
+                await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
+                await FollowupAsync(GetFailedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
                 return;
             }
 
@@ -197,14 +197,14 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
             {
                 await cts.CancelAsync();
                 await progressTask;
-                await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description,stopWatch.Elapsed.Seconds));
+                await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
                 await FollowupAsync("画像生成に失敗しました。");
                 return;
             }
 
             await cts.CancelAsync();
             await progressTask;
-            await ModifyOriginalResponseAsync(msg => msg.Content = GetSucceedMessage(description,stopWatch.Elapsed.Seconds));
+            await ModifyOriginalResponseAsync(msg => msg.Content = GetSucceedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
             await FollowupWithFilesAsync(attachments);
         }
         catch (Exception ex)
@@ -212,8 +212,8 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
             await cts.CancelAsync();
             await progressTask;
             _logger.LogError(ex, "Failed to generate image");
-            await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description,stopWatch.Elapsed.Seconds));
-            await FollowupAsync(GetFailedMessage(description,stopWatch.Elapsed.Seconds));
+            await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
+            await FollowupAsync(GetFailedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
         }
     }
 }
