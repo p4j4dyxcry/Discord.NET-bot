@@ -106,27 +106,47 @@ namespace TsDiscordBot.Core.Services
             foreach (var m in list)
             {
                 var text = m.Content.Trim();
-                if (string.IsNullOrWhiteSpace(text))
+                var parts = new List<ChatMessageContentPart>();
+
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    if (!m.FromTsumugi && !m.FromSystem && lastUser != m.Author)
+                    {
+                        text = $"@{m.Author}: {text}";
+                    }
+                    parts.Add(ChatMessageContentPart.CreateTextPart(text));
+                }
+
+                if (m.Attachments is { Count: > 0 })
+                {
+                    foreach (var att in m.Attachments)
+                    {
+                        if (att.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (Uri.TryCreate(att.Url, UriKind.Absolute, out var uri))
+                            {
+                                parts.Add(ChatMessageContentPart.CreateImagePart(uri));
+                            }
+                        }
+                    }
+                }
+
+                if (parts.Count == 0)
                 {
                     continue;
                 }
 
-                if (!m.FromTsumugi && !m.FromSystem && lastUser != m.Author)
-                {
-                    text = $"@{m.Author}: {text}";
-                }
-
                 if (m.FromSystem)
                 {
-                    result.Add(ChatMessage.CreateSystemMessage(text));
+                    result.Add(ChatMessage.CreateSystemMessage(parts));
                 }
                 else if (m.FromTsumugi)
                 {
-                    result.Add(ChatMessage.CreateAssistantMessage(text));
+                    result.Add(ChatMessage.CreateAssistantMessage(parts));
                 }
                 else
                 {
-                    result.Add(ChatMessage.CreateUserMessage(text));
+                    result.Add(ChatMessage.CreateUserMessage(parts));
                 }
 
                 lastUser = m.Author;
