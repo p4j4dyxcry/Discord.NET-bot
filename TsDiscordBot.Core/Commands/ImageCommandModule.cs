@@ -64,7 +64,7 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
     }
 
     [SlashCommand("image", "説明文から画像を生成します")]
-    public async Task GenerateImage(string description)
+    public async Task GenerateImage(string description, IAttachment? reference = null)
     {
         Stopwatch stopWatch = Stopwatch.StartNew();
 
@@ -80,7 +80,28 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
 
         try
         {
-            var results = await _imageService.GenerateAsync(description, 1, 256, cts.Token);
+            IReadOnlyList<GeneratedImageResult> results;
+
+            if (reference is not null)
+            {
+                if (reference.ContentType is null || !reference.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
+                {
+                    await cts.CancelAsync();
+                    await progressTask;
+                    await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description, (int)stopWatch.Elapsed.TotalSeconds));
+                    await FollowupAsync("参照ファイルは画像ではありません。", ephemeral: true);
+                    return;
+                }
+
+                using var http = new HttpClient();
+                await using var stream = await http.GetStreamAsync(reference.Url, cts.Token);
+                results = await _imageService.EditAsync(stream, description, 256, cts.Token);
+            }
+            else
+            {
+                results = await _imageService.GenerateAsync(description, 1, 256, cts.Token);
+            }
+
             if (results.Count == 0)
             {
                 await cts.CancelAsync();
