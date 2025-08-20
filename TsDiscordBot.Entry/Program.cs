@@ -51,6 +51,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<TsumugiService>();
         services.AddHostedService<AutoMessageService>();
         services.AddHostedService<ReminderService>();
+        services.AddHostedService<ImageReviseService>();
     })
     .Build();
 

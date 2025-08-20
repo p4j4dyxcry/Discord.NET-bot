@@ -54,6 +54,11 @@ namespace TsDiscordBot.Core.HostedService
                     return;
                 }
 
+                if (message.Content.StartsWith("/revise"))
+                {
+                    return;
+                }
+
                 if (message.MentionedUsers.Any(x => x.Id == _client.CurrentUser.Id) ||
                     message.Content.StartsWith("!つむぎ"))
                 {

@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using OpenAI.Images;
 
 namespace TsDiscordBot.Core.Services;
@@ -29,6 +30,12 @@ public interface IOpenAIImageService
         string prompt,
         int count = 1,
         int size = 256, // Obsolete
+        CancellationToken ct = default);
+
+    Task<IReadOnlyList<GeneratedImageResult>> EditAsync(
+        Stream image,
+        string prompt,
+        int size = 1024,
         CancellationToken ct = default);
 }
 
@@ -96,6 +103,53 @@ public sealed class OpenAIImageService : IOpenAIImageService
         {
             // ここで握りつぶさず投げる：呼び出し側でログ/リトライ/ユーザー文言に変換
             throw new ImageGenerationException("Failed to generate image.", ex);
+        }
+    }
+
+    public async Task<IReadOnlyList<GeneratedImageResult>> EditAsync(
+        Stream image,
+        string prompt,
+        int size = 1024,
+        CancellationToken ct = default)
+    {
+        if (image is null) throw new ArgumentNullException(nameof(image));
+        if (string.IsNullOrWhiteSpace(prompt))
+            throw new ArgumentException("Prompt must not be empty.", nameof(prompt));
+
+        try
+        {
+            var opts = new ImageEditOptions
+            {
+                Size = new GeneratedImageSize(size, size)
+            };
+
+            var response = await _client.GenerateImageEditsAsync(image, "image.png", prompt, 1, opts, ct).ConfigureAwait(false);
+
+            if (response.Value.Count == 0)
+                return Array.Empty<GeneratedImageResult>();
+
+            var list = new List<GeneratedImageResult>(response.Value.Count);
+            foreach (var img in response.Value)
+            {
+                if (img.ImageUri is not null)
+                {
+                    list.Add(new GeneratedImageResult(img.ImageUri, null));
+                }
+                else if (img.ImageBytes is not null)
+                {
+                    list.Add(new GeneratedImageResult(null, img.ImageBytes));
+                }
+            }
+
+            return new ReadOnlyCollection<GeneratedImageResult>(list);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new ImageGenerationException("Failed to edit image.", ex);
         }
     }
 }
