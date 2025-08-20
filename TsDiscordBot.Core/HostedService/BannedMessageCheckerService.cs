@@ -6,19 +6,19 @@ using TsDiscordBot.Core.Services;
 
 namespace TsDiscordBot.Core.HostedService
 {
-    public class R18MessageCheckerService : IHostedService
+    public class BannedMessageCheckerService : IHostedService
     {
         private readonly DiscordSocketClient _client;
-        private readonly ILogger<R18MessageCheckerService> _logger;
+        private readonly ILogger<BannedMessageCheckerService> _logger;
         private readonly DatabaseService _databaseService;
 
-        private R18TriggerWord[] _cache = [];
+        private BannedTriggerWord[] _cache = [];
         private DateTime _lastFetchTime = DateTime.MinValue;
         private readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
 
-        public R18MessageCheckerService(
+        public BannedMessageCheckerService(
             DiscordSocketClient client,
-            ILogger<R18MessageCheckerService> logger,
+            ILogger<BannedMessageCheckerService> logger,
             DatabaseService databaseService)
         {
             _client = client;
@@ -52,7 +52,7 @@ namespace TsDiscordBot.Core.HostedService
 
                 if ((DateTime.Now - _lastFetchTime) > CacheDuration)
                 {
-                    var list = _databaseService.FindAll<R18TriggerWord>(R18TriggerWord.TableName);
+                    var list = _databaseService.FindAll<BannedTriggerWord>(BannedTriggerWord.TableName);
                     _cache = list.ToArray();
                     _lastFetchTime = DateTime.Now;
                 }
@@ -66,7 +66,7 @@ namespace TsDiscordBot.Core.HostedService
                     if (message.Content.Contains(keyword.Word, StringComparison.OrdinalIgnoreCase))
                     {
                         await message.DeleteAsync();
-                        _logger.LogInformation($"Deleted R18 message from {message.Author.Username}: {keyword.Word}");
+                        _logger.LogInformation($"Deleted banned message from {message.Author.Username}: {keyword.Word}");
 
                         try
                         {
@@ -84,7 +84,7 @@ namespace TsDiscordBot.Core.HostedService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in R18 message checker");
+                _logger.LogError(ex, "Error in banned message checker");
             }
         }
     }
