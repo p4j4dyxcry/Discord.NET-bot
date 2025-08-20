@@ -96,7 +96,7 @@ namespace TsDiscordBot.Core.HostedService
                     return;
 
                 var referenced = await message.Channel.GetMessageAsync(message.Reference.MessageId.Value);
-                if (referenced is null || referenced.Author.Id != _client.CurrentUser.Id)
+                if (referenced is null)
                     return;
 
                 var attachment = referenced.Attachments.FirstOrDefault(a => a.ContentType?.StartsWith("image/") == true);
