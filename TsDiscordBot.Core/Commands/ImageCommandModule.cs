@@ -81,8 +81,7 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
     [SlashCommand("image-detail", "詳細を指定して画像を生成します")]
     public async Task GenerateImageDetail(
         string description,
-        [MinValue(1), MaxValue(3)] int count = 1,
-        [Choice("256", 256), Choice("512", 512), Choice("1024", 1024)] int size = 256)
+        [MinValue(1), MaxValue(3)] int count = 1)
     {
         if (!_limitService.TryAdd(Context.User.Id, "image-detail", 1, TimeSpan.FromHours(8)))
         {
@@ -96,7 +95,7 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
         try
         {
             count = Math.Clamp(count, 1, 3);
-            var results = await _imageService.GenerateAsync(description, count, size);
+            var results = await _imageService.GenerateAsync(description, count, 1024);
             if (results.Count == 0)
             {
                 await FollowupAsync("画像生成に失敗しました。");
