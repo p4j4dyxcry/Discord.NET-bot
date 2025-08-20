@@ -21,6 +21,27 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
         _limitService = limitService;
     }
 
+    private Task RunProgressAsync(CancellationToken token)
+    {
+        return Task.Run(async () =>
+        {
+            var seconds = 0;
+            while (!token.IsCancellationRequested)
+            {
+                await ModifyOriginalResponseAsync(msg => msg.Content = $"{seconds}秒経過中...");
+                seconds++;
+                try
+                {
+                    await Task.Delay(1000, token);
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+            }
+        });
+    }
+
     [SlashCommand("image", "説明文から画像を生成します")]
     public async Task GenerateImage(string description)
     {
@@ -31,13 +52,17 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
         }
 
         await DeferAsync();
-        await ModifyOriginalResponseAsync(msg => msg.Content = "生成中です...");
+        using var cts = new CancellationTokenSource();
+        var progressTask = RunProgressAsync(cts.Token);
 
         try
         {
             var results = await _imageService.GenerateAsync(description, 1, 256);
             if (results.Count == 0)
             {
+                cts.Cancel();
+                await progressTask;
+                await ModifyOriginalResponseAsync(msg => msg.Content = "画像生成に失敗しました。");
                 await FollowupAsync("画像生成に失敗しました。");
                 return;
             }
@@ -56,6 +81,9 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
             }
             else
             {
+                cts.Cancel();
+                await progressTask;
+                await ModifyOriginalResponseAsync(msg => msg.Content = "画像生成に失敗しました。");
                 await FollowupAsync("画像生成に失敗しました。");
                 return;
             }
@@ -65,11 +93,17 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
             var filePath = Path.Combine(dataDir, $"generated_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.png");
             await File.WriteAllBytesAsync(filePath, imageBytes);
 
+            cts.Cancel();
+            await progressTask;
+            await ModifyOriginalResponseAsync(msg => msg.Content = "画像ができたよ！");
             await FollowupWithFileAsync(filePath);
         }
         catch (Exception ex)
         {
+            cts.Cancel();
+            await progressTask;
             _logger.LogError(ex, "Failed to generate image");
+            await ModifyOriginalResponseAsync(msg => msg.Content = "画像生成中にエラーが発生しました。");
             await FollowupAsync("画像生成中にエラーが発生しました。");
         }
     }
@@ -86,7 +120,8 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
         }
 
         await DeferAsync();
-        await ModifyOriginalResponseAsync(msg => msg.Content = "生成中です...");
+        using var cts = new CancellationTokenSource();
+        var progressTask = RunProgressAsync(cts.Token);
 
         try
         {
@@ -94,6 +129,9 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
             var results = await _imageService.GenerateAsync(description, count, 1024);
             if (results.Count == 0)
             {
+                cts.Cancel();
+                await progressTask;
+                await ModifyOriginalResponseAsync(msg => msg.Content = "画像生成に失敗しました。");
                 await FollowupAsync("画像生成に失敗しました。");
                 return;
             }
@@ -132,15 +170,24 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
 
             if (attachments.Count == 0)
             {
+                cts.Cancel();
+                await progressTask;
+                await ModifyOriginalResponseAsync(msg => msg.Content = "画像生成に失敗しました。");
                 await FollowupAsync("画像生成に失敗しました。");
                 return;
             }
 
+            cts.Cancel();
+            await progressTask;
+            await ModifyOriginalResponseAsync(msg => msg.Content = "画像ができたよ！");
             await FollowupWithFilesAsync(attachments);
         }
         catch (Exception ex)
         {
+            cts.Cancel();
+            await progressTask;
             _logger.LogError(ex, "Failed to generate image");
+            await ModifyOriginalResponseAsync(msg => msg.Content = "画像生成中にエラーが発生しました。");
             await FollowupAsync("画像生成中にエラーが発生しました。");
         }
     }
