@@ -8,6 +8,7 @@ namespace TsDiscordBot.Core
         public static string OPENAI_PROMPT => Environment.GetEnvironmentVariable(nameof(OPENAI_PROMPT)) ?? string.Empty;
         public static string DISCORD_TOKEN => Environment.GetEnvironmentVariable(nameof(DISCORD_TOKEN)) ?? string.Empty;
         public static string LITEDB_PATH => Environment.GetEnvironmentVariable(nameof(LITEDB_PATH)) ?? string.Empty;
+        public static string APP_DATA_PATH => Environment.GetEnvironmentVariable(nameof(APP_DATA_PATH)) ?? string.Empty;
 
         public static void LogEnvironmentVariables()
         {
@@ -16,9 +17,10 @@ namespace TsDiscordBot.Core
                 !string.IsNullOrWhiteSpace(OPENAI_API_KEY),
                 !string.IsNullOrWhiteSpace(DISCORD_TOKEN));
 
-            Console.WriteLine("ENV values: OPENAI_PROMPT={0}, LITEDB_PATH={1}",
+            Console.WriteLine("ENV values: OPENAI_PROMPT={0}, LITEDB_PATH={1}, APP_DATA_PATH={2}",
                 OPENAI_PROMPT,
-                LITEDB_PATH);
+                LITEDB_PATH,
+                APP_DATA_PATH);
         }
     }
 }

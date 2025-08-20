@@ -51,13 +51,9 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
                 return;
             }
 
-            var dir = Path.GetDirectoryName(Envs.LITEDB_PATH);
-            if (string.IsNullOrWhiteSpace(dir))
-            {
-                dir = ".";
-            }
-            Directory.CreateDirectory(dir);
-            var filePath = Path.Combine(dir, $"generated_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.png");
+            var dataDir = Path.GetDirectoryName(Envs.APP_DATA_PATH) ?? ".";
+            Directory.CreateDirectory(dataDir);
+            var filePath = Path.Combine(dataDir, $"generated_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.png");
             await File.WriteAllBytesAsync(filePath, imageBytes);
 
             await FollowupWithFileAsync(filePath);
