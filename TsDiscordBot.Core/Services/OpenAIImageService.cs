@@ -1,56 +1,113 @@
-using System.Text;
-using Microsoft.Extensions.Configuration;
+using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
 using OpenAI.Images;
 
 namespace TsDiscordBot.Core.Services;
 
-public class OpenAIImageService
+public sealed class OpenAIImageOptions
+{
+    [Required] public string ApiKey { get; init; } = "";
+    public string? Endpoint { get; init; } // null なら SDK 既定
+}
+
+public sealed record GeneratedImageResult(
+    Uri? Uri,
+    ReadOnlyMemory<byte>? Bytes
+)
+{
+    public bool HasUri => Uri is not null;
+    public bool HasBytes => Bytes is not null && !Bytes.Value.IsEmpty;
+
+    public string AsString() =>
+        Uri?.ToString()
+        ?? (HasBytes ? $"data:image/png;base64,{Convert.ToBase64String(Bytes!.Value.ToArray())}" : string.Empty);
+}
+
+public interface IOpenAIImageService
+{
+    Task<IReadOnlyList<GeneratedImageResult>> GenerateAsync(
+        string prompt,
+        int count = 1,
+        int size = 1024,
+        CancellationToken ct = default);
+}
+
+public sealed class OpenAIImageService : IOpenAIImageService
 {
     private readonly ImageClient _client;
 
-    public OpenAIImageService(IConfiguration config)
+    // DI で ImageClient を渡す形を推奨。Options から作るオーバーロードも用意。
+    public OpenAIImageService(ImageClient client)
     {
-        var apiKey = Envs.OPENAI_API_KEY;
-        if (string.IsNullOrWhiteSpace(apiKey))
-        {
-            apiKey = config["open_ai_api_key"];
-        }
-        _client = new ImageClient("https://api.openai.com/v1", apiKey);
+        _client = client ?? throw new ArgumentNullException(nameof(client));
     }
 
-    public async Task<string> GenerateImageAsync(string prompt, int n, int size)
+    public static OpenAIImageService Create(OpenAIImageOptions opts)
     {
+        string defaultEndpoint = "https://api.openai.com/v1";
+
+        if (opts is null) throw new ArgumentNullException(nameof(opts));
+        if (string.IsNullOrWhiteSpace(opts.ApiKey))
+            throw new InvalidOperationException("OpenAI API key is not configured.");
+
+        var endpoint = string.IsNullOrWhiteSpace(opts.Endpoint) ? null : opts.Endpoint;
+        var client = string.IsNullOrWhiteSpace(endpoint) ? new ImageClient(defaultEndpoint, opts.ApiKey) : new ImageClient(endpoint, opts.ApiKey);
+        return new OpenAIImageService(client);
+    }
+
+    public async Task<IReadOnlyList<GeneratedImageResult>> GenerateAsync(
+        string prompt,
+        int count = 1,
+        int size = 1024,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(prompt))
+            throw new ArgumentException("Prompt must not be empty.", nameof(prompt));
+        // 実運用での上限は適宜調整（レート制限・コスト管理）
+        count = Math.Clamp(count, 1, 3);
+
+        var options = new ImageGenerationOptions
+        {
+            Size = new GeneratedImageSize(size, size),
+            // TransparentBackground = true, // 必要なら
+            // Model = "gpt-image-1",        // SDK/環境に合わせて
+        };
+
         try
         {
-            var options = new ImageGenerationOptions
-            {
-                Size = new GeneratedImageSize(size, size)
-            };
+            var response = await _client.GenerateImagesAsync(prompt, count, options, ct).ConfigureAwait(false);
 
-            var result = await _client.GenerateImagesAsync(prompt, n, options);
-            if (result.Value.Count == 0)
-            {
-                return "No image generated.";
-            }
+            if (response.Value.Count == 0)
+                return Array.Empty<GeneratedImageResult>();
 
-            StringBuilder sb = new();
-            for (int i = 0; i < result.Value.Count; i++)
+            var list = new List<GeneratedImageResult>(response.Value.Count);
+            foreach (var img in response.Value)
             {
-                var img = result.Value[i];
                 if (img.ImageUri is not null)
                 {
-                    sb.AppendLine(img.ImageUri.ToString());
+                    list.Add(new GeneratedImageResult(img.ImageUri, null));
                 }
                 else if (img.ImageBytes is not null)
                 {
-                    sb.AppendLine(Convert.ToBase64String(img.ImageBytes.ToArray()));
+                    list.Add(new GeneratedImageResult(null, img.ImageBytes));
                 }
             }
-            return sb.ToString().Trim();
+            return new ReadOnlyCollection<GeneratedImageResult>(list);
         }
-        catch (Exception e)
+        catch (OperationCanceledException)
         {
-            return $"Failed to generate image: {e.Message}";
+            // 上位でキャンセルとわかるようそのまま投げる
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // ここで握りつぶさず投げる：呼び出し側でログ/リトライ/ユーザー文言に変換
+            throw new ImageGenerationException("Failed to generate image.", ex);
         }
     }
+}
+
+public sealed class ImageGenerationException : Exception
+{
+    public ImageGenerationException(string message, Exception inner) : base(message, inner) { }
 }
