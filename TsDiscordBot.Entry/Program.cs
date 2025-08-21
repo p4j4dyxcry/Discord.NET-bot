@@ -38,6 +38,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
             var opts = new OpenAIImageOptions
             {
                 ApiKey = Envs.OPENAI_API_KEY,
+                Model = "dall-e-2",
             };
             return OpenAIImageService.Create(opts);
         });

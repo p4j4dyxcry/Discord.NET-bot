@@ -65,7 +65,7 @@ public sealed class OpenAIImageService : IOpenAIImageService
     public async Task<IReadOnlyList<GeneratedImageResult>> GenerateAsync(
         string prompt,
         int count = 1,
-        int size = 1024,
+        int size = 256,
         CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(prompt))
@@ -78,7 +78,7 @@ public sealed class OpenAIImageService : IOpenAIImageService
             var response = await _client.GenerateImagesAsync(prompt, count,
                 new ImageGenerationOptions
                 {
-                    Quality = GeneratedImageQuality.Standard,
+                    Size = new GeneratedImageSize(size, size),
                 },
                 cancellationToken:ct).ConfigureAwait(false);
 
