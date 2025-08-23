@@ -78,7 +78,10 @@ public sealed class OpenAIImageService : IOpenAIImageService
             var response = await _client.GenerateImagesAsync(prompt, count,
                 new ImageGenerationOptions
                 {
-                    Quality = GeneratedImageQuality.Standard,
+                    // "Standard" is no longer supported; using low quality.
+#pragma warning disable OPENAI001
+                    Quality = GeneratedImageQuality.Low,
+#pragma warning restore OPENAI001
                 },
                 cancellationToken:ct).ConfigureAwait(false);
 
