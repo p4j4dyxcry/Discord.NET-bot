@@ -35,6 +35,27 @@ public class MusicCommandModule : InteractionModuleBase<SocketInteractionContext
         }
     }
 
+    [SlashCommand("llhealth", "Lavalinkの疎通確認")]
+    public async Task LavalinkHealthAsync()
+    {
+        string body = string.Empty;
+        try
+        {
+            await DeferAsync(ephemeral: true);
+
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Add("Authorization", Envs.LAVALINK_SERVER_PASSWORD);
+            body = await client.GetStringAsync($"{Envs.LAVALINK_BASE_ADDRESS}/version");
+            _logger.LogInformation($"Music bot health check:{body}");
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e,"failed to connect to Lavalink");
+            await FollowupAsync($"`/version` ng: `{e}`");
+        }
+        await FollowupAsync($"`/version` ok: `{body}`");
+    }
+
 
     private ValueTask<LavalinkPlayer> JoinLavalinkPlayerAsync(IVoiceChannel? channel = null)
     {
@@ -55,63 +76,91 @@ public class MusicCommandModule : InteractionModuleBase<SocketInteractionContext
     [SlashCommand("join", "ボイスチャンネルに参加")]
     public async Task JoinAsync(IVoiceChannel? channel = null)
     {
-        await DeferAsync(ephemeral: true);
-
-        channel ??= (Context.User as IGuildUser)?.VoiceChannel;
-        if (channel is null)
+        try
         {
-            await FollowupAsync("先にVCへ入ってください。"); return;
+            await DeferAsync(ephemeral: true);
+
+            channel ??= (Context.User as IGuildUser)?.VoiceChannel;
+            if (channel is null)
+            {
+                await FollowupAsync("先にVCへ入ってください。");
+                return;
+            }
+
+            await JoinLavalinkPlayerAsync(channel);
+
+            await FollowupAsync($"✅ 参加: {channel.Name}");
         }
-
-        await JoinLavalinkPlayerAsync(channel);
-
-        await FollowupAsync($"✅ 参加: {channel.Name}");
+        catch(Exception e)
+        {
+            await TryInternalLeaveAsync();
+            _logger.LogError(e,"Failed to Join");
+            await FollowupAsync("接続に失敗しました。");
+        }
     }
 
     [SlashCommand("play", "検索 or URL で再生")]
     public async Task PlayAsync([Summary(description: "URL または 検索語")] string query)
     {
-        await DeferAsync();
-
-        // プレイヤー取得 or 参加（ユーザーのVCに）
-        var vc = (Context.User as IGuildUser)?.VoiceChannel;
-        var player = await _audio.Players.GetPlayerAsync<LavalinkPlayer>(Context.Guild.Id) ??
-                     (vc is null
-                         ? null
-                         : await JoinLavalinkPlayerAsync(vc));
-
-        if (player is null)
+        try
         {
-            await FollowupAsync("VCに参加できませんでした。先に /join を試してください。"); return;
+            await DeferAsync();
+
+            // プレイヤー取得 or 参加（ユーザーのVCに）
+            var vc = (Context.User as IGuildUser)?.VoiceChannel;
+            var player = await _audio.Players.GetPlayerAsync<LavalinkPlayer>(Context.Guild.Id) ??
+                         (vc is null
+                             ? null
+                             : await JoinLavalinkPlayerAsync(vc));
+
+            if (player is null)
+            {
+                await FollowupAsync("VCに参加できませんでした。先に /join を試してください。"); return;
+            }
+
+            // URL判定 → 文字列なら ytsearch:
+            bool isUrl = Uri.IsWellFormedUriString(query, UriKind.Absolute);
+            string identifier = isUrl ? query : $"ytsearch:{query}";
+
+            var track = await _audio.Tracks.LoadTrackAsync(
+                identifier,
+                searchMode: isUrl ? TrackSearchMode.None : TrackSearchMode.YouTube);
+            if (track is null)
+            {
+                await FollowupAsync("見つかりませんでした。"); return;
+            }
+
+            await player.PlayAsync(track);
+            await FollowupAsync($"▶️ **{track.Title}**");
         }
-
-        // URL判定 → 文字列なら ytsearch:
-        bool isUrl = Uri.IsWellFormedUriString(query, UriKind.Absolute);
-        string identifier = isUrl ? query : $"ytsearch:{query}";
-
-        var track = await _audio.Tracks.LoadTrackAsync(
-            identifier,
-            searchMode: isUrl ? TrackSearchMode.None : TrackSearchMode.YouTube);
-        if (track is null)
+        catch(Exception e)
         {
-            await FollowupAsync("見つかりませんでした。"); return;
+            await TryInternalLeaveAsync();
+            _logger.LogError(e,"Failed to Play");
+            await FollowupAsync("再生に失敗しました。");
         }
-
-        await player.PlayAsync(track);
-        await FollowupAsync($"▶️ **{track.Title}**");
     }
 
     [SlashCommand("pause", "一時停止")]
     public async Task PauseAsync()
     {
-        await DeferAsync(ephemeral: true);
-        var player = await _audio.Players.GetPlayerAsync<LavalinkPlayer>(Context.Guild.Id);
-        if (player is null)
+        try
         {
-            await FollowupAsync("プレイヤーがありません。"); return;
+            await DeferAsync(ephemeral: true);
+            var player = await _audio.Players.GetPlayerAsync<LavalinkPlayer>(Context.Guild.Id);
+            if (player is null)
+            {
+                await FollowupAsync("プレイヤーがありません。"); return;
+            }
+            await player.PauseAsync();
+            await FollowupAsync("⏸ 一時停止");
         }
-        await player.PauseAsync();
-        await FollowupAsync("⏸ 一時停止");
+        catch(Exception e)
+        {
+            await TryInternalLeaveAsync();
+            _logger.LogError(e,"Failed to Play");
+            await FollowupAsync("一時停止に失敗しました。");
+        }
     }
 
     [SlashCommand("resume", "再開")]
@@ -152,15 +201,45 @@ public class MusicCommandModule : InteractionModuleBase<SocketInteractionContext
             return;
         }
 
-        // 再生中なら止める（失敗しても無視）
-        try { await player.StopAsync(); } catch { /* noop */ }
-
-        // v4.0.27: プレイヤーを破棄 = 退出
-        if (player is IAsyncDisposable ad)
-            await ad.DisposeAsync();
-        else if(player is IDisposable disp)
-            disp.Dispose();
+        await TryInternalLeaveAsync();
 
         await FollowupAsync("👋 退出しました。");
+    }
+
+    private async Task TryInternalLeaveAsync()
+    {
+        try
+        {
+            var player = await _audio.Players.GetPlayerAsync<LavalinkPlayer>(Context.Guild.Id);
+
+            if (player is null)
+            {
+                return;
+            }
+
+            // 再生中なら止める（失敗しても無視）
+            try
+            {
+                await player.StopAsync();
+            }
+            catch
+            {
+                /* noop */
+            }
+
+            // v4.0.27: プレイヤーを破棄 = 退出
+            if (player is IAsyncDisposable ad)
+            {
+                await ad.DisposeAsync();
+            }
+            else if (player is IDisposable disp)
+            {
+                disp.Dispose();
+            }
+        }
+        catch(Exception e)
+        {
+            _logger.LogError(e,"Failed to TryInternalLeaveAsync");
+        }
     }
 }
