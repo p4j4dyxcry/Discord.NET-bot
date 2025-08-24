@@ -3,14 +3,38 @@ using Discord.Interactions;
 using Lavalink4NET;
 using Lavalink4NET.Players;
 using Lavalink4NET.Rest.Entities.Tracks;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using TsDiscordBot.Core;
 
 
 public class MusicCommandModule : InteractionModuleBase<SocketInteractionContext>
 {
-private readonly IAudioService _audio;
+    private readonly IAudioService _audio;
+    private readonly ILogger<MusicCommandModule> _logger;
 
-    public MusicCommandModule(IAudioService audio) => _audio = audio;
+    public MusicCommandModule(IAudioService audio,ILogger<MusicCommandModule> logger)
+    {
+        _audio = audio;
+        _logger = logger;
+    }
+
+    public override async void OnModuleBuilding(InteractionService commandService, ModuleInfo module)
+    {
+        try
+        {
+            base.OnModuleBuilding(commandService, module);
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Add("Authorization", Envs.LAVALINK_SERVER_PASSWORD);
+            var s = await client.GetStringAsync("http://lavalink4net.railway.internal:2333/version");
+            _logger.LogInformation($"Music bot health check:{s}");
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e,"failed to connect to Lavalink");
+        }
+    }
+
 
     private ValueTask<LavalinkPlayer> JoinLavalinkPlayerAsync(IVoiceChannel? channel = null)
     {
