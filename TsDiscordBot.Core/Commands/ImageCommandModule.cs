@@ -4,6 +4,8 @@ using Discord;
 using Discord.Interactions;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Services;
+using TsDiscordBot.Core.Utility;
+using System.ClientModel;
 
 namespace TsDiscordBot.Core.Commands;
 
@@ -142,6 +144,26 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
             await ModifyOriginalResponseAsync(msg => msg.Content = GetSucceedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
             await FollowupWithFileAsync(filePath);
         }
+        catch (ImageGenerationException ex)
+        {
+            cts.Cancel();
+            await progressTask;
+            var code = OpenAIErrorHelper.TryGetErrorCode(ex.InnerException as ClientResultException);
+            if (code == "insufficient_quota")
+            {
+                await ModifyOriginalResponseAsync(msg => msg.Content = "@tsunetama token を使いきったみたいだだからチャージしてね！");
+            }
+            else if (code == "content_policy_violation")
+            {
+                await ModifyOriginalResponseAsync(msg => msg.Content = "ごめんね、その画像は作成できないの。");
+            }
+            else
+            {
+                _logger.LogError(ex, "Failed to generate image");
+                await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
+                await FollowupAsync(GetFailedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
+            }
+        }
         catch (Exception ex)
         {
             cts.Cancel();
@@ -227,6 +249,26 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
             await progressTask;
             await ModifyOriginalResponseAsync(msg => msg.Content = GetSucceedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
             await FollowupWithFilesAsync(attachments);
+        }
+        catch (ImageGenerationException ex)
+        {
+            await cts.CancelAsync();
+            await progressTask;
+            var code = OpenAIErrorHelper.TryGetErrorCode(ex.InnerException as ClientResultException);
+            if (code == "insufficient_quota")
+            {
+                await ModifyOriginalResponseAsync(msg => msg.Content = "@tsunetama token を使いきったみたいだだからチャージしてね！");
+            }
+            else if (code == "content_policy_violation")
+            {
+                await ModifyOriginalResponseAsync(msg => msg.Content = "ごめんね、その画像は作成できないの。");
+            }
+            else
+            {
+                _logger.LogError(ex, "Failed to generate image");
+                await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
+                await FollowupAsync(GetFailedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
+            }
         }
         catch (Exception ex)
         {

@@ -1,5 +1,6 @@
 ﻿
 using System.Text;
+using System.ClientModel;
 using Microsoft.Extensions.Configuration;
 using OpenAI.Chat;
 using TsDiscordBot.Core.Data;
@@ -86,15 +87,28 @@ namespace TsDiscordBot.Core.Services
                 conversationHistory.AddRange(ToChatHistoryWithSparseNames([convertedMessage]));
             }
 
-            ChatCompletion completion = await _client
-                .CompleteChatAsync(
-                    new[]{
-                            ChatMessage.CreateSystemMessage(_systemPrompt),
-                            HasEducation(guildId) ? ChatMessage.CreateSystemMessage(GetEducationPrompt(guildId)) : null
-                        }.Where(x=> x is not null)
-                    .Concat(conversationHistory));
+            try
+            {
+                ChatCompletion completion = await _client
+                    .CompleteChatAsync(
+                        new[]{
+                                ChatMessage.CreateSystemMessage(_systemPrompt),
+                                HasEducation(guildId) ? ChatMessage.CreateSystemMessage(GetEducationPrompt(guildId)) : null
+                            }.Where(x=> x is not null)
+                        .Concat(conversationHistory));
 
-            return completion.Content[0].Text;
+                return completion.Content[0].Text;
+            }
+            catch (ClientResultException ex)
+            {
+                var code = OpenAIErrorHelper.TryGetErrorCode(ex);
+                return code switch
+                {
+                    "insufficient_quota" => "@tsunetama token を使いきったみたいだだからチャージしてね！",
+                    "content_policy_violation" => "ごめんね、その質問には答えられないの。",
+                    _ => "ごめんね、その質問には答えられないの。"
+                };
+            }
         }
 
         List<ChatMessage> ToChatHistoryWithSparseNames(IEnumerable<ConvertedMessage> msgs)
