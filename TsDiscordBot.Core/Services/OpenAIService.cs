@@ -3,6 +3,7 @@ using System.Text;
 using System.ClientModel;
 using Microsoft.Extensions.Configuration;
 using OpenAI.Chat;
+using TsDiscordBot.Core.Constants;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Utility;
 
@@ -104,9 +105,9 @@ namespace TsDiscordBot.Core.Services
                 var code = OpenAIErrorHelper.TryGetErrorCode(ex);
                 return code switch
                 {
-                    "insufficient_quota" => "@tsunetama token を使いきったみたいだだからチャージしてね！",
-                    "content_policy_violation" => "ごめんね、その質問には答えられないの。",
-                    _ => "ごめんね、その質問には答えられないの。"
+                    "insufficient_quota" => ErrorMessages.InsufficientQuota,
+                    "content_policy_violation" => ErrorMessages.ContentPolicyViolationQuestion,
+                    _ => ErrorMessages.ContentPolicyViolationQuestion
                 };
             }
         }
