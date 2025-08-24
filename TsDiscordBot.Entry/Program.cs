@@ -1,6 +1,10 @@
 ﻿using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using Lavalink4NET;
+using Lavalink4NET.Clients;
+using Lavalink4NET.DiscordNet;
+using Lavalink4NET.Extensions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -40,6 +44,15 @@ using IHost host = Host.CreateDefaultBuilder(args)
                 ApiKey = Envs.OPENAI_API_KEY,
             };
             return OpenAIImageService.Create(opts);
+        });
+
+        services.Configure<LavalinkNodeOptions>(o =>
+        {
+            o.Label = "Lavalink";
+            o.WebSocketUri = new Uri(Envs.LAVALINK_WS);
+            o.Passphrase = Envs.LAVALINK_SERVER_PASSWORD;
+            o.ResumptionOptions = new LavalinkSessionResumptionOptions(TimeSpan.FromSeconds(15));
+            o.ReadyTimeout = TimeSpan.FromSeconds(15);
         });
 
         // Add hosted services
