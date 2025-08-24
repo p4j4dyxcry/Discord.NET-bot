@@ -5,6 +5,7 @@ using Lavalink4NET;
 using Lavalink4NET.Clients;
 using Lavalink4NET.DiscordNet;
 using Lavalink4NET.Extensions;
+using Lavalink4NET.Rest;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -44,6 +45,14 @@ using IHost host = Host.CreateDefaultBuilder(args)
                 ApiKey = Envs.OPENAI_API_KEY,
             };
             return OpenAIImageService.Create(opts);
+        });
+
+        services.AddLavalink();
+
+        services.Configure<LavalinkApiClientOptions>(o => {
+            o.Label = "Lavalink";
+            o.BaseAddress = new Uri(Envs.LAVALINK_BASE_ADDRESS);
+            o.Passphrase = Envs.LAVALINK_SERVER_PASSWORD;
         });
 
         services.Configure<LavalinkNodeOptions>(o =>

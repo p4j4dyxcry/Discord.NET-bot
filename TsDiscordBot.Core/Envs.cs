@@ -10,6 +10,7 @@ namespace TsDiscordBot.Core
         public static string LITEDB_PATH => Environment.GetEnvironmentVariable(nameof(LITEDB_PATH)) ?? string.Empty;
         public static string APP_DATA_PATH => Environment.GetEnvironmentVariable(nameof(APP_DATA_PATH)) ?? string.Empty;
         public static string LAVALINK_WS => Environment.GetEnvironmentVariable(nameof(LAVALINK_WS)) ?? string.Empty;
+        public static string LAVALINK_BASE_ADDRESS => Environment.GetEnvironmentVariable(nameof(LAVALINK_BASE_ADDRESS)) ?? string.Empty;
         public static string LAVALINK_SERVER_PASSWORD => Environment.GetEnvironmentVariable(nameof(LAVALINK_SERVER_PASSWORD)) ?? string.Empty;
 
         public static void LogEnvironmentVariables()
