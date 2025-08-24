@@ -12,11 +12,13 @@ public class MusicCommandModule : InteractionModuleBase<SocketInteractionContext
 {
     private readonly IAudioService _audio;
     private readonly ILogger<MusicCommandModule> _logger;
+    private readonly IOptions<LavalinkPlayerOptions> _playerOptions;
 
-    public MusicCommandModule(IAudioService audio,ILogger<MusicCommandModule> logger)
+    public MusicCommandModule(IAudioService audio, ILogger<MusicCommandModule> logger, IOptions<LavalinkPlayerOptions> playerOptions)
     {
         _audio = audio;
         _logger = logger;
+        _playerOptions = playerOptions;
     }
 
     public override async void OnModuleBuilding(InteractionService commandService, ModuleInfo module)
@@ -70,7 +72,7 @@ public class MusicCommandModule : InteractionModuleBase<SocketInteractionContext
             guildId: Context.Guild.Id,
             voiceChannelId: channel.Id,
             playerFactory: PlayerFactory.Default,
-            options: Options.Create(new LavalinkPlayerOptions()));
+            options: _playerOptions);
     }
 
     [SlashCommand("join", "ボイスチャンネルに参加")]
