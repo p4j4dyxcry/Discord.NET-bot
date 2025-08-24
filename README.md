@@ -53,6 +53,17 @@ docker build -t discord-net-bot .
 docker run -e DISCORD_TOKEN=your_token -e OPENAI_API_KEY=your_key discord-net-bot
 ```
 
+### Docker Compose と Lavalink / With Docker Compose and Lavalink
+
+Lavalink サーバーを含む環境を立ち上げる場合は `docker-compose` を利用できます。
+
+```bash
+# ビルド & 実行 / Build & Run
+docker compose up --build
+```
+
+`lavalink` サービスがポート `2333` で起動し、ボットはそれに接続します。
+
 ## コードデザイン / Code Design
 - 機能の中核は `TsDiscordBot.Core` に集約し、実行エントリは `TsDiscordBot.Entry` プロジェクトでホストしています。
 - 設定や機能拡張を容易にするため、依存性注入とモジュラー構成を採用しています。

@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  bot:
+    build: .
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - lavalink
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4
+    ports:
+      - "2333:2333"

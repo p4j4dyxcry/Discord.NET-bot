@@ -1,6 +1,8 @@
 ﻿using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using Lavalink4NET;
+using Lavalink4NET.Discord.NET;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -41,6 +43,18 @@ using IHost host = Host.CreateDefaultBuilder(args)
             };
             return OpenAIImageService.Create(opts);
         });
+        services.AddSingleton<IDiscordClientWrapper>(provider =>
+        {
+            var client = provider.GetRequiredService<DiscordSocketClient>();
+            return new DiscordClientWrapper(client);
+        });
+        services.AddSingleton<IAudioService, LavalinkNode>();
+        services.AddSingleton(new LavalinkNodeOptions
+        {
+            RestUri = new Uri("http://localhost:2333"),
+            WebSocketUri = new Uri("ws://localhost:2333"),
+            Password = "youshallnotpass",
+        });
 
         // Add hosted services
         services.AddHostedService<InteractionHandlingService>();
@@ -52,6 +66,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<AutoMessageService>();
         services.AddHostedService<ReminderService>();
         services.AddHostedService<ImageReviseService>();
+        services.AddHostedService<LavalinkHostedService>();
     })
     .Build();
 
