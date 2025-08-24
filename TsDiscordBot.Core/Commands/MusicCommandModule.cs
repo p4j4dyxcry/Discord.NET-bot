@@ -23,7 +23,7 @@ public class MusicCommandModule : InteractionModuleBase<SocketInteractionContext
         _playerOptions = playerOptions;
     }
 
-    [SlashCommand("llhealth", "Lavalinkの疎通確認")]
+    [SlashCommand("llhealth", "Lavalinkの疎通確認",runMode:RunMode.Async)]
     public async Task LavalinkHealthAsync()
     {
         string body = string.Empty;
@@ -115,21 +115,22 @@ public class MusicCommandModule : InteractionModuleBase<SocketInteractionContext
         }
     }
 
-    // private ValueTask<LavalinkPlayer> JoinLavalinkPlayerAsync(IVoiceChannel? channel = null)
-    // {
-    //     channel ??= (Context.User as IGuildUser)?.VoiceChannel;
-    //
-    //     if (channel is null)
-    //     {
-    //         throw new Exception("Please join voice channel");
-    //     }
-    //
-    //     return _audio.Players.JoinAsync(
-    //         guildId: Context.Guild.Id,
-    //         voiceChannelId: channel.Id,
-    //         playerFactory: PlayerFactory.Default,
-    //         options: _playerOptions);
-    // }
+    private async ValueTask<LavalinkPlayer> JoinLavalinkPlayerAsync(IVoiceChannel? channel = null)
+    {
+        channel ??= (Context.User as IGuildUser)?.VoiceChannel;
+
+        if (channel is null)
+        {
+            throw new Exception("Please join voice channel");
+        }
+
+        return await _audio.Players.JoinAsync(
+            guildId: Context.Guild.Id,
+            voiceChannelId: channel.Id,
+            playerFactory: PlayerFactory.Default,
+            options: _playerOptions)
+            .ConfigureAwait(false);
+    }
 
     [SlashCommand("join", "ボイスチャンネルに参加")]
     public async Task JoinAsync(IVoiceChannel? channel = null)
@@ -157,7 +158,7 @@ public class MusicCommandModule : InteractionModuleBase<SocketInteractionContext
         }
     }
 
-    [SlashCommand("play", "検索 or URL で再生")]
+    [SlashCommand("play", "検索 or URL で再生", runMode:RunMode.Async)]
     public async Task PlayAsync([Summary(description: "URL または 検索語")] string query)
     {
         try
@@ -185,7 +186,7 @@ public class MusicCommandModule : InteractionModuleBase<SocketInteractionContext
                 await FollowupAsync("見つかりませんでした。"); return;
             }
 
-            await player.PlayAsync(track);
+            await player.PlayAsync(track).ConfigureAwait(false);
             await FollowupAsync($"▶️ **{track.Title}**");
         }
         catch(Exception e)
@@ -196,7 +197,7 @@ public class MusicCommandModule : InteractionModuleBase<SocketInteractionContext
         }
     }
 
-    [SlashCommand("pause", "一時停止")]
+    [SlashCommand("pause", "一時停止", runMode:RunMode.Async)]
     public async Task PauseAsync()
     {
         try
@@ -218,7 +219,7 @@ public class MusicCommandModule : InteractionModuleBase<SocketInteractionContext
         }
     }
 
-    [SlashCommand("resume", "再開")]
+    [SlashCommand("resume", "再開",runMode:RunMode.Async)]
     public async Task ResumeAsync()
     {
         await DeferAsync(ephemeral: true);
