@@ -1,7 +1,9 @@
 ﻿using Discord;
 using Discord.Interactions;
+using Discord.WebSocket;
 using Lavalink4NET;
 using Lavalink4NET.Players;
+using Lavalink4NET.Players.Queued;
 using Lavalink4NET.Rest.Entities.Tracks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -42,22 +44,92 @@ public class MusicCommandModule : InteractionModuleBase<SocketInteractionContext
         await FollowupAsync($"`/version` ok: `{body}`");
     }
 
-
-    private ValueTask<LavalinkPlayer> JoinLavalinkPlayerAsync(IVoiceChannel? channel = null)
+    public async Task<QueuedLavalinkPlayer?> GetPlayerAsync(IDiscordInteraction interaction, bool connectToVoiceChannel = true,
+        CancellationToken cancellationToken = default)
     {
-        channel ??= (Context.User as IGuildUser)?.VoiceChannel;
-
-        if (channel is null)
+        // Check if the user is in a voice channel
+        if (interaction.User is not IGuildUser user || user.VoiceChannel == null)
         {
-            throw new Exception("Please join voice channel");
+            await interaction.FollowupAsync("You must be in a voice channel to use the music player.", ephemeral: true);
+            return null;
         }
 
-        return _audio.Players.JoinAsync(
-            guildId: Context.Guild.Id,
-            voiceChannelId: channel.Id,
-            playerFactory: PlayerFactory.Default,
-            options: _playerOptions);
+        try
+        {
+            // Get guild and channel information
+            ulong guildId = user.Guild.Id;
+            ulong voiceChannelId = user.VoiceChannel.Id;
+            // Determine channel behavior based on connectToVoiceChannel parameter
+            PlayerChannelBehavior channelBehavior = connectToVoiceChannel ? PlayerChannelBehavior.Join : PlayerChannelBehavior.None;
+            PlayerRetrieveOptions retrieveOptions = new(channelBehavior);
+
+            float defaultVolume = 0.2f;
+            // Create player options
+            CustomPlayerOptions playerOptions = new()
+            {
+                DisconnectOnStop = false,
+                SelfDeaf = true,
+                // Get text channel based on interaction type
+                TextChannel = interaction is SocketInteraction socketInteraction
+                    ? socketInteraction.Channel as ITextChannel
+                    : null,
+                DefaultVolume = defaultVolume,
+            };
+            // Wrap options for DI
+            var optionsWrapper = Options.Create(playerOptions);
+            // Retrieve or create the player
+            PlayerResult<CustomLavaLinkPlayer> result = await _audio.Players
+                .RetrieveAsync<CustomLavaLinkPlayer, CustomPlayerOptions>(guildId,
+                    voiceChannelId,
+                    (properties, token) => ValueTask.FromResult(new CustomLavaLinkPlayer(properties)),
+                    optionsWrapper,
+                    retrieveOptions,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            // Handle retrieval failures
+            if (!result.IsSuccess)
+            {
+                string errorMessage = result.Status switch
+                {
+                    PlayerRetrieveStatus.UserNotInVoiceChannel => "You are not connected to a voice channel.",
+                    PlayerRetrieveStatus.BotNotConnected => "The bot is currently not connected to a voice channel.",
+                    _ => "An unknown error occurred while trying to retrieve the player."
+                };
+                await interaction.FollowupAsync(errorMessage, ephemeral: true);
+                return null;
+            }
+
+            // Set volume if it's a new player
+            if (result.Status == PlayerRetrieveStatus.Success)
+            {
+                await result.Player.SetVolumeAsync(defaultVolume, cancellationToken);
+                _logger.LogInformation($"Created new player for guild {guildId} with volume {defaultVolume * 100:F0}%");
+            }
+
+            return result.Player;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogInformation($"Error getting player: {ex.Message}");
+            throw;
+        }
     }
+
+    // private ValueTask<LavalinkPlayer> JoinLavalinkPlayerAsync(IVoiceChannel? channel = null)
+    // {
+    //     channel ??= (Context.User as IGuildUser)?.VoiceChannel;
+    //
+    //     if (channel is null)
+    //     {
+    //         throw new Exception("Please join voice channel");
+    //     }
+    //
+    //     return _audio.Players.JoinAsync(
+    //         guildId: Context.Guild.Id,
+    //         voiceChannelId: channel.Id,
+    //         playerFactory: PlayerFactory.Default,
+    //         options: _playerOptions);
+    // }
 
     [SlashCommand("join", "ボイスチャンネルに参加")]
     public async Task JoinAsync(IVoiceChannel? channel = null)
@@ -73,7 +145,7 @@ public class MusicCommandModule : InteractionModuleBase<SocketInteractionContext
                 return;
             }
 
-            await JoinLavalinkPlayerAsync(channel);
+            await GetPlayerAsync(Context.Interaction,true);
 
             await FollowupAsync($"✅ 参加: {channel.Name}");
         }
@@ -94,10 +166,7 @@ public class MusicCommandModule : InteractionModuleBase<SocketInteractionContext
 
             // プレイヤー取得 or 参加（ユーザーのVCに）
             var vc = (Context.User as IGuildUser)?.VoiceChannel;
-            var player = await _audio.Players.GetPlayerAsync<LavalinkPlayer>(Context.Guild.Id) ??
-                         (vc is null
-                             ? null
-                             : await JoinLavalinkPlayerAsync(vc));
+            var player = await GetPlayerAsync(Context.Interaction);
 
             if (player is null)
             {
