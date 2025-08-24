@@ -8,6 +8,7 @@ using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core;
+using TsDiscordBot.Core.Constants;
 using TsDiscordBot.Core.Services;
 
 namespace TsDiscordBot.Core.HostedService
@@ -105,7 +106,7 @@ namespace TsDiscordBot.Core.HostedService
 
                 if (!_limitService.TryAdd(message.Author.Id, "image"))
                 {
-                    await message.Channel.SendMessageAsync("このコマンドは1時間に3回まで利用できます。", messageReference: new MessageReference(message.Id));
+                    await message.Channel.SendMessageAsync(ErrorMessages.CommandLimitExceeded, messageReference: new MessageReference(message.Id));
                     return;
                 }
 

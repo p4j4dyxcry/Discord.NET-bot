@@ -3,6 +3,7 @@ using System.Text;
 using Discord;
 using Discord.Interactions;
 using Microsoft.Extensions.Logging;
+using TsDiscordBot.Core.Constants;
 using TsDiscordBot.Core.Services;
 using TsDiscordBot.Core.Utility;
 using System.ClientModel;
@@ -72,7 +73,7 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
 
         if (!_limitService.TryAdd(Context.User.Id, "image"))
         {
-            await RespondAsync("このコマンドは1時間に3回まで利用できます。", ephemeral: true);
+            await RespondAsync(ErrorMessages.CommandLimitExceeded, ephemeral: true);
             return;
         }
 
@@ -91,7 +92,7 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
                     await cts.CancelAsync();
                     await progressTask;
                     await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description, (int)stopWatch.Elapsed.TotalSeconds));
-                    await FollowupAsync("参照ファイルは画像ではありません。", ephemeral: true);
+                    await FollowupAsync(ErrorMessages.ReferenceFileNotImage, ephemeral: true);
                     return;
                 }
 
@@ -151,11 +152,11 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
             var code = OpenAIErrorHelper.TryGetErrorCode(ex.InnerException as ClientResultException);
             if (code == "insufficient_quota")
             {
-                await ModifyOriginalResponseAsync(msg => msg.Content = "@tsunetama token を使いきったみたいだだからチャージしてね！");
+                await ModifyOriginalResponseAsync(msg => msg.Content = ErrorMessages.InsufficientQuota);
             }
             else if (code == "content_policy_violation")
             {
-                await ModifyOriginalResponseAsync(msg => msg.Content = "ごめんね、その画像は作成できないの。");
+                await ModifyOriginalResponseAsync(msg => msg.Content = ErrorMessages.ContentPolicyViolationImage);
             }
             else
             {
@@ -183,7 +184,7 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
 
         if (!_limitService.TryAdd(Context.User.Id, "image-detail", 1, TimeSpan.FromHours(8)))
         {
-            await RespondAsync("このコマンドは8時間に1回まで利用できます。", ephemeral: true);
+            await RespondAsync(ErrorMessages.CommandLimitExceededLong, ephemeral: true);
             return;
         }
 
@@ -241,7 +242,7 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
                 await cts.CancelAsync();
                 await progressTask;
                 await ModifyOriginalResponseAsync(msg => msg.Content = GetFailedMessage(description,(int)stopWatch.Elapsed.TotalSeconds));
-                await FollowupAsync("画像生成に失敗しました。");
+                await FollowupAsync(ErrorMessages.ImageGenerationFailed);
                 return;
             }
 
@@ -257,11 +258,11 @@ public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext
             var code = OpenAIErrorHelper.TryGetErrorCode(ex.InnerException as ClientResultException);
             if (code == "insufficient_quota")
             {
-                await ModifyOriginalResponseAsync(msg => msg.Content = "@tsunetama token を使いきったみたいだだからチャージしてね！");
+                await ModifyOriginalResponseAsync(msg => msg.Content = ErrorMessages.InsufficientQuota);
             }
             else if (code == "content_policy_violation")
             {
-                await ModifyOriginalResponseAsync(msg => msg.Content = "ごめんね、その画像は作成できないの。");
+                await ModifyOriginalResponseAsync(msg => msg.Content = ErrorMessages.ContentPolicyViolationImage);
             }
             else
             {

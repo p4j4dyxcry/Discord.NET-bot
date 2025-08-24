@@ -1,5 +1,6 @@
 ﻿using Discord.Interactions;
 using Microsoft.Extensions.Logging;
+using TsDiscordBot.Core.Constants;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.HostedService;
 using TsDiscordBot.Core.Services;
@@ -35,7 +36,7 @@ public class BannedCommandModule : InteractionModuleBase<SocketInteractionContex
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to add banned word.");
-            await RespondAsync("⚠️ 禁止ワードの登録に失敗しました。");
+            await RespondAsync(ErrorMessages.BannedWordAddFailed);
         }
     }
 
@@ -61,7 +62,7 @@ public class BannedCommandModule : InteractionModuleBase<SocketInteractionContex
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to remove banned word.");
-            await RespondAsync("⚠️ 禁止ワードの削除に失敗しました。");
+            await RespondAsync(ErrorMessages.BannedWordRemoveFailed);
         }
     }
 }
