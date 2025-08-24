@@ -48,16 +48,10 @@ using IHost host = Host.CreateDefaultBuilder(args)
         });
 
         services.AddLavalink();
-
-        services.Configure<LavalinkApiClientOptions>(o => {
-            o.Label = "Lavalink";
-            o.BaseAddress = new Uri(Envs.LAVALINK_BASE_ADDRESS);
-            o.Passphrase = Envs.LAVALINK_SERVER_PASSWORD;
-        });
-
-        services.Configure<LavalinkNodeOptions>(o =>
+        services.ConfigureLavalink(o =>
         {
             o.Label = "Lavalink";
+            o.BaseAddress = new Uri(Envs.LAVALINK_BASE_ADDRESS);
             o.WebSocketUri = new Uri(Envs.LAVALINK_WS);
             o.Passphrase = Envs.LAVALINK_SERVER_PASSWORD;
             o.ResumptionOptions = new LavalinkSessionResumptionOptions(TimeSpan.FromSeconds(15));

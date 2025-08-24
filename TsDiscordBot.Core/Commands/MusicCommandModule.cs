@@ -21,22 +21,6 @@ public class MusicCommandModule : InteractionModuleBase<SocketInteractionContext
         _playerOptions = playerOptions;
     }
 
-    public override async void OnModuleBuilding(InteractionService commandService, ModuleInfo module)
-    {
-        try
-        {
-            base.OnModuleBuilding(commandService, module);
-            using var client = new HttpClient();
-            client.DefaultRequestHeaders.Add("Authorization", Envs.LAVALINK_SERVER_PASSWORD);
-            var s = await client.GetStringAsync("http://lavalink4net.railway.internal:2333/version");
-            _logger.LogInformation($"Music bot health check:{s}");
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e,"failed to connect to Lavalink");
-        }
-    }
-
     [SlashCommand("llhealth", "Lavalinkの疎通確認")]
     public async Task LavalinkHealthAsync()
     {
