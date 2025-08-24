@@ -5,6 +5,7 @@ using Lavalink4NET;
 using Lavalink4NET.Clients;
 using Lavalink4NET.DiscordNet;
 using Lavalink4NET.Extensions;
+using Lavalink4NET.Players.Queued;
 using Lavalink4NET.Rest;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -57,6 +58,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
             o.ResumptionOptions = new LavalinkSessionResumptionOptions(TimeSpan.FromSeconds(15));
             o.ReadyTimeout = TimeSpan.FromSeconds(15);
         });
+        services.AddMemoryCache();
 
         // Add hosted services
         services.AddHostedService<InteractionHandlingService>();
