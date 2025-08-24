@@ -55,8 +55,8 @@ using IHost host = Host.CreateDefaultBuilder(args)
             o.BaseAddress = new Uri(Envs.LAVALINK_BASE_ADDRESS);
             o.WebSocketUri = new Uri(Envs.LAVALINK_WS);
             o.Passphrase = Envs.LAVALINK_SERVER_PASSWORD;
-            o.ResumptionOptions = new LavalinkSessionResumptionOptions(TimeSpan.FromSeconds(15));
-            o.ReadyTimeout = TimeSpan.FromSeconds(15);
+            o.ResumptionOptions = new LavalinkSessionResumptionOptions(TimeSpan.FromSeconds(60));
+            o.ReadyTimeout = TimeSpan.FromSeconds(60);
         });
         services.AddMemoryCache();
 
