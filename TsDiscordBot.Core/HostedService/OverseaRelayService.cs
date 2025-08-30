@@ -1,4 +1,3 @@
-using System.Linq;
 using Discord;
 using Discord.WebSocket;
 using Discord.Webhook;
@@ -15,10 +14,10 @@ public class OverseaRelayService : IHostedService
     private readonly ILogger<OverseaRelayService> _logger;
     private readonly DatabaseService _databaseService;
 
-    private OverseaChannel[] _channelCache = Array.Empty<OverseaChannel>();
-    private OverseaUserSetting[] _userCache = Array.Empty<OverseaUserSetting>();
+    private OverseaChannel[] _channelCache = [];
+    private OverseaUserSetting[] _userCache = [];
     private DateTime _lastQueryTime = DateTime.MinValue;
-    private readonly TimeSpan _querySpan = TimeSpan.FromSeconds(5);
+    private readonly TimeSpan _querySpan = TimeSpan.FromSeconds(15);
 
     public OverseaRelayService(DiscordSocketClient client, ILogger<OverseaRelayService> logger, DatabaseService databaseService)
     {

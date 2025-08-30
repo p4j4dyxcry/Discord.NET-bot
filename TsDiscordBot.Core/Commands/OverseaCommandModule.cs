@@ -45,20 +45,25 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     public async Task Leave()
     {
         var channelId = Context.Channel.Id;
-        var existing = _databaseService.FindAll<OverseaChannel>(OverseaChannel.TableName)
-            .FirstOrDefault(x => x.ChannelId == channelId);
+        var channels = _databaseService.FindAll<OverseaChannel>(OverseaChannel.TableName)
+            .Where(x => x.ChannelId == channelId)
+            .ToArray();
 
-        if (existing is null)
+        if (channels.Length is 0)
         {
             await RespondAsync("このチャンネルは登録されていないよ！");
             return;
         }
 
-        _databaseService.Delete(OverseaChannel.TableName, existing.Id);
+        foreach (var ch in channels)
+        {
+            _databaseService.Delete(OverseaChannel.TableName, ch.Id);
+        }
+
         await RespondAsync("このチャンネルの登録を解除したよ！");
     }
 
-    [SlashCommand("oversea-enable-anonymous", "投稿者を匿名化します。")]
+    [SlashCommand("oversea-enable-anonymous", "投稿者を匿名化します。(標準は匿名化されます)")]
     public async Task EnableAnonymous(ulong userId)
     {
         var existing = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
