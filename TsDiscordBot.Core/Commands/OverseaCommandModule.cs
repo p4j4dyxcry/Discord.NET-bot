@@ -1,4 +1,5 @@
 using System.Linq;
+using Discord;
 using Discord.Interactions;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Data;
@@ -64,49 +65,55 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     }
 
     [SlashCommand("oversea-enable-anonymous", "投稿者を匿名化します。(標準は匿名化されます)")]
-    public async Task EnableAnonymous(ulong userId)
+    public async Task EnableAnonymous(IUser user, string? displayName = null, string? avatarUrl = null)
     {
         var existing = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
-            .FirstOrDefault(x => x.UserId == userId);
+            .FirstOrDefault(x => x.UserId == user.Id);
 
         if (existing is null)
         {
             _databaseService.Insert(OverseaUserSetting.TableName, new OverseaUserSetting
             {
-                UserId = userId,
-                IsAnonymous = true
+                UserId = user.Id,
+                IsAnonymous = true,
+                AnonymousName = displayName,
+                AnonymousAvatarUrl = avatarUrl
             });
         }
         else
         {
             existing.IsAnonymous = true;
+            existing.AnonymousName = displayName;
+            existing.AnonymousAvatarUrl = avatarUrl;
             _databaseService.Update(OverseaUserSetting.TableName, existing);
         }
 
-        await RespondAsync($"<@{userId}>を匿名化したよ！");
+        await RespondAsync($"{user.Mention}を匿名化したよ！");
     }
 
     [SlashCommand("oversea-disable-anonymous", "投稿者の匿名化を解除します。")]
-    public async Task DisableAnonymous(ulong userId)
+    public async Task DisableAnonymous(IUser user)
     {
         var existing = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
-            .FirstOrDefault(x => x.UserId == userId);
+            .FirstOrDefault(x => x.UserId == user.Id);
 
         if (existing is null)
         {
             _databaseService.Insert(OverseaUserSetting.TableName, new OverseaUserSetting
             {
-                UserId = userId,
+                UserId = user.Id,
                 IsAnonymous = false
             });
         }
         else
         {
             existing.IsAnonymous = false;
+            existing.AnonymousName = null;
+            existing.AnonymousAvatarUrl = null;
             _databaseService.Update(OverseaUserSetting.TableName, existing);
         }
 
-        await RespondAsync($"<@{userId}>の匿名化を解除したよ！");
+        await RespondAsync($"{user.Mention}の匿名化を解除したよ！");
     }
 }
 

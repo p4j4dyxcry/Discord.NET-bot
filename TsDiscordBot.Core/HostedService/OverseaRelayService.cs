@@ -69,14 +69,18 @@ public class OverseaRelayService : IHostedService
                 return;
             }
 
-            bool anonymous = _userCache.FirstOrDefault(x => x.UserId == message.Author.Id)?.IsAnonymous ?? true;
+            var userSetting = _userCache.FirstOrDefault(x => x.UserId == message.Author.Id);
+            bool anonymous = userSetting?.IsAnonymous ?? true;
             string username;
             string? avatarUrl = null;
 
             if (anonymous)
             {
                 string hash = (message.Author.Id % 10000).ToString("D4");
-                username = $"どこかのサバの誰かさん#{hash}";
+                username = string.IsNullOrEmpty(userSetting?.AnonymousName)
+                    ? $"どこかのサバの誰かさん#{hash}"
+                    : userSetting.AnonymousName!;
+                avatarUrl = userSetting?.AnonymousAvatarUrl;
             }
             else
             {
