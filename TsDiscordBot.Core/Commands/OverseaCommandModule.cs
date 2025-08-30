@@ -194,6 +194,7 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     }
 
     [SlashCommand("oversea-force-disable-anonymous", "投稿者の匿名化を強制解除します。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
     public async Task DisableAnonymous(IUser? who)
     {
         IUser user = who ?? Context.User;
