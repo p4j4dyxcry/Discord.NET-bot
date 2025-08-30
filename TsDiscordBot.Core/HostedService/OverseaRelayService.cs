@@ -98,11 +98,13 @@ public class OverseaRelayService : IHostedService
 
             if (anonymous)
             {
-                string hash = (message.Author.Id % 10000).ToString("D4");
-                username = string.IsNullOrEmpty(userSetting?.AnonymousName)
-                    ? $"どこかのサバの誰かさん#{hash}"
+                var profile = AnonymousProfileProvider.GetProfile(message.Author.Id);
+                var discriminator = AnonymousProfileProvider.GetDiscriminator(message.Author.Id);
+                var baseName = string.IsNullOrEmpty(userSetting?.AnonymousName)
+                    ? profile.Name
                     : userSetting.AnonymousName!;
-                avatarUrl = userSetting?.AnonymousAvatarUrl;
+                username = $"{baseName}#{discriminator}";
+                avatarUrl = userSetting?.AnonymousAvatarUrl ?? profile.AvatarUrl;
             }
             else
             {
