@@ -63,9 +63,8 @@ public static class AnonymousProfileProvider
 
     public static string GetDiscriminator(ulong userId)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var hash = HashCode.Combine(userId, today);
-        var discriminator = (uint)hash % 10000;
+        DateOnly today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var discriminator = (uint)(userId + (uint)today.Day) % 10000;
         return discriminator.ToString("D4");
     }
 }
