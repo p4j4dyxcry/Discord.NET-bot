@@ -17,7 +17,7 @@ public class OverseaRelayService : IHostedService
     private OverseaChannel[] _channelCache = [];
     private OverseaUserSetting[] _userCache = [];
     private DateTime _lastQueryTime = DateTime.MinValue;
-    private readonly TimeSpan _querySpan = TimeSpan.FromSeconds(15);
+    private readonly TimeSpan _querySpan = TimeSpan.FromSeconds(5);
 
     public OverseaRelayService(DiscordSocketClient client, ILogger<OverseaRelayService> logger, DatabaseService databaseService)
     {
@@ -61,7 +61,7 @@ public class OverseaRelayService : IHostedService
             }
 
             var targets = _channelCache
-                .Where(x => x.OverseaId == current.OverseaId && x.ChannelId != current.ChannelId)
+                .Where(x => x.OverseaId == current.OverseaId)
                 .ToArray();
 
             if (!targets.Any())
@@ -100,6 +100,10 @@ public class OverseaRelayService : IHostedService
                     try
                     {
                         await client.SendMessageAsync(content, username: username, avatarUrl: avatarUrl);
+                    }
+                    catch(Exception e)
+                    {
+                        _logger.LogError(e, "Error sending message to oversea channel");
                     }
                     finally
                     {
