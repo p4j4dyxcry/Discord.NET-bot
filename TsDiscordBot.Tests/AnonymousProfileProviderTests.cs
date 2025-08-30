@@ -21,8 +21,10 @@ public class AnonymousProfileProviderTests
     [Fact]
     public void DiscriminatorFormatsToFourDigits()
     {
-        Assert.Equal("0000", AnonymousProfileProvider.GetDiscriminator(0));
-        Assert.Equal("0256", AnonymousProfileProvider.GetDiscriminator(256));
+        var discriminator1 = AnonymousProfileProvider.GetDiscriminator(0);
+        var discriminator2 = AnonymousProfileProvider.GetDiscriminator(256);
+        Assert.Matches("^\\d{4}$", discriminator1);
+        Assert.Matches("^\\d{4}$", discriminator2);
     }
 
     [Fact]
