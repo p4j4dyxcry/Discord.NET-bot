@@ -68,10 +68,11 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     public async Task EnableAnonymous(IUser? who = null, string? displayName = null, string? avatarUrl = null)
     {
         IUser user = who ?? Context.User;
-        var existing = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
-            .FirstOrDefault(x => x.UserId == user.Id);
+        var settings = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
+            .Where(x => x.UserId == user.Id)
+            .ToArray();
 
-        if (existing is null)
+        if (settings.Length is 0)
         {
             _databaseService.Insert(OverseaUserSetting.TableName, new OverseaUserSetting
             {
@@ -81,12 +82,81 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
                 AnonymousAvatarUrl = avatarUrl
             });
         }
+
+        foreach (var setting in settings)
+        {
+            setting.IsAnonymous = true;
+            setting.AnonymousName = displayName;
+            setting.AnonymousAvatarUrl = avatarUrl;
+            _databaseService.Update(OverseaUserSetting.TableName, setting);
+        }
+
+        await RespondAsync($"{user.Mention}を匿名化したよ！");
+    }
+
+    [SlashCommand("oversea-set-name", "マルチサーバーで利用する名前を設定します。")]
+    public async Task SetName(string displayName)
+    {
+        IUser user = Context.User;
+        var settings = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
+            .Where(x => x.UserId == user.Id)
+            .ToArray();
+
+        if (settings.Length is 0)
+        {
+            _databaseService.Insert(OverseaUserSetting.TableName, new OverseaUserSetting
+            {
+                UserId = user.Id,
+                IsAnonymous = true,
+                AnonymousName = displayName
+            });
+        }
         else
         {
-            existing.IsAnonymous = true;
-            existing.AnonymousName = displayName;
-            existing.AnonymousAvatarUrl = avatarUrl;
-            _databaseService.Update(OverseaUserSetting.TableName, existing);
+            foreach (var setting in settings)
+            {
+                setting.IsAnonymous = true;
+                setting.AnonymousName = displayName;
+                _databaseService.Update(OverseaUserSetting.TableName, setting);
+            }
+        }
+
+        await RespondAsync($"{user.Mention}を匿名化したよ！");
+    }
+
+    [SlashCommand("oversea-set-name", "マルチサーバーで利用する名前を設定します。")]
+    public async Task SetIcon(IAttachment attachment)
+    {
+        if ( !attachment.ContentType.StartsWith("image/"))
+        {
+            await RespondAsync("画像を添付してください。");
+            return;
+        }
+
+        string url = attachment.Url;
+
+        IUser user = Context.User;
+        var settings = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
+            .Where(x => x.UserId == user.Id)
+            .ToArray();
+
+        if (settings.Length is 0)
+        {
+            _databaseService.Insert(OverseaUserSetting.TableName, new OverseaUserSetting
+            {
+                UserId = user.Id,
+                IsAnonymous = true,
+                AnonymousAvatarUrl = url,
+            });
+        }
+        else
+        {
+            foreach (var setting in settings)
+            {
+                setting.IsAnonymous = true;
+                setting.AnonymousAvatarUrl = url;
+                _databaseService.Update(OverseaUserSetting.TableName, setting);
+            }
         }
 
         await RespondAsync($"{user.Mention}を匿名化したよ！");
@@ -96,10 +166,11 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     public async Task DisableAnonymous(IUser? who = null)
     {
         IUser user = who ?? Context.User;
-        var existing = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
-            .FirstOrDefault(x => x.UserId == user.Id);
+        var settings = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
+            .Where(x => x.UserId == user.Id)
+            .ToArray();
 
-        if (existing is null)
+        if (settings.Length is 0)
         {
             _databaseService.Insert(OverseaUserSetting.TableName, new OverseaUserSetting
             {
@@ -109,10 +180,13 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
         }
         else
         {
-            existing.IsAnonymous = false;
-            existing.AnonymousName = null;
-            existing.AnonymousAvatarUrl = null;
-            _databaseService.Update(OverseaUserSetting.TableName, existing);
+            foreach (var setting in settings)
+            {
+                setting.IsAnonymous = false;
+                setting.AnonymousName = null;
+                setting.AnonymousAvatarUrl = null;
+                _databaseService.Update(OverseaUserSetting.TableName, setting);
+            }
         }
 
         await RespondAsync($"{user.Mention}の匿名化を解除したよ！");
