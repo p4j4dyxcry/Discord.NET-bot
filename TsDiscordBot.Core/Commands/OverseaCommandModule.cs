@@ -1,5 +1,8 @@
+using System.Collections.Concurrent;
+using System.Text;
 using Discord;
 using Discord.Interactions;
+using Discord.Webhook;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Services;
@@ -18,6 +21,7 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     }
 
     [SlashCommand("oversea-register", "当該チャンネルマルチサーバー用に登録します。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
     public async Task Register(int id)
     {
         var channelId = Context.Channel.Id;
@@ -38,10 +42,18 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
             });
         }
 
-        await RespondAsync($"このチャンネルをマルチサーバー{id}に登録したよ！");
+        StringBuilder builder = new StringBuilder();
+        builder.AppendLine($"このチャンネルをマルチサーバー{id}に登録したよ！");
+        builder.AppendLine("マルチサーバーとは「匿名」で、他のどこかのサーバーの人たちと交流できます。");
+        builder.AppendLine("\ud83d\udd39 投稿は匿名化されて送信されます。");
+        builder.AppendLine("\ud83d\udd39 /oversea-set-name でマルチサーバー上での名前を変更");
+        builder.AppendLine("\ud83d\udd39 /oversea-set-icon でマルチサーバー上でのアイコンを変更");
+
+        await RespondAsync(builder.ToString());
     }
 
     [SlashCommand("oversea-leave", "当該チャンネルに登録されているマルチサーバーを解除します。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
     public async Task Leave()
     {
         var channelId = Context.Channel.Id;
@@ -64,7 +76,14 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     }
 
     [SlashCommand("oversea-enable-anonymous", "投稿者を匿名化します。(標準は匿名化されます)")]
-    public async Task EnableAnonymous(IUser? who = null, string? displayName = null, string? avatarUrl = null)
+    public async Task EnableAnonymous(string? displayName = null, IAttachment? avatarUrl = null)
+    {
+        await EnableAnonymous(Context.User,displayName, avatarUrl);
+    }
+
+    [SlashCommand("oversea-force-enable-anonymous", "投稿者を匿名化します。(標準は匿名化されます)")]
+    [RequireUserPermission(GuildPermission.Administrator)]
+    public async Task EnableAnonymous(IUser? who, string? displayName = null, IAttachment? avatarUrl = null)
     {
         IUser user = who ?? Context.User;
         var settings = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
@@ -78,7 +97,7 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
                 UserId = user.Id,
                 IsAnonymous = true,
                 AnonymousName = displayName,
-                AnonymousAvatarUrl = avatarUrl
+                AnonymousAvatarUrl = avatarUrl?.Url
             });
         }
 
@@ -86,7 +105,7 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
         {
             setting.IsAnonymous = true;
             setting.AnonymousName = displayName;
-            setting.AnonymousAvatarUrl = avatarUrl;
+            setting.AnonymousAvatarUrl = avatarUrl?.Url;
             _databaseService.Update(OverseaUserSetting.TableName, setting);
         }
 
@@ -120,7 +139,7 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
             }
         }
 
-        await RespondAsync($"{user.Mention}を匿名化したよ！");
+        await RespondAsync($"{user.Mention}の表示名を{displayName}にしたよ！");
     }
 
     [SlashCommand("oversea-set-icon", "マルチサーバーで利用する匿名アイコンを設定します。")]
@@ -158,11 +177,25 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
             }
         }
 
-        await RespondAsync($"{user.Mention}を匿名化したよ！");
+        var embed = new EmbedBuilder()
+            .WithTitle("設定されたアイコン")
+            .WithDescription("設定されたアイコンです。")
+            .WithImageUrl(url)  // ← URL の画像をプレビュー
+            .WithColor(Color.Blue)
+            .Build();
+
+        await RespondAsync("匿名用にアイコンを設定したよ！", embed:embed);
     }
 
     [SlashCommand("oversea-disable-anonymous", "投稿者の匿名化を解除します。")]
-    public async Task DisableAnonymous(IUser? who = null)
+    public async Task DisableAnonymous()
+    {
+        await DisableAnonymous(Context.User);
+    }
+
+    [SlashCommand("oversea-force-disable-anonymous", "投稿者の匿名化を強制解除します。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
+    public async Task DisableAnonymous(IUser? who)
     {
         IUser user = who ?? Context.User;
         var settings = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
