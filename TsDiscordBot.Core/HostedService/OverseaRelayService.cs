@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Services;
+using TsDiscordBot.Core.Utility;
 
 namespace TsDiscordBot.Core.HostedService;
 
@@ -103,6 +104,9 @@ public class OverseaRelayService : IHostedService
                 var baseName = string.IsNullOrEmpty(userSetting?.AnonymousName)
                     ? profile.Name
                     : userSetting.AnonymousName!;
+
+                baseName = UserNameFixLogic.Fix(baseName);
+
                 username = $"{baseName}#{discriminator}";
                 avatarUrl = userSetting?.AnonymousAvatarUrl ?? profile.AvatarUrl;
             }
