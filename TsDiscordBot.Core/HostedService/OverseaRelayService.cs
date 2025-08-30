@@ -87,6 +87,7 @@ public class OverseaRelayService : IHostedService
                 username = message.Author.Username;
                 if (message.Author is SocketGuildUser guildUser)
                 {
+                    username = guildUser.Nickname ?? message.Author.GlobalName ?? message.Author.Username;
                     avatarUrl = guildUser.GetGuildAvatarUrl() ??
                                 guildUser.GetAvatarUrl() ??
                                 guildUser.GetDefaultAvatarUrl();
