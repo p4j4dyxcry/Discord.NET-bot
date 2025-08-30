@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Discord;
 using Discord.WebSocket;
 using Discord.Webhook;
@@ -18,6 +19,27 @@ public class OverseaRelayService : IHostedService
     private OverseaUserSetting[] _userCache = [];
     private DateTime _lastQueryTime = DateTime.MinValue;
     private readonly TimeSpan _querySpan = TimeSpan.FromSeconds(5);
+
+    private readonly ConcurrentDictionary<ulong, DiscordWebhookClient> _webhookCache = new();
+
+    private async Task<DiscordWebhookClient> GetOrCreateWebhookClientAsync(ITextChannel channel)
+    {
+        // 既にキャッシュ済みならそれを返す
+        if (_webhookCache.TryGetValue(channel.Id, out var cachedClient))
+        {
+            return cachedClient;
+        }
+
+        // チャンネルの既存 webhook を探す
+        var hooks = await channel.GetWebhooksAsync();
+        var hook = hooks.FirstOrDefault(h => h.Name == "oversea-relay")
+                   ?? await channel.CreateWebhookAsync("oversea-relay");
+
+        var client = new DiscordWebhookClient(hook);
+        _webhookCache[channel.Id] = client;
+
+        return client;
+    }
 
     public OverseaRelayService(DiscordSocketClient client, ILogger<OverseaRelayService> logger, DatabaseService databaseService)
     {
@@ -106,29 +128,48 @@ public class OverseaRelayService : IHostedService
                 content = string.IsNullOrWhiteSpace(content) ? urls : content + "\n" + urls;
             }
 
-            foreach (var target in targets)
-            {
-                if (await _client.GetChannelAsync(target.ChannelId) is ITextChannel channel)
+            List<Task> tasks =
+            [
+                Task.Run(async () =>
                 {
-                    var webhook = await channel.CreateWebhookAsync("oversea-relay");
-                    var client = new DiscordWebhookClient(webhook);
                     try
                     {
-                        await client.SendMessageAsync(content, username: username, avatarUrl: avatarUrl);
+                        await message.DeleteAsync();
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
-                        _logger.LogError(e, "Error sending message to oversea channel");
+                        _logger.LogError(e, "Failed to delete original message");
+                    }
+                })
+
+            ];
+
+            var semaphore = new SemaphoreSlim(4);
+            foreach (var target in targets)
+            {
+                tasks.Add(Task.Run(async () =>
+                {
+                    await semaphore.WaitAsync();
+                    try
+                    {
+                        if (await _client.GetChannelAsync(target.ChannelId) is ITextChannel channel)
+                        {
+                            var client = await GetOrCreateWebhookClientAsync(channel); // スレッドセーフに
+                            await client.SendMessageAsync(content, username: username, avatarUrl: avatarUrl);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogError(e, "Error sending message to oversea channel {ChannelId}", target.ChannelId);
                     }
                     finally
                     {
-                        await webhook.DeleteAsync();
-                        client.Dispose();
+                        semaphore.Release();
                     }
-                }
+                }));
             }
 
-            await message.DeleteAsync();
+            await Task.WhenAll(tasks);
         }
         catch (Exception e)
         {
