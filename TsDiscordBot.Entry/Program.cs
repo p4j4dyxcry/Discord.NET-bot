@@ -70,6 +70,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<AutoMessageService>();
         services.AddHostedService<ReminderService>();
         services.AddHostedService<ImageReviseService>();
+        services.AddHostedService<OverseaRelayService>();
     })
     .Build();
 
