@@ -65,8 +65,9 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     }
 
     [SlashCommand("oversea-enable-anonymous", "投稿者を匿名化します。(標準は匿名化されます)")]
-    public async Task EnableAnonymous(IUser user, string? displayName = null, string? avatarUrl = null)
+    public async Task EnableAnonymous(IUser? who = null, string? displayName = null, string? avatarUrl = null)
     {
+        IUser user = who ?? Context.User;
         var existing = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
             .FirstOrDefault(x => x.UserId == user.Id);
 
@@ -92,8 +93,9 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     }
 
     [SlashCommand("oversea-disable-anonymous", "投稿者の匿名化を解除します。")]
-    public async Task DisableAnonymous(IUser user)
+    public async Task DisableAnonymous(IUser? who = null)
     {
+        IUser user = who ?? Context.User;
         var existing = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
             .FirstOrDefault(x => x.UserId == user.Id);
 
