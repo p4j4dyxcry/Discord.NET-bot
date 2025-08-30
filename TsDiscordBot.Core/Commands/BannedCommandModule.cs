@@ -40,6 +40,39 @@ public class BannedCommandModule : InteractionModuleBase<SocketInteractionContex
         }
     }
 
+    [SlashCommand("add-banned-words", "カンマまたは改行区切りで禁止ワードを登録します。")]
+    public async Task AddBannedWords(string words)
+    {
+        try
+        {
+            var guildId = Context.Guild.Id;
+
+            var wordList = words
+                .Split(new[] { ',', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .ToArray();
+
+            foreach (var w in wordList)
+            {
+                _databaseService.Insert(BannedTriggerWord.TableName, new BannedTriggerWord
+                {
+                    GuildId = guildId,
+                    Word = w
+                });
+            }
+
+            var joined = string.Join(", ", wordList.Select(x => $"`{x}`"));
+            await RespondAsync($"🚫 禁止ワードを登録しました: {joined}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to add banned words.");
+            await RespondAsync(ErrorMessages.BannedWordAddFailed);
+        }
+    }
+
     [SlashCommand("remove-banned-word", "登録されている禁止ワードを削除します。")]
     public async Task RemoveBannedWord(string word)
     {
