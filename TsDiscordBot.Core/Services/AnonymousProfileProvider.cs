@@ -54,6 +54,13 @@ public static class AnonymousProfileProvider
         return Profiles[index % Profiles.Length];
     }
 
+    public static IEnumerable<AnonymousProfile> GetProfiles() => Profiles;
+
+    public static AnonymousProfile? GetProfileByName(string name)
+    {
+        return Profiles.FirstOrDefault(p => p.Name == name);
+    }
+
     public static string GetDiscriminator(ulong userId)
     {
         return (userId % 10000).ToString("D4");

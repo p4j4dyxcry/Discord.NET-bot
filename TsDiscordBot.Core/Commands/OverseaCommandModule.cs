@@ -187,6 +187,52 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
         await RespondAsync("匿名用にアイコンを設定したよ！", embed:embed);
     }
 
+    [SlashCommand("cc", "匿名キャラクターを選択します。")]
+    public async Task ChooseCharacter([Autocomplete(typeof(AnonymousProfileAutocompleteHandler))] string name)
+    {
+        var profile = AnonymousProfileProvider.GetProfileByName(name);
+        if (profile is null)
+        {
+            await RespondAsync("指定されたキャラクターは見つからなかったよ！");
+            return;
+        }
+
+        IUser user = Context.User;
+        var settings = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
+            .Where(x => x.UserId == user.Id)
+            .ToArray();
+
+        if (settings.Length is 0)
+        {
+            _databaseService.Insert(OverseaUserSetting.TableName, new OverseaUserSetting
+            {
+                UserId = user.Id,
+                IsAnonymous = true,
+                AnonymousName = profile.Name,
+                AnonymousAvatarUrl = profile.AvatarUrl
+            });
+        }
+        else
+        {
+            foreach (var setting in settings)
+            {
+                setting.IsAnonymous = true;
+                setting.AnonymousName = profile.Name;
+                setting.AnonymousAvatarUrl = profile.AvatarUrl;
+                _databaseService.Update(OverseaUserSetting.TableName, setting);
+            }
+        }
+
+        var embed = new EmbedBuilder()
+            .WithTitle("設定されたキャラクター")
+            .WithDescription($"{profile.Name}として表示されます。")
+            .WithImageUrl(profile.AvatarUrl)
+            .WithColor(Color.Blue)
+            .Build();
+
+        await RespondAsync("匿名キャラクターを設定したよ！", embed: embed);
+    }
+
     [SlashCommand("oversea-disable-anonymous", "投稿者の匿名化を解除します。")]
     public async Task DisableAnonymous()
     {
