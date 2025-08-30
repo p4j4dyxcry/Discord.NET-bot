@@ -48,7 +48,7 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
         builder.AppendLine("\ud83d\udd39 投稿は匿名化されて送信されます。");
         builder.AppendLine("\ud83d\udd39 /oversea-set-name でマルチサーバー上での名前を変更");
         builder.AppendLine("\ud83d\udd39 /oversea-set-icon でマルチサーバー上でのアイコンを変更");
-        builder.AppendLine("\ud83d\udd39 /cc で匿名キャラクターを選択");
+        builder.AppendLine("\ud83d\udd39 /cc でキャラクターを選択");
 
         await RespondAsync(builder.ToString());
     }
@@ -188,7 +188,7 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
         await RespondAsync("匿名用にアイコンを設定したよ！", embed:embed);
     }
 
-    [SlashCommand("cc", "匿名キャラクターを選択します。")]
+    [SlashCommand("cc", "キャラクターを選択します。")]
     public async Task ChooseCharacter([Autocomplete(typeof(AnonymousProfileAutocompleteHandler))] string name)
     {
         var profile = AnonymousProfileProvider.GetProfileByName(name);
