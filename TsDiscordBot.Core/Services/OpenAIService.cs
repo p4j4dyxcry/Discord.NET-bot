@@ -68,7 +68,7 @@ namespace TsDiscordBot.Core.Services
 
             foreach (var memory in memories)
             {
-                sb.AppendLine($"{memory.Content} by {memory.Author}");
+                sb.AppendLine($"{memory.Content} by {UserNameFixLogic.Fix(memory.Author)}");
             }
 
             return sb.ToString();

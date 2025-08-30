@@ -6,6 +6,7 @@ using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Services;
+using TsDiscordBot.Core.Utility;
 
 namespace TsDiscordBot.Core.Commands;
 
@@ -32,6 +33,8 @@ public class MemoryCommandModule: InteractionModuleBase<SocketInteractionContext
         {
             author = guildUser.DisplayName;
         }
+
+        author = UserNameFixLogic.Fix(author);
 
         var memory = new LongTermMemory
         {
@@ -76,7 +79,7 @@ public class MemoryCommandModule: InteractionModuleBase<SocketInteractionContext
 
         foreach (var memory in memories)
         {
-            builder.AppendLine($"ID = {memory.Id}: {memory.Content} by {memory.Author}");
+            builder.AppendLine($"ID = {memory.Id}: {memory.Content} by {UserNameFixLogic.Fix(memory.Author)}");
         }
 
         if (builder.Length == 0)
