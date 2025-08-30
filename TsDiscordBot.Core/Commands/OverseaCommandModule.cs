@@ -1,4 +1,3 @@
-using System.Linq;
 using Discord;
 using Discord.Interactions;
 using Microsoft.Extensions.Logging;
@@ -94,7 +93,7 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
         await RespondAsync($"{user.Mention}を匿名化したよ！");
     }
 
-    [SlashCommand("oversea-set-name", "マルチサーバーで利用する名前を設定します。")]
+    [SlashCommand("oversea-set-name", "マルチサーバーで利用する専用の名前を設定します。")]
     public async Task SetName(string displayName)
     {
         IUser user = Context.User;
@@ -124,7 +123,7 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
         await RespondAsync($"{user.Mention}を匿名化したよ！");
     }
 
-    [SlashCommand("oversea-set-name", "マルチサーバーで利用する名前を設定します。")]
+    [SlashCommand("oversea-set-icon", "マルチサーバーで利用する匿名アイコンを設定します。")]
     public async Task SetIcon(IAttachment attachment)
     {
         if ( !attachment.ContentType.StartsWith("image/"))
