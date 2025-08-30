@@ -48,6 +48,7 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
         builder.AppendLine("\ud83d\udd39 投稿は匿名化されて送信されます。");
         builder.AppendLine("\ud83d\udd39 /oversea-set-name でマルチサーバー上での名前を変更");
         builder.AppendLine("\ud83d\udd39 /oversea-set-icon でマルチサーバー上でのアイコンを変更");
+        builder.AppendLine("\ud83d\udd39 /cc で匿名キャラクターを選択");
 
         await RespondAsync(builder.ToString());
     }
