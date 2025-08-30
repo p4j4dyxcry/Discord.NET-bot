@@ -11,6 +11,7 @@ It supports chat generation, automatic reactions, banned word detection, and sch
 - スラッシュコマンドによる操作 / Control via slash commands
 - 特定ワードへのリアクション設定 / Custom reactions triggered by keywords
 - 禁止 ワードの検知とメッセージ削除 / Detects banned words and deletes offending messages
+- 複数禁止ワードの一括登録 / Bulk-register multiple banned words
 - 会話を促す自動メッセージ投稿 / Posts prompts automatically to encourage conversation
 - AI を使った画像生成・編集 / Generate and edit images with AI
 - 投票機能（作成・集計） / Create polls and tally results
