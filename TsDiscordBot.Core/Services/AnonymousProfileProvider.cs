@@ -45,7 +45,7 @@ public static class AnonymousProfileProvider
         new("モーガン", GetAssetUri("31.png")),
         new("ケイト", GetAssetUri("29.png")),
         new("セリーヌ", GetAssetUri("33.png")),
-        new("ウィル", GetAssetUri("31.png")),
+        new("ウィル", GetAssetUri("30.png")),
     ];
 
     public static AnonymousProfile GetProfile(ulong userId)
