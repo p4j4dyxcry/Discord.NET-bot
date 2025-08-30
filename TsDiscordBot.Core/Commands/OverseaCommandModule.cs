@@ -190,6 +190,8 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     [SlashCommand("cc", "匿名キャラクターを選択します。")]
     public async Task ChooseCharacter([Autocomplete(typeof(AnonymousProfileAutocompleteHandler))] string name)
     {
+        var discriminator = AnonymousProfileProvider.GetDiscriminator(Context.User.Id);
+
         var profile = AnonymousProfileProvider.GetProfileByName(name);
         if (profile is null)
         {
@@ -208,7 +210,7 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
             {
                 UserId = user.Id,
                 IsAnonymous = true,
-                AnonymousName = profile.Name,
+                AnonymousName = $"{profile.Name}#{discriminator}",
                 AnonymousAvatarUrl = profile.AvatarUrl
             });
         }
@@ -217,7 +219,7 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
             foreach (var setting in settings)
             {
                 setting.IsAnonymous = true;
-                setting.AnonymousName = profile.Name;
+                setting.AnonymousName = $"{profile.Name}#{discriminator}";
                 setting.AnonymousAvatarUrl = profile.AvatarUrl;
                 _databaseService.Update(OverseaUserSetting.TableName, setting);
             }
