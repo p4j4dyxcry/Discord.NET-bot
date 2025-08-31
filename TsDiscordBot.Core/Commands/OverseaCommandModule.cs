@@ -212,14 +212,13 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
         }
         else
         {
-            await ChooseCharacterHandler(new[] { name }, 0);
+            await ChooseCharacterHandler(name, 0);
         }
     }
 
     [ComponentInteraction("cc_select:*")]
-    public async Task ChooseCharacterHandler(string[] selected, int _)
+    public async Task ChooseCharacterHandler(string name, int _)
     {
-        var name = selected.FirstOrDefault();
         if (string.IsNullOrWhiteSpace(name))
         {
             await RespondAsync("指定されたキャラクターは見つからなかったよ！", ephemeral: true);
