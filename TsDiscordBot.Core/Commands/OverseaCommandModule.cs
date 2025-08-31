@@ -204,19 +204,20 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
                         .WithValue(p.Name))
                     .ToList();
 
-                component.WithSelectMenu("cc_select", options, $"キャラクターを選択してね[{index++}]");
+                component.WithSelectMenu($"cc_select:{index}", options, $"キャラクターを選択してね[{index}]");
+                index++;
             }
 
             await RespondAsync("キャラクターを選択してね", components: component.Build(), ephemeral: false);
         }
         else
         {
-            await ChooseCharacterHandler(new[] { name });
+            await ChooseCharacterHandler(new[] { name }, 0);
         }
     }
 
-    [ComponentInteraction("cc_select")]
-    public async Task ChooseCharacterHandler(string[] selected)
+    [ComponentInteraction("cc_select:*")]
+    public async Task ChooseCharacterHandler(string[] selected, int _)
     {
         var name = selected.FirstOrDefault();
         if (string.IsNullOrWhiteSpace(name))
