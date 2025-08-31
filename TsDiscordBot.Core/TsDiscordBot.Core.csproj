@@ -17,8 +17,6 @@
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
         <PackageReference Include="NetEscapades.Configuration.Yaml" Version="3.0.0" />
         <PackageReference Include="OpenAI" Version="2.3.0" />
-        <PackageReference Include="Lavalink4NET" Version="4.0.27" />
-        <PackageReference Include="Lavalink4NET.Discord.NET" Version="4.0.27" />
     </ItemGroup>
 
 </Project>
