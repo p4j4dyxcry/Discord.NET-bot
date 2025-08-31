@@ -80,6 +80,25 @@ public class AutoDeleteCommandModule : InteractionModuleBase<SocketInteractionCo
     [SlashCommand("auto-delete-next", "次に削除されるメッセージを表示します。")]
     public async Task ShowNextAutoDelete()
     {
+        async Task RespondAndDeleteAsync(string text)
+        {
+            await RespondAsync(text);
+
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(30));
+
+                try
+                {
+                    await Context.Interaction.DeleteOriginalResponseAsync();
+                }
+                catch (Exception e)
+                {
+                    _logger.LogError(e, "Failed to delete /auto-delete-next response.");
+                }
+            });
+        }
+
         var channelId = Context.Channel.Id;
 
         var next = _databaseService
@@ -90,7 +109,7 @@ public class AutoDeleteCommandModule : InteractionModuleBase<SocketInteractionCo
 
         if (next is null)
         {
-            await RespondAsync("このチャンネルで削除予定のメッセージはないよ！");
+            await RespondAndDeleteAsync("このチャンネルで削除予定のメッセージはないよ！");
             return;
         }
 
@@ -98,7 +117,7 @@ public class AutoDeleteCommandModule : InteractionModuleBase<SocketInteractionCo
         if (message is null)
         {
             _databaseService.Delete(AutoDeleteMessage.TableName, next.Id);
-            await RespondAsync("このチャンネルで削除予定のメッセージはないよ！");
+            await RespondAndDeleteAsync("このチャンネルで削除予定のメッセージはないよ！");
             return;
         }
 
@@ -110,6 +129,6 @@ public class AutoDeleteCommandModule : InteractionModuleBase<SocketInteractionCo
             content = content[..20];
         }
 
-        await RespondAsync($"次に削除されるメッセージ: \"{content}\" {minutes}分後に削除されるよ。");
+        await RespondAndDeleteAsync($"次に削除されるメッセージ: \"{content}\" {minutes}分後に削除されるよ。");
     }
 }
