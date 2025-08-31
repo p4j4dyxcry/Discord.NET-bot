@@ -42,8 +42,6 @@ using IHost host = Host.CreateDefaultBuilder(args)
             return OpenAIImageService.Create(opts);
         });
 
-        services.AddMemoryCache();
-
         // Add hosted services
         services.AddHostedService<InteractionHandlingService>();
         services.AddHostedService<DiscordStartupService>();
