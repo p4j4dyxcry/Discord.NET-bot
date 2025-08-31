@@ -195,7 +195,7 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
         {
             var component = new ComponentBuilder();
 
-            foreach (var chunk in AnonymousProfileProvider.GetProfiles().Chunk(25))
+            foreach (var chunk in AnonymousProfileProvider.GetProfiles().OrderByDescending(p => p.Name).Chunk(25))
             {
                 var options = chunk
                     .Select(p => new SelectMenuOptionBuilder()
