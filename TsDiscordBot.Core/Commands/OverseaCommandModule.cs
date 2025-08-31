@@ -193,31 +193,26 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            var component = new ComponentBuilder();
+            var options = AnonymousProfileProvider.GetProfiles()
+                .Select(p => new SelectMenuOptionBuilder()
+                    .WithLabel(p.Name)
+                    .WithValue(p.Name))
+                .Take(25)
+                .ToList();
 
-            int index = 1;
-            foreach (var chunk in AnonymousProfileProvider.GetProfiles().OrderByDescending(p => p.Name).Chunk(25))
-            {
-                var options = chunk
-                    .Select(p => new SelectMenuOptionBuilder()
-                        .WithLabel(p.Name)
-                        .WithValue(p.Name))
-                    .ToList();
-
-                component.WithSelectMenu($"cc_select:{index}", options, $"キャラクターを選択してね[{index}]");
-                index++;
-            }
+            var component = new ComponentBuilder()
+                .WithSelectMenu("cc_select", options, "キャラクターを選択してね");
 
             await RespondAsync("キャラクターを選択してね", components: component.Build(), ephemeral: false);
         }
         else
         {
-            await ChooseCharacterHandler(new[] { name }, 0);
+            await ChooseCharacterHandler(new[] { name });
         }
     }
 
-    [ComponentInteraction("cc_select:*")]
-    public async Task ChooseCharacterHandler(string[] selected, int _)
+    [ComponentInteraction("cc_select")]
+    public async Task ChooseCharacterHandler(string[] selected)
     {
         var name = selected.FirstOrDefault();
         if (string.IsNullOrWhiteSpace(name))
