@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using System.IO;
+using System.Net.Http;
 using Discord;
 using Discord.WebSocket;
 using Discord.Webhook;
@@ -127,11 +129,25 @@ public class OverseaRelayService : IHostedService
                 }
             }
 
-            string content = message.Content;
+            string? content = string.IsNullOrWhiteSpace(message.Content) ? null : message.Content;
+
+            List<(string FileName, string ContentType, byte[] Data)>? attachments = null;
             if (message.Attachments.Any())
             {
-                var urls = string.Join("\n", message.Attachments.Select(a => a.Url));
-                content = string.IsNullOrWhiteSpace(content) ? urls : content + "\n" + urls;
+                attachments = new List<(string, string, byte[])>();
+                using var http = new HttpClient();
+                foreach (var a in message.Attachments)
+                {
+                    try
+                    {
+                        var data = await http.GetByteArrayAsync(a.Url);
+                        attachments.Add((a.Filename, a.ContentType, data));
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to download attachment {Url}", a.Url);
+                    }
+                }
             }
 
             List<Task> tasks =
@@ -161,7 +177,25 @@ public class OverseaRelayService : IHostedService
                         if (await _client.GetChannelAsync(target.ChannelId) is ITextChannel channel)
                         {
                             var client = await GetOrCreateWebhookClientAsync(channel); // スレッドセーフに
-                            await client.SendMessageAsync(content, username: username, avatarUrl: avatarUrl);
+                            if (attachments is { Count: > 0 })
+                            {
+                                var files = attachments
+                                    .Select(a => new FileAttachment(new MemoryStream(a.Data), a.FileName, a.ContentType))
+                                    .ToList();
+                                try
+                                {
+                                    await client.SendFilesAsync(files, text: content, username: username, avatarUrl: avatarUrl);
+                                }
+                                finally
+                                {
+                                    foreach (var f in files)
+                                        f.Stream.Dispose();
+                                }
+                            }
+                            else
+                            {
+                                await client.SendMessageAsync(content ?? string.Empty, username: username, avatarUrl: avatarUrl);
+                            }
                         }
                     }
                     catch (Exception e)
