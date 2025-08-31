@@ -10,6 +10,7 @@ public class AnonymousProfileAutocompleteHandler : AutocompleteHandler
     {
         var value = interaction.Data.Current.Value as string ?? string.Empty;
         var results = AnonymousProfileProvider.GetProfiles()
+            .OrderByDescending(p => p.Name)
             .Where(p => p.Name.Contains(value))
             .Take(25)
             .Select(p => new AutocompleteResult(p.Name, p.Name));

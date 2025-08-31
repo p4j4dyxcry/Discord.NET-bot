@@ -193,15 +193,19 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            var options = AnonymousProfileProvider.GetProfiles()
-                .Select(p => new SelectMenuOptionBuilder()
-                    .WithLabel(p.Name)
-                    .WithValue(p.Name))
-                .Take(25)
-                .ToList();
+            var component = new ComponentBuilder();
 
-            var component = new ComponentBuilder()
-                .WithSelectMenu("cc_select", options, "キャラクターを選択してね");
+            int index = 1;
+            foreach (var chunk in AnonymousProfileProvider.GetProfiles().OrderByDescending(p => p.Name).Chunk(25))
+            {
+                var options = chunk
+                    .Select(p => new SelectMenuOptionBuilder()
+                        .WithLabel(p.Name)
+                        .WithValue(p.Name))
+                    .ToList();
+
+                component.WithSelectMenu("cc_select", options, $"キャラクターを選択してね[{index++}]");
+            }
 
             await RespondAsync("キャラクターを選択してね", components: component.Build(), ephemeral: false);
         }
