@@ -17,62 +17,11 @@ public class AutoDeleteService : BackgroundService
     private readonly ILogger<AutoDeleteService> _logger;
     private readonly DatabaseService _databaseService;
 
-    private AutoDeleteChannel[] _cache = [];
-    private DateTime _lastFetchTime = DateTime.MinValue;
-    private readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(30);
-
     public AutoDeleteService(DiscordSocketClient client, ILogger<AutoDeleteService> logger, DatabaseService databaseService)
     {
         _client = client;
         _logger = logger;
         _databaseService = databaseService;
-    }
-
-    public override Task StartAsync(CancellationToken cancellationToken)
-    {
-        _client.MessageReceived += OnMessageReceivedAsync;
-        return base.StartAsync(cancellationToken);
-    }
-
-    public override Task StopAsync(CancellationToken cancellationToken)
-    {
-        _client.MessageReceived -= OnMessageReceivedAsync;
-        return base.StopAsync(cancellationToken);
-    }
-
-    private Task OnMessageReceivedAsync(SocketMessage message)
-    {
-        try
-        {
-            if (message.Author.IsBot || message.Channel is not SocketGuildChannel)
-                return Task.CompletedTask;
-
-            if ((DateTime.UtcNow - _lastFetchTime) > CacheDuration)
-            {
-                var list = _databaseService.FindAll<AutoDeleteChannel>(AutoDeleteChannel.TableName);
-                _cache = list.ToArray();
-                _lastFetchTime = DateTime.UtcNow;
-            }
-
-            var config = _cache.FirstOrDefault(x => x.ChannelId == message.Channel.Id);
-            if (config is null)
-                return Task.CompletedTask;
-
-            var data = new AutoDeleteMessage
-            {
-                ChannelId = message.Channel.Id,
-                MessageId = message.Id,
-                DeleteAtUtc = DateTime.UtcNow.AddMinutes(config.DelayMinutes)
-            };
-
-            _databaseService.Insert(AutoDeleteMessage.TableName, data);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Failed to handle message for auto delete");
-        }
-
-        return Task.CompletedTask;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -81,6 +30,38 @@ public class AutoDeleteService : BackgroundService
         {
             try
             {
+                var configs = _databaseService.FindAll<AutoDeleteChannel>(AutoDeleteChannel.TableName).ToArray();
+
+                foreach (var config in configs)
+                {
+                    if (_client.GetChannel(config.ChannelId) is ITextChannel channel)
+                    {
+                        var messages = await channel.GetMessagesAsync(config.LastMessageId, Direction.After, 100).FlattenAsync();
+                        var targets = messages
+                            .Where(x => !x.Author.IsBot && !x.IsPinned)
+                            .OrderBy(x => x.Id)
+                            .ToArray();
+
+                        if (targets.Length > 0)
+                        {
+                            foreach (var msg in targets)
+                            {
+                                var data = new AutoDeleteMessage
+                                {
+                                    ChannelId = config.ChannelId,
+                                    MessageId = msg.Id,
+                                    DeleteAtUtc = msg.Timestamp.UtcDateTime.AddMinutes(config.DelayMinutes)
+                                };
+
+                                _databaseService.Insert(AutoDeleteMessage.TableName, data);
+                            }
+
+                            config.LastMessageId = targets.Last().Id;
+                            _databaseService.Update(AutoDeleteChannel.TableName, config);
+                        }
+                    }
+                }
+
                 var entries = _databaseService.FindAll<AutoDeleteMessage>(AutoDeleteMessage.TableName).ToArray();
 
                 foreach (var entry in entries.Where(x => DateTime.UtcNow >= DateTime.SpecifyKind(x.DeleteAtUtc, DateTimeKind.Utc)))
