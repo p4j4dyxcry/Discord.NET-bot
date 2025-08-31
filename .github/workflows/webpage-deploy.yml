@@ -1,0 +1,27 @@
+name: Deploy Vite Site to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2  # または actions/setup-node
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: |
+          cd web
+          npm install
+      - name: Build
+        run: |
+          cd web
+          npm run build
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          publish_dir: ./docs
