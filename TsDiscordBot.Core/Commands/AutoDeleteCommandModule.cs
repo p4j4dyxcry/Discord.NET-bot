@@ -1,0 +1,115 @@
+using System;
+using System.Linq;
+using Discord.Interactions;
+using Microsoft.Extensions.Logging;
+using TsDiscordBot.Core.Data;
+using TsDiscordBot.Core.Services;
+
+namespace TsDiscordBot.Core.Commands;
+
+public class AutoDeleteCommandModule : InteractionModuleBase<SocketInteractionContext>
+{
+    private readonly ILogger _logger;
+    private readonly DatabaseService _databaseService;
+
+    public AutoDeleteCommandModule(ILogger<AutoDeleteCommandModule> logger, DatabaseService databaseService)
+    {
+        _logger = logger;
+        _databaseService = databaseService;
+    }
+
+    [SlashCommand("auto-delete-enable", "メッセージを一定時間後に自動削除するように設定します。")]
+    public async Task EnableAutoDelete([Summary("m", "メッセージを削除するまでの時間(分)")] int m)
+    {
+        var channelId = Context.Channel.Id;
+        var guildId = Context.Guild.Id;
+
+        var existing = _databaseService
+            .FindAll<AutoDeleteChannel>(AutoDeleteChannel.TableName)
+            .FirstOrDefault(x => x.ChannelId == channelId);
+
+        if (existing is not null)
+        {
+            existing.DelayMinutes = m;
+            _databaseService.Update(AutoDeleteChannel.TableName, existing);
+            await RespondAsync($"{m}分後にメッセージを自動削除するよう更新したよ！");
+            return;
+        }
+
+        var data = new AutoDeleteChannel
+        {
+            GuildId = guildId,
+            ChannelId = channelId,
+            DelayMinutes = m
+        };
+
+        _databaseService.Insert(AutoDeleteChannel.TableName, data);
+        await RespondAsync($"{m}分後にメッセージを自動削除するよう設定したよ！");
+    }
+
+    [SlashCommand("auto-delete-disable", "このチャンネルの自動削除設定を解除します。")]
+    public async Task DisableAutoDelete()
+    {
+        var channelId = Context.Channel.Id;
+
+        var existing = _databaseService
+            .FindAll<AutoDeleteChannel>(AutoDeleteChannel.TableName)
+            .FirstOrDefault(x => x.ChannelId == channelId);
+
+        if (existing is null)
+        {
+            await RespondAsync("このチャンネルでは自動削除は設定されていないよ！");
+            return;
+        }
+
+        _databaseService.Delete(AutoDeleteChannel.TableName, existing.Id);
+
+        var messages = _databaseService
+            .FindAll<AutoDeleteMessage>(AutoDeleteMessage.TableName)
+            .Where(x => x.ChannelId == channelId)
+            .ToArray();
+
+        foreach (var msg in messages)
+        {
+            _databaseService.Delete(AutoDeleteMessage.TableName, msg.Id);
+        }
+
+        await RespondAsync("このチャンネルでの自動削除設定を解除したよ！");
+    }
+
+    [SlashCommand("auto-delete-next", "次に削除されるメッセージを表示します。")]
+    public async Task ShowNextAutoDelete()
+    {
+        var channelId = Context.Channel.Id;
+
+        var next = _databaseService
+            .FindAll<AutoDeleteMessage>(AutoDeleteMessage.TableName)
+            .Where(x => x.ChannelId == channelId)
+            .OrderBy(x => x.DeleteAtUtc)
+            .FirstOrDefault();
+
+        if (next is null)
+        {
+            await RespondAsync("このチャンネルで削除予定のメッセージはないよ！");
+            return;
+        }
+
+        var message = await Context.Channel.GetMessageAsync(next.MessageId);
+        if (message is null)
+        {
+            _databaseService.Delete(AutoDeleteMessage.TableName, next.Id);
+            await RespondAsync("このチャンネルで削除予定のメッセージはないよ！");
+            return;
+        }
+
+        var remaining = next.DeleteAtUtc - DateTime.UtcNow;
+        var minutes = Math.Max(0, (int)Math.Ceiling(remaining.TotalMinutes));
+        var content = string.IsNullOrWhiteSpace(message.Content) ? "(embed or attachment)" : message.Content;
+        if (content.Length > 20)
+        {
+            content = content[..20];
+        }
+
+        await RespondAsync($"次に削除されるメッセージ: \"{content}\" {minutes}分後に削除されるよ。");
+    }
+}
