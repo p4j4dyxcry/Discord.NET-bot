@@ -10,4 +10,6 @@ public class AutoDeleteChannel
     public ulong GuildId { get; set; }
     public ulong ChannelId { get; set; }
     public int DelayMinutes { get; set; }
+    public DateTime EnabledAtUtc { get; set; }
+    public ulong LastMessageId { get; set; }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using Discord;
 using Discord.Interactions;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Data;
@@ -23,6 +24,8 @@ public class AutoDeleteCommandModule : InteractionModuleBase<SocketInteractionCo
     {
         var channelId = Context.Channel.Id;
         var guildId = Context.Guild.Id;
+        var now = DateTime.UtcNow;
+        var snowflake = SnowflakeUtils.ToSnowflake(now);
 
         var existing = _databaseService
             .FindAll<AutoDeleteChannel>(AutoDeleteChannel.TableName)
@@ -31,6 +34,8 @@ public class AutoDeleteCommandModule : InteractionModuleBase<SocketInteractionCo
         if (existing is not null)
         {
             existing.DelayMinutes = m;
+            existing.EnabledAtUtc = now;
+            existing.LastMessageId = snowflake;
             _databaseService.Update(AutoDeleteChannel.TableName, existing);
             await RespondAsync($"{m}分後にメッセージを自動削除するよう更新したよ！");
             return;
@@ -40,7 +45,9 @@ public class AutoDeleteCommandModule : InteractionModuleBase<SocketInteractionCo
         {
             GuildId = guildId,
             ChannelId = channelId,
-            DelayMinutes = m
+            DelayMinutes = m,
+            EnabledAtUtc = now,
+            LastMessageId = snowflake
         };
 
         _databaseService.Insert(AutoDeleteChannel.TableName, data);
