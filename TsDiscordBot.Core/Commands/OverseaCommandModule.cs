@@ -189,12 +189,42 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     }
 
     [SlashCommand("cc", "キャラクターを選択します。")]
-    public async Task ChooseCharacter([Autocomplete(typeof(AnonymousProfileAutocompleteHandler))] string name)
+    public async Task ChooseCharacter([Autocomplete(typeof(AnonymousProfileAutocompleteHandler))] string? name = null)
     {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            var options = AnonymousProfileProvider.GetProfiles()
+                .Select(p => new SelectMenuOptionBuilder()
+                    .WithLabel(p.Name)
+                    .WithValue(p.Name))
+                .Take(25)
+                .ToList();
+
+            var component = new ComponentBuilder()
+                .WithSelectMenu("cc_select", options, "キャラクターを選択してね");
+
+            await RespondAsync("キャラクターを選択してね", components: component.Build(), ephemeral: false);
+        }
+        else
+        {
+            await ChooseCharacterHandler(new[] { name });
+        }
+    }
+
+    [ComponentInteraction("cc_select")]
+    public async Task ChooseCharacterHandler(string[] selected)
+    {
+        var name = selected.FirstOrDefault();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            await RespondAsync("指定されたキャラクターは見つからなかったよ！", ephemeral: true);
+            return;
+        }
+
         var profile = AnonymousProfileProvider.GetProfileByName(name);
         if (profile is null)
         {
-            await RespondAsync("指定されたキャラクターは見つからなかったよ！");
+            await RespondAsync("指定されたキャラクターは見つからなかったよ！", ephemeral: true);
             return;
         }
 
@@ -231,7 +261,7 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
             .WithColor(Color.Blue)
             .Build();
 
-        await RespondAsync("匿名キャラクターを設定したよ！", embed: embed);
+        await RespondAsync("匿名キャラクターを設定したよ！", embed: embed, ephemeral: true);
     }
 
     [SlashCommand("oversea-disable-anonymous", "投稿者の匿名化を解除します。")]
