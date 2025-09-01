@@ -43,10 +43,14 @@ namespace TsDiscordBot.Core.HostedService
             {
                 if (!_firstHistory.TryGetValue(message.Channel.Id, out var cache))
                 {
-                    _firstHistory[message.Channel.Id] = (await message.Channel.GetMessagesAsync()
-                            .FlattenAsync())
-                        .Select(DiscordToOpenAIMessageConverter.ConvertFromDiscord)
-                        .ToArray();
+                    var firstMessages = await message.Channel.GetMessagesAsync()
+                        .FlattenAsync();
+                    var convertedFirst = new List<ConvertedMessage>();
+                    foreach (var m in firstMessages)
+                    {
+                        convertedFirst.Add(await ConvertMessageAsync(m));
+                    }
+                    _firstHistory[message.Channel.Id] = convertedFirst.ToArray();
                 }
 
                 if (message.Author.IsBot || message.Channel is not SocketGuildChannel guildChannel)
@@ -62,15 +66,16 @@ namespace TsDiscordBot.Core.HostedService
                 if (message.MentionedUsers.Any(x => x.Id == _client.CurrentUser.Id) ||
                     message.Content.StartsWith("!つむぎ"))
                 {
-                    var reply = await GetReplyReferenceAsync(message);
-                    var messageStruct = DiscordToOpenAIMessageConverter.ConvertFromDiscord(message, reply);
+                    var previousMessagesTasks = message.Channel.GetCachedMessages(100)
+                        .Where(m => m.Id != message.Id)
+                        .Select(ConvertMessageAsync);
+                    var previousMessages = await Task.WhenAll(previousMessagesTasks);
 
-                    var previousMessages = message.Channel.GetCachedMessages(100)
-                        .Select(DiscordToOpenAIMessageConverter.ConvertFromDiscord)
-                        .ToArray();
+                    var current = await ConvertMessageAsync(message);
 
                     previousMessages = _firstHistory[message.Channel.Id]
                         .Concat(previousMessages)
+                        .Concat(new[] { current })
                         .OrderBy(x => x.Date)
                         .TakeLast(30)
                         .ToArray();
@@ -100,6 +105,12 @@ namespace TsDiscordBot.Core.HostedService
             }
 
             return reply;
+        }
+
+        private async Task<ConvertedMessage> ConvertMessageAsync(IMessage message)
+        {
+            var reply = await GetReplyReferenceAsync(message);
+            return DiscordToOpenAIMessageConverter.ConvertFromDiscord(message, reply);
         }
     }
 }
