@@ -46,7 +46,8 @@ public class AutoDeleteService : BackgroundService
                     {
                         var messages = await channel.GetMessagesAsync(config.LastMessageId, Direction.After, 100).FlattenAsync();
                         var targets = messages
-                            .Where(x => !x.Author.IsBot && !x.IsPinned)
+                            .Where(x => !x.IsPinned)
+                            .Where(x => !(x.Author.IsBot && x.Content.EndsWith("分後にメッセージを自動削除するよう設定したよ！")))
                             .OrderBy(x => x.Id)
                             .ToArray();
 
@@ -77,7 +78,7 @@ public class AutoDeleteService : BackgroundService
                     if (_client.GetChannel(entry.ChannelId) is ISocketMessageChannel channel)
                     {
                         var msg = await channel.GetMessageAsync(entry.MessageId);
-                        if (msg is null || msg.Author.IsBot || msg.IsPinned)
+                        if (msg is null || msg.IsPinned)
                         {
                             _databaseService.Delete(AutoDeleteMessage.TableName, entry.Id);
                             continue;
