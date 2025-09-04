@@ -1,6 +1,5 @@
 ﻿using System;
 using Discord;
-using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -10,10 +9,10 @@ namespace TsDiscordBot.Core.HostedService;
 
 public class DiscordStartupService : IHostedService
 {
-    private readonly DiscordSocketClient _discord;
+    private readonly IDiscordBotClient _discord;
     private readonly IConfiguration _config;
 
-    public DiscordStartupService(DiscordSocketClient discord, IConfiguration config, ILogger<DiscordSocketClient> logger)
+    public DiscordStartupService(IDiscordBotClient discord, IConfiguration config, ILogger<IDiscordBotClient> logger)
     {
         _discord = discord;
         _config = config;
@@ -29,7 +28,7 @@ public class DiscordStartupService : IHostedService
             token = _config["token"];
         }
 
-        await _discord.LoginAsync(TokenType.Bot, token);
+        await _discord.LoginAsync(TokenType.Bot, token!);
         await _discord.StartAsync();
     }
 
