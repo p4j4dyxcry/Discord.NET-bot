@@ -25,6 +25,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
             AlwaysDownloadUsers = true,
             MessageCacheSize = 100,
         }));
+        services.AddSingleton<IDiscordBotClient>(provider => new DiscordSocketClientAdapter(provider.GetRequiredService<DiscordSocketClient>()));
         services.AddSingleton<InteractionService>(provider =>
         {
             var client = provider.GetRequiredService<DiscordSocketClient>();
