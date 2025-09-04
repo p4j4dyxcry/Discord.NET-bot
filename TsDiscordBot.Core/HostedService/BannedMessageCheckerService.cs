@@ -15,7 +15,7 @@ namespace TsDiscordBot.Core.HostedService
         private readonly DatabaseService _databaseService;
 
         private BannedTriggerWord[] _cache = [];
-        private BannedTextSetting[] _modeCache = [];
+        private BannedTextSetting[] _settingsCache = [];
         private DateTime _lastFetchTime = DateTime.MinValue;
         private readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
 
@@ -56,7 +56,7 @@ namespace TsDiscordBot.Core.HostedService
                 if ((DateTime.Now - _lastFetchTime) > CacheDuration)
                 {
                     _cache = _databaseService.FindAll<BannedTriggerWord>(BannedTriggerWord.TableName).ToArray();
-                    _modeCache = _databaseService.FindAll<BannedTextSetting>(BannedTextSetting.TableName).ToArray();
+                    _settingsCache = _databaseService.FindAll<BannedTextSetting>(BannedTextSetting.TableName).ToArray();
                     _lastFetchTime = DateTime.Now;
                 }
 
@@ -64,11 +64,17 @@ namespace TsDiscordBot.Core.HostedService
                     .Where(x => x.GuildId == guildId)
                     .Where(x => !string.IsNullOrWhiteSpace(x.Word));
 
+                var setting = _settingsCache.FirstOrDefault(x => x.GuildId == guildId);
+                if (setting is not null && !setting.IsEnabled)
+                {
+                    return;
+                }
+
                 foreach (var keyword in keywords)
                 {
                     if (message.Content.Contains(keyword.Word, StringComparison.OrdinalIgnoreCase))
                     {
-                        var mode = _modeCache.FirstOrDefault(x => x.GuildId == guildId)?.Mode ?? BannedTextMode.Hide;
+                        var mode = setting?.Mode ?? BannedTextMode.Hide;
 
                         if (mode == BannedTextMode.Delete)
                         {

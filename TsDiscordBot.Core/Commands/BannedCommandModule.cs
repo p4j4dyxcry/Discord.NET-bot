@@ -134,4 +134,39 @@ namespace TsDiscordBot.Core.Commands;
             await RespondAsync("⚠️ 禁止テキストモードの設定に失敗しました。");
         }
     }
+
+    [SlashCommand("set-banned-text-enabled", "禁止テキスト機能を有効/無効にします。")]
+    public async Task SetBannedTextEnabled(bool enabled)
+    {
+        try
+        {
+            var guildId = Context.Guild.Id;
+
+            var setting = _databaseService.FindAll<BannedTextSetting>(BannedTextSetting.TableName)
+                .FirstOrDefault(x => x.GuildId == guildId);
+
+            if (setting is null)
+            {
+                _databaseService.Insert(BannedTextSetting.TableName, new BannedTextSetting
+                {
+                    GuildId = guildId,
+                    IsEnabled = enabled
+                });
+            }
+            else
+            {
+                setting.IsEnabled = enabled;
+                _databaseService.Update(BannedTextSetting.TableName, setting);
+            }
+
+            await RespondAsync(enabled
+                ? "禁止テキスト機能を有効にしました。"
+                : "禁止テキスト機能を無効にしました。");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set banned text enabled.");
+            await RespondAsync("⚠️ 禁止テキスト機能の設定に失敗しました。");
+        }
+    }
 }
