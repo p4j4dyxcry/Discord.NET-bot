@@ -10,8 +10,9 @@ It supports chat generation, automatic reactions, banned word detection, and sch
 - OpenAI を用いた対話機能 / OpenAI-based conversational replies
 - スラッシュコマンドによる操作 / Control via slash commands
 - 特定ワードへのリアクション設定 / Custom reactions triggered by keywords
-- 禁止 ワードの検知とメッセージ削除 / Detects banned words and deletes offending messages
+- 禁止 ワードの検知と伏字または削除 / Detects banned words and hides or deletes offending messages
 - 複数禁止ワードの一括登録 / Bulk-register multiple banned words
+- 禁止テキストモードの設定 (/set-banned-text-mode hide|delete)
 - 一定時間後にメッセージを自動削除 / Automatically delete messages after a set time
 - 会話を促す自動メッセージ投稿 / Posts prompts automatically to encourage conversation
 - AI を使った画像生成・編集 / Generate and edit images with AI

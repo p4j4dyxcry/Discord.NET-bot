@@ -2,12 +2,11 @@
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Constants;
 using TsDiscordBot.Core.Data;
-using TsDiscordBot.Core.HostedService;
 using TsDiscordBot.Core.Services;
 
 namespace TsDiscordBot.Core.Commands;
 
-public class BannedCommandModule : InteractionModuleBase<SocketInteractionContext>
+    public class BannedCommandModule : InteractionModuleBase<SocketInteractionContext>
 {
     private readonly ILogger<BannedCommandModule> _logger;
     private readonly DatabaseService _databaseService;
@@ -96,6 +95,43 @@ public class BannedCommandModule : InteractionModuleBase<SocketInteractionContex
         {
             _logger.LogError(ex, "Failed to remove banned word.");
             await RespondAsync(ErrorMessages.BannedWordRemoveFailed);
+        }
+    }
+
+    [SlashCommand("set-banned-text-mode", "禁止テキストの処理モードを設定します。(hide/delete)")]
+    public async Task SetBannedTextMode(string mode)
+    {
+        try
+        {
+            var guildId = Context.Guild.Id;
+
+            var normalized = mode.Equals("delete", StringComparison.OrdinalIgnoreCase)
+                ? BannedTextMode.Delete
+                : BannedTextMode.Hide;
+
+            var setting = _databaseService.FindAll<BannedTextSetting>(BannedTextSetting.TableName)
+                .FirstOrDefault(x => x.GuildId == guildId);
+
+            if (setting is null)
+            {
+                _databaseService.Insert(BannedTextSetting.TableName, new BannedTextSetting
+                {
+                    GuildId = guildId,
+                    Mode = normalized
+                });
+            }
+            else
+            {
+                setting.Mode = normalized;
+                _databaseService.Update(BannedTextSetting.TableName, setting);
+            }
+
+            await RespondAsync($"禁止テキストモードを `{normalized.ToString().ToLower()}` に設定しました。");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set banned text mode.");
+            await RespondAsync("⚠️ 禁止テキストモードの設定に失敗しました。");
         }
     }
 }
