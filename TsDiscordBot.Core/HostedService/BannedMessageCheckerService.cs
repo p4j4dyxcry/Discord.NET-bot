@@ -1,5 +1,5 @@
-﻿using Discord.WebSocket;
 using Discord;
+using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
@@ -32,23 +32,35 @@ namespace TsDiscordBot.Core.HostedService
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _client.MessageReceived += OnMessageReceivedAsync;
+            _client.MessageUpdated += OnMessageUpdatedAsync;
             return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
             _client.MessageReceived -= OnMessageReceivedAsync;
+            _client.MessageUpdated -= OnMessageUpdatedAsync;
             return Task.CompletedTask;
         }
 
-        private async Task OnMessageReceivedAsync(SocketMessage message)
+        private Task OnMessageReceivedAsync(SocketMessage message) => CheckMessageAsync(message);
+
+        private Task OnMessageUpdatedAsync(Cacheable<IMessage, ulong> before, SocketMessage after, ISocketMessageChannel channel)
+        {
+            if (after is null)
+                return Task.CompletedTask;
+
+            return CheckMessageAsync(after);
+        }
+
+        private async Task CheckMessageAsync(SocketMessage message)
         {
             try
             {
                 if (message.Author.IsBot || message.Channel is not SocketGuildChannel guildChannel)
                     return;
 
-                if(message.Channel.Name.Contains("閲覧注意"))
+                if (message.Channel.Name.Contains("閲覧注意"))
                     return;
 
                 var guildId = guildChannel.Guild.Id;
