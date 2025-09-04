@@ -1,3 +1,5 @@
+using TsDiscordBot.Core.Utility;
+
 namespace TsDiscordBot.Core.Services;
 
 public record AnonymousProfile(string Name, string? AvatarUrl);
@@ -64,7 +66,7 @@ public static class AnonymousProfileProvider
     public static string GetDiscriminator(ulong userId)
     {
         DateOnly today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var discriminator = (uint)(userId + (uint)today.Day) % 10000;
+        var discriminator = XorShiftUtil.GetValue(userId,today) % 10000;
         return discriminator.ToString("D4");
     }
 }
