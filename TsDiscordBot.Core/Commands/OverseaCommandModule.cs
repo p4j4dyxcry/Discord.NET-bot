@@ -1,8 +1,6 @@
-using System.Collections.Concurrent;
 using System.Text;
 using Discord;
 using Discord.Interactions;
-using Discord.Webhook;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Services;
@@ -18,6 +16,28 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     {
         _logger = logger;
         _databaseService = databaseService;
+    }
+
+    private void UpsertUserSettings(IUser user, Action<OverseaUserSetting> configure)
+    {
+        var settings = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
+            .Where(x => x.UserId == user.Id)
+            .ToArray();
+
+        if (settings.Length is 0)
+        {
+            var setting = new OverseaUserSetting { UserId = user.Id };
+            configure(setting);
+            _databaseService.Insert(OverseaUserSetting.TableName, setting);
+        }
+        else
+        {
+            foreach (var setting in settings)
+            {
+                configure(setting);
+                _databaseService.Update(OverseaUserSetting.TableName, setting);
+            }
+        }
     }
 
     [SlashCommand("oversea-register", "当該チャンネルマルチサーバー用に登録します。")]
@@ -87,28 +107,12 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     public async Task EnableAnonymous(IUser? who, string? displayName = null, IAttachment? avatarUrl = null)
     {
         IUser user = who ?? Context.User;
-        var settings = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
-            .Where(x => x.UserId == user.Id)
-            .ToArray();
-
-        if (settings.Length is 0)
-        {
-            _databaseService.Insert(OverseaUserSetting.TableName, new OverseaUserSetting
-            {
-                UserId = user.Id,
-                IsAnonymous = true,
-                AnonymousName = displayName,
-                AnonymousAvatarUrl = avatarUrl?.Url
-            });
-        }
-
-        foreach (var setting in settings)
+        UpsertUserSettings(user, setting =>
         {
             setting.IsAnonymous = true;
             setting.AnonymousName = displayName;
             setting.AnonymousAvatarUrl = avatarUrl?.Url;
-            _databaseService.Update(OverseaUserSetting.TableName, setting);
-        }
+        });
 
         await RespondAsync($"{user.Mention}を匿名化したよ！");
     }
@@ -117,28 +121,11 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     public async Task SetName(string displayName)
     {
         IUser user = Context.User;
-        var settings = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
-            .Where(x => x.UserId == user.Id)
-            .ToArray();
-
-        if (settings.Length is 0)
+        UpsertUserSettings(user, setting =>
         {
-            _databaseService.Insert(OverseaUserSetting.TableName, new OverseaUserSetting
-            {
-                UserId = user.Id,
-                IsAnonymous = true,
-                AnonymousName = displayName
-            });
-        }
-        else
-        {
-            foreach (var setting in settings)
-            {
-                setting.IsAnonymous = true;
-                setting.AnonymousName = displayName;
-                _databaseService.Update(OverseaUserSetting.TableName, setting);
-            }
-        }
+            setting.IsAnonymous = true;
+            setting.AnonymousName = displayName;
+        });
 
         await RespondAsync($"{user.Mention}の表示名を{displayName}にしたよ！");
     }
@@ -155,28 +142,11 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
         string url = attachment.Url;
 
         IUser user = Context.User;
-        var settings = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
-            .Where(x => x.UserId == user.Id)
-            .ToArray();
-
-        if (settings.Length is 0)
+        UpsertUserSettings(user, setting =>
         {
-            _databaseService.Insert(OverseaUserSetting.TableName, new OverseaUserSetting
-            {
-                UserId = user.Id,
-                IsAnonymous = true,
-                AnonymousAvatarUrl = url,
-            });
-        }
-        else
-        {
-            foreach (var setting in settings)
-            {
-                setting.IsAnonymous = true;
-                setting.AnonymousAvatarUrl = url;
-                _databaseService.Update(OverseaUserSetting.TableName, setting);
-            }
-        }
+            setting.IsAnonymous = true;
+            setting.AnonymousAvatarUrl = url;
+        });
 
         var embed = new EmbedBuilder()
             .WithTitle("設定されたアイコン")
@@ -229,30 +199,12 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
         }
 
         IUser user = Context.User;
-        var settings = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
-            .Where(x => x.UserId == user.Id)
-            .ToArray();
-
-        if (settings.Length is 0)
+        UpsertUserSettings(user, setting =>
         {
-            _databaseService.Insert(OverseaUserSetting.TableName, new OverseaUserSetting
-            {
-                UserId = user.Id,
-                IsAnonymous = true,
-                AnonymousName = $"{profile.Name}",
-                AnonymousAvatarUrl = profile.AvatarUrl
-            });
-        }
-        else
-        {
-            foreach (var setting in settings)
-            {
-                setting.IsAnonymous = true;
-                setting.AnonymousName = $"{profile.Name}";
-                setting.AnonymousAvatarUrl = profile.AvatarUrl;
-                _databaseService.Update(OverseaUserSetting.TableName, setting);
-            }
-        }
+            setting.IsAnonymous = true;
+            setting.AnonymousName = $"{profile.Name}";
+            setting.AnonymousAvatarUrl = profile.AvatarUrl;
+        });
 
         var embed = new EmbedBuilder()
             .WithTitle("設定されたキャラクター")
@@ -275,28 +227,12 @@ public class OverseaCommandModule : InteractionModuleBase<SocketInteractionConte
     public async Task DisableAnonymous(IUser? who)
     {
         IUser user = who ?? Context.User;
-        var settings = _databaseService.FindAll<OverseaUserSetting>(OverseaUserSetting.TableName)
-            .Where(x => x.UserId == user.Id)
-            .ToArray();
-
-        if (settings.Length is 0)
+        UpsertUserSettings(user, setting =>
         {
-            _databaseService.Insert(OverseaUserSetting.TableName, new OverseaUserSetting
-            {
-                UserId = user.Id,
-                IsAnonymous = false
-            });
-        }
-        else
-        {
-            foreach (var setting in settings)
-            {
-                setting.IsAnonymous = false;
-                setting.AnonymousName = null;
-                setting.AnonymousAvatarUrl = null;
-                _databaseService.Update(OverseaUserSetting.TableName, setting);
-            }
-        }
+            setting.IsAnonymous = false;
+            setting.AnonymousName = null;
+            setting.AnonymousAvatarUrl = null;
+        });
 
         await RespondAsync($"{user.Mention}の匿名化を解除したよ！");
     }
