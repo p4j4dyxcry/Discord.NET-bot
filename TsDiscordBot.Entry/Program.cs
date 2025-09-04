@@ -54,6 +54,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<ReminderService>();
         services.AddHostedService<ImageReviseService>();
         services.AddHostedService<OverseaRelayService>();
+        services.AddHostedService<AnonymousRelayService>();
         services.AddHostedService<AutoDeleteService>();
     })
     .Build();
