@@ -46,15 +46,16 @@ using IHost host = Host.CreateDefaultBuilder(args)
         // Add hosted services
         services.AddHostedService<InteractionHandlingService>();
         services.AddHostedService<DiscordStartupService>();
-        services.AddHostedService<TriggerReactionService>();
+        // Message delete related services should run before reaction handling
         services.AddHostedService<BannedMessageCheckerService>();
+        services.AddHostedService<OverseaRelayService>();
+        services.AddHostedService<AnonymousRelayService>();
+        services.AddHostedService<TriggerReactionService>();
         services.AddHostedService<NauAriService>();
         services.AddHostedService<TsumugiService>();
         services.AddHostedService<AutoMessageService>();
         services.AddHostedService<ReminderService>();
         services.AddHostedService<ImageReviseService>();
-        services.AddHostedService<OverseaRelayService>();
-        services.AddHostedService<AnonymousRelayService>();
         services.AddHostedService<AutoDeleteService>();
     })
     .Build();
