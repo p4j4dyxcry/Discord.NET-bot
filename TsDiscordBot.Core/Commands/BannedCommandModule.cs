@@ -171,13 +171,12 @@ namespace TsDiscordBot.Core.Commands;
             }
 
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine("Word");
             foreach (var w in words)
             {
-                sb.AppendLine(w);
+                sb.Append($"{w},");
             }
 
-            await RespondWithFileAsync(new MemoryStream(Encoding.UTF8.GetBytes(sb.ToString())), "banned_words.csv", "📄 禁止ワード一覧です。");
+            await RespondWithFileAsync(new MemoryStream(Encoding.UTF8.GetBytes(sb.ToString().TrimEnd(','))), "banned_words.csv", "📄 禁止ワード一覧です。");
         }
         catch (Exception ex)
         {
