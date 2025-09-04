@@ -1,7 +1,9 @@
 using Discord;
+using Discord.Net;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Net;
 using System.Text.RegularExpressions;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Services;
@@ -63,6 +65,13 @@ namespace TsDiscordBot.Core.HostedService
                 if (message.Channel.Name.Contains("閲覧注意"))
                     return;
 
+                var currentUser = guildChannel.Guild.CurrentUser;
+                if (!currentUser.GetPermissions(guildChannel).ManageMessages)
+                {
+                    _logger.LogWarning("Missing ManageMessages permission in channel {ChannelName}", guildChannel.Name);
+                    return;
+                }
+
                 var guildId = guildChannel.Guild.Id;
 
                 if ((DateTime.Now - _lastFetchTime) > CacheDuration)
@@ -111,23 +120,40 @@ namespace TsDiscordBot.Core.HostedService
                                 sanitized = Regex.Replace(sanitized, Regex.Escape(k.Word), new string('＊', k.Word.Length), RegexOptions.IgnoreCase);
                             }
 
-                            try
+                            if (message is IUserMessage userMessage && userMessage.Author.Id == _client.CurrentUser.Id)
                             {
-                                if (message is IUserMessage userMessage)
+                                try
                                 {
+                                    _logger.LogDebug("Modifying bot's own message for sanitization");
                                     await userMessage.ModifyAsync(m => m.Content = sanitized);
                                 }
-                                else
+                                catch (HttpException httpEx) when (httpEx.HttpCode == HttpStatusCode.Forbidden)
+                                {
+                                    _logger.LogWarning(httpEx, "Missing permissions to modify message");
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogWarning(ex, "Failed to modify message, deleting and reposting sanitized copy");
+                                    await userMessage.DeleteAsync();
+                                    await message.Channel.SendMessageAsync($"{message.Author.Mention}: {sanitized}");
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogInformation("Deleting and reposting message not sent by bot");
+                                try
                                 {
                                     await message.DeleteAsync();
                                     await message.Channel.SendMessageAsync($"{message.Author.Mention}: {sanitized}");
                                 }
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogWarning(ex, "Failed to modify message, sending sanitized copy instead.");
-                                await message.DeleteAsync();
-                                await message.Channel.SendMessageAsync($"{message.Author.Mention}: {sanitized}");
+                                catch (HttpException httpEx) when (httpEx.HttpCode == HttpStatusCode.Forbidden)
+                                {
+                                    _logger.LogWarning(httpEx, "Missing permissions to delete message or send sanitized copy");
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogWarning(ex, "Failed to delete message or send sanitized copy");
+                                }
                             }
 
                             _logger.LogInformation($"Masked banned message from {message.Author.Username}: {keyword.Word}");
