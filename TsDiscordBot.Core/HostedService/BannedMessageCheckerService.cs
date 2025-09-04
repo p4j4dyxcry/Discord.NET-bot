@@ -1,7 +1,8 @@
-﻿using Discord;
+using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Services;
 
@@ -14,6 +15,7 @@ namespace TsDiscordBot.Core.HostedService
         private readonly DatabaseService _databaseService;
 
         private BannedTriggerWord[] _cache = [];
+        private BannedTextSetting[] _modeCache = [];
         private DateTime _lastFetchTime = DateTime.MinValue;
         private readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
 
@@ -65,8 +67,8 @@ namespace TsDiscordBot.Core.HostedService
 
                 if ((DateTime.Now - _lastFetchTime) > CacheDuration)
                 {
-                    var list = _databaseService.FindAll<BannedTriggerWord>(BannedTriggerWord.TableName);
-                    _cache = list.ToArray();
+                    _cache = _databaseService.FindAll<BannedTriggerWord>(BannedTriggerWord.TableName).ToArray();
+                    _modeCache = _databaseService.FindAll<BannedTextSetting>(BannedTextSetting.TableName).ToArray();
                     _lastFetchTime = DateTime.Now;
                 }
 
@@ -78,17 +80,51 @@ namespace TsDiscordBot.Core.HostedService
                 {
                     if (message.Content.Contains(keyword.Word, StringComparison.OrdinalIgnoreCase))
                     {
-                        await message.DeleteAsync();
-                        _logger.LogInformation($"Deleted banned message from {message.Author.Username}: {keyword.Word}");
+                        var mode = _modeCache.FirstOrDefault(x => x.GuildId == guildId)?.Mode ?? BannedTextMode.Hide;
 
-                        try
+                        if (mode == BannedTextMode.Delete)
                         {
-                            await message.Channel.SendMessageAsync(
-                                $"🔞 {message.Author.Mention} さん、不適切な発言が検出されたためメッセージを削除しました。");
+                            await message.DeleteAsync();
+                            _logger.LogInformation($"Deleted banned message from {message.Author.Username}: {keyword.Word}");
+
+                            try
+                            {
+                                await message.Channel.SendMessageAsync(
+                                    $"🔞 {message.Author.Mention} さん、不適切な発言が検出されたためメッセージを削除しました。");
+                            }
+                            catch (Exception dmEx)
+                            {
+                                _logger.LogWarning(dmEx, "Failed to send DM to user");
+                            }
                         }
-                        catch (Exception dmEx)
+                        else
                         {
-                            _logger.LogWarning(dmEx, "Failed to send DM to user");
+                            var sanitized = message.Content;
+                            foreach (var k in keywords)
+                            {
+                                sanitized = Regex.Replace(sanitized, Regex.Escape(k.Word), new string('＊', k.Word.Length), RegexOptions.IgnoreCase);
+                            }
+
+                            try
+                            {
+                                if (message is IUserMessage userMessage)
+                                {
+                                    await userMessage.ModifyAsync(m => m.Content = sanitized);
+                                }
+                                else
+                                {
+                                    await message.DeleteAsync();
+                                    await message.Channel.SendMessageAsync($"{message.Author.Mention}: {sanitized}");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Failed to modify message, sending sanitized copy instead.");
+                                await message.DeleteAsync();
+                                await message.Channel.SendMessageAsync($"{message.Author.Mention}: {sanitized}");
+                            }
+
+                            _logger.LogInformation($"Masked banned message from {message.Author.Username}: {keyword.Word}");
                         }
 
                         break; // 1件でもヒットしたら処理終了（重複削除防止）
