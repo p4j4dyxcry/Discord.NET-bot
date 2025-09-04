@@ -40,7 +40,8 @@ public class TriggerReactionService : IHostedService
     {
         try
         {
-            if (message.Author.IsBot || message.Channel is not SocketGuildChannel guildChannel)
+            // Allow bot messages to trigger reactions; only skip non-guild channels
+            if (message.Channel is not SocketGuildChannel guildChannel)
             {
                 return;
             }
