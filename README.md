@@ -23,6 +23,7 @@ It supports chat generation, automatic reactions, banned word detection, and sch
 - 長期記憶の追加・削除・一覧表示 / Manage long-term memories (add/remove/list)
 - 複数サーバー間で匿名メッセージを中継（Oversea） / Relay anonymous messages across servers (Oversea)
 - 「なう(20xx/xx/xx ...)」への自動応答 / Automatic response to messages starting with "なう(20xx/xx/xx ...)"
+- 画像投稿で過去の画像履歴を表示する BeReal モード / BeReal mode that shows past images when posting a new one
 
 ## 必要な環境変数 / Required Environment Variables
 - `DISCORD_TOKEN` : Discord ボットのトークン / Discord bot token
