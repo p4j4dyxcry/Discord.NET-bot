@@ -53,6 +53,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<TriggerReactionService>();
         services.AddHostedService<NauAriService>();
         services.AddHostedService<TsumugiService>();
+        services.AddHostedService<BeRealService>();
         services.AddHostedService<AutoMessageService>();
         services.AddHostedService<ReminderService>();
         services.AddHostedService<ImageReviseService>();
