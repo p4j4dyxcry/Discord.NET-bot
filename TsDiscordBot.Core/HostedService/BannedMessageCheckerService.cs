@@ -7,6 +7,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Services;
+using TsDiscordBot.Core.Utility;
 
 namespace TsDiscordBot.Core.HostedService
 {
@@ -137,12 +138,8 @@ namespace TsDiscordBot.Core.HostedService
                                     await userMessage.DeleteAsync();
                                     if (message.Channel is ITextChannel editChannel)
                                     {
-                                        var username = (message.Author as SocketGuildUser)?.Nickname
-                                                       ?? message.Author.GlobalName
-                                                       ?? message.Author.Username;
-                                        var avatarUrl = (message.Author as SocketGuildUser)?.GetGuildAvatarUrl()
-                                                         ?? message.Author.GetAvatarUrl()
-                                                         ?? message.Author.GetDefaultAvatarUrl();
+                                        var username = DiscordUtility.GetAuthorNameFromMessage(message);
+                                        var avatarUrl = DiscordUtility.GetAvatarUrlFromMessage(message);
                                         var webhookClient = await WebHookWrapper.Default.GetOrCreateWebhookClientAsync(editChannel, "banned-relay");
                                         await webhookClient.RelayMessageAsync(message,sanitized, author: username, avatarUrl: avatarUrl,_logger);
                                     }

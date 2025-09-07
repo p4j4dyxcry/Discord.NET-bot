@@ -30,7 +30,7 @@ namespace TsDiscordBot.Core.Utility
         public static ConvertedMessage ConvertFromDiscord(IMessage message, ConvertedMessage? reply = null)
         {
             // 表示名
-            string author = (message.Author as SocketGuildUser)?.Nickname ?? message.Author.GlobalName ?? message.Author.Username;
+            string author = DiscordUtility.GetAuthorNameFromMessage(message);
 
             // ベース本文
             string body = message.Content?.Trim() ?? string.Empty;
