@@ -1,3 +1,4 @@
+using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -71,9 +72,18 @@ public class BeRealService : IHostedService
             }
 
             var webhookClient = await WebHookWrapper.Default.GetOrCreateWebhookClientAsync(feedChannel, "be-real-relay");
-            await webhookClient.RelayMessageAsync(message, message.Content, logger:_logger);
+            var feedMessageId = await webhookClient.RelayMessageAsync(message, message.Content, logger:_logger);
 
             await message.DeleteAsync();
+
+            if (feedMessageId is { } id)
+            {
+                var link = $"https://discord.com/channels/{guild.Id}/{feedChannel.Id}/{id}";
+                if (message.Channel is IMessageChannel postChannel)
+                {
+                    await postChannel.SendMessageAsync($"Feedにメッセージを送信しました！{link}");
+                }
+            }
 
             if (message.Author is SocketGuildUser guildUser)
             {

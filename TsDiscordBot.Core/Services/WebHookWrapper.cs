@@ -42,7 +42,7 @@ namespace TsDiscordBot.Core.Services
             _client = client;
         }
 
-        public async Task RelayMessageAsync(SocketMessage socketMessage, string? content, string? author = null, string? avatarUrl = null, ILogger? logger = null)
+        public async Task<ulong?> RelayMessageAsync(SocketMessage socketMessage, string? content, string? author = null, string? avatarUrl = null, ILogger? logger = null)
         {
             try
             {
@@ -70,6 +70,8 @@ namespace TsDiscordBot.Core.Services
                 }
 
 
+                ulong? messageId = null;
+
                 if (attachments is { Count: > 0 })
                 {
                     var files = attachments
@@ -77,7 +79,7 @@ namespace TsDiscordBot.Core.Services
                         .ToList();
                     try
                     {
-                        await _client.SendFilesAsync(files, text: content, username: author, avatarUrl: avatarUrl);
+                        messageId = await _client.SendFilesAsync(files, text: content, username: author, avatarUrl: avatarUrl);
                     }
                     catch(Exception e)
                     {
@@ -95,7 +97,7 @@ namespace TsDiscordBot.Core.Services
                 {
                     try
                     {
-                        await _client.SendMessageAsync(content ?? string.Empty, username: author, avatarUrl: avatarUrl);
+                        messageId = await _client.SendMessageAsync(content ?? string.Empty, username: author, avatarUrl: avatarUrl);
                     }
                     catch(Exception e)
                     {
@@ -103,10 +105,13 @@ namespace TsDiscordBot.Core.Services
                     }
 
                 }
+
+                return messageId;
             }
             catch(Exception e)
             {
                 logger?.LogError(e, "Error while relaying message");
+                return null;
             }
         }
     }
