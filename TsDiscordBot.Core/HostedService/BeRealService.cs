@@ -81,7 +81,7 @@ public class BeRealService : IHostedService
                 var link = $"https://discord.com/channels/{guild.Id}/{feedChannel.Id}/{id}";
                 if (message.Channel is IMessageChannel postChannel)
                 {
-                    await postChannel.SendMessageAsync($"Feedにメッセージを送信しました！{link}");
+                    await postChannel.SendMessageAsync($"{message.Author.Username}さんがBeRealに画像を投稿したよ！{link}");
                 }
             }
 
