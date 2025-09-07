@@ -1,5 +1,3 @@
-using System;
-
 namespace TsDiscordBot.Core.Data;
 
 public class AutoDeleteChannel

@@ -1,10 +1,8 @@
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;
-using Discord.Webhook;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
 using System.Net;
 using System.Text.RegularExpressions;
 using TsDiscordBot.Core.Data;
@@ -22,25 +20,6 @@ namespace TsDiscordBot.Core.HostedService
         private BannedTextSetting[] _settingsCache = [];
         private DateTime _lastFetchTime = DateTime.MinValue;
         private readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
-
-        private readonly ConcurrentDictionary<ulong, DiscordWebhookClient> _webhookCache = new();
-
-        private async Task<DiscordWebhookClient> GetOrCreateWebhookClientAsync(ITextChannel channel)
-        {
-            if (_webhookCache.TryGetValue(channel.Id, out var cached))
-            {
-                return cached;
-            }
-
-            var hooks = await channel.GetWebhooksAsync();
-            var hook = hooks.FirstOrDefault(h => h.Name == "banned-relay")
-                       ?? await channel.CreateWebhookAsync("banned-relay");
-
-            var client = new DiscordWebhookClient(hook);
-            _webhookCache[channel.Id] = client;
-
-            return client;
-        }
 
         public BannedMessageCheckerService(
             DiscordSocketClient client,
@@ -164,8 +143,8 @@ namespace TsDiscordBot.Core.HostedService
                                         var avatarUrl = (message.Author as SocketGuildUser)?.GetGuildAvatarUrl()
                                                          ?? message.Author.GetAvatarUrl()
                                                          ?? message.Author.GetDefaultAvatarUrl();
-                                        var webhookClient = await GetOrCreateWebhookClientAsync(editChannel);
-                                        await webhookClient.SendMessageAsync(sanitized, username: username, avatarUrl: avatarUrl);
+                                        var webhookClient = await WebHookWrapper.Default.GetOrCreateWebhookClientAsync(editChannel, "banned-relay");
+                                        await webhookClient.RelayMessageAsync(message,sanitized, author: username, avatarUrl: avatarUrl,_logger);
                                     }
                                     else
                                     {
@@ -181,14 +160,8 @@ namespace TsDiscordBot.Core.HostedService
                                     await message.DeleteAsync();
                                     if (message.Channel is ITextChannel channel)
                                     {
-                                        var username = (message.Author as SocketGuildUser)?.Nickname
-                                                       ?? message.Author.GlobalName
-                                                       ?? message.Author.Username;
-                                        var avatarUrl = (message.Author as SocketGuildUser)?.GetGuildAvatarUrl()
-                                                         ?? message.Author.GetAvatarUrl()
-                                                         ?? message.Author.GetDefaultAvatarUrl();
-                                        var webhookClient = await GetOrCreateWebhookClientAsync(channel);
-                                        await webhookClient.SendMessageAsync(sanitized, username: username, avatarUrl: avatarUrl);
+                                        var webhookClient = await WebHookWrapper.Default.GetOrCreateWebhookClientAsync(channel, "banned-relay");
+                                        await webhookClient.RelayMessageAsync(message,sanitized, logger:_logger);
                                     }
                                     else
                                     {

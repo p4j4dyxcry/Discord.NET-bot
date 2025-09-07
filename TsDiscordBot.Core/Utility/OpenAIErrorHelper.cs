@@ -1,5 +1,4 @@
 using System.ClientModel;
-using System.IO;
 using System.Text.Json;
 
 namespace TsDiscordBot.Core.Utility;

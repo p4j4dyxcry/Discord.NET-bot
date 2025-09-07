@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-
-namespace TsDiscordBot.Core
+﻿namespace TsDiscordBot.Core
 {
     public static class Envs
     {
