@@ -48,8 +48,7 @@ public class BeRealCommandModule : InteractionModuleBase<SocketInteractionContex
             {
                 new Overwrite(everyone.Id, PermissionTarget.Role,
                     new OverwritePermissions(viewChannel: PermValue.Allow,
-                                             sendMessages: PermValue.Allow,
-                                             readMessageHistory: PermValue.Deny))
+                                             sendMessages: PermValue.Allow))
             };
         });
 
