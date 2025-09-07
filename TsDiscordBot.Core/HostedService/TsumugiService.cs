@@ -1,6 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Text;
-using System.Text.RegularExpressions;
 using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;

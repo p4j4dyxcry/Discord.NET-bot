@@ -2,7 +2,6 @@
 using System.Text.RegularExpressions;
 using Discord;
 using Discord.WebSocket;
-using System.Collections.Generic;
 
 namespace TsDiscordBot.Core.Utility
 {

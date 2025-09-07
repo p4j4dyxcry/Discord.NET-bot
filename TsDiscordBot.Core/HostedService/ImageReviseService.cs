@@ -1,13 +1,9 @@
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net.Http;
 using System.Text;
 using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using TsDiscordBot.Core;
 using TsDiscordBot.Core.Constants;
 using TsDiscordBot.Core.Services;
 

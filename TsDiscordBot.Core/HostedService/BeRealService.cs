@@ -1,5 +1,3 @@
-using System.Linq;
-using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

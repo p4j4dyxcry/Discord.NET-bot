@@ -1,9 +1,5 @@
-using System.Collections.Concurrent;
-using System.IO;
-using System.Net.Http;
 using Discord;
 using Discord.WebSocket;
-using Discord.Webhook;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Data;

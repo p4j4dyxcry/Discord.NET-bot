@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
-using System.IO;
 using OpenAI.Images;
 
 namespace TsDiscordBot.Core.Services;

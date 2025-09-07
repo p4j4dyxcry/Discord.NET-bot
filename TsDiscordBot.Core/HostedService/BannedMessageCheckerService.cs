@@ -1,10 +1,8 @@
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;
-using Discord.Webhook;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
 using System.Net;
 using System.Text.RegularExpressions;
 using TsDiscordBot.Core.Data;
