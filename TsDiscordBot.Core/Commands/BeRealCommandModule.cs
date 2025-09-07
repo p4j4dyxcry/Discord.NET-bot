@@ -19,6 +19,7 @@ public class BeRealCommandModule : InteractionModuleBase<SocketInteractionContex
     }
 
     [SlashCommand("be-real-initialize", "be realのチャンネルとロールを作成します。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
     public async Task Initialize()
     {
         var guild = Context.Guild;
@@ -87,6 +88,7 @@ public class BeRealCommandModule : InteractionModuleBase<SocketInteractionContex
     }
 
     [SlashCommand("be-real-destroy", "be real の設定を解除します。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
     public async Task Destroy()
     {
         var guild = Context.Guild;
