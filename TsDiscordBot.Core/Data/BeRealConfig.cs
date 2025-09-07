@@ -7,6 +7,5 @@ public class BeRealConfig
     public ulong GuildId { get; set; }
     public ulong PostChannelId { get; set; }
     public ulong FeedChannelId { get; set; }
-    public ulong PinsChannelId { get; set; }
     public ulong RoleId { get; set; }
 }

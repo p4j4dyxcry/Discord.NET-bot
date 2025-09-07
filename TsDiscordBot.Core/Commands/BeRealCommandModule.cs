@@ -66,17 +66,6 @@ public class BeRealCommandModule : InteractionModuleBase<SocketInteractionContex
             };
         });
 
-        var pinsChannel = await guild.CreateTextChannelAsync("be-real-pins", props =>
-        {
-            props.PermissionOverwrites = new[]
-            {
-                new Overwrite(everyone.Id, PermissionTarget.Role,
-                    new OverwritePermissions(viewChannel: PermValue.Allow,
-                                             sendMessages: PermValue.Deny,
-                                             readMessageHistory: PermValue.Allow))
-            };
-        });
-
         var postMsg = await postChannel.SendMessageAsync(
             "画像を投稿すると 24 時間 #be-real-feed を閲覧できます！");
         await postMsg.PinAsync();
@@ -90,7 +79,6 @@ public class BeRealCommandModule : InteractionModuleBase<SocketInteractionContex
             GuildId = guild.Id,
             PostChannelId = postChannel.Id,
             FeedChannelId = feedChannel.Id,
-            PinsChannelId = pinsChannel.Id,
             RoleId = role.Id
         };
 
@@ -132,11 +120,6 @@ public class BeRealCommandModule : InteractionModuleBase<SocketInteractionContex
         if (guild.GetTextChannel(config.FeedChannelId) is SocketTextChannel feed)
         {
             await feed.DeleteAsync();
-        }
-
-        if (guild.GetTextChannel(config.PinsChannelId) is SocketTextChannel pins)
-        {
-            await pins.DeleteAsync();
         }
 
         var participants = _databaseService
