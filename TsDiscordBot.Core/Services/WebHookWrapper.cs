@@ -78,7 +78,7 @@ namespace TsDiscordBot.Core.Services
                         .ToList();
                     try
                     {
-                        await _client.SendFilesAsync(files, text: socketMessage.Content, username: author, avatarUrl: avatarUrl);
+                        await _client.SendFilesAsync(files, text: content, username: author, avatarUrl: avatarUrl);
                     }
                     catch(Exception e)
                     {
