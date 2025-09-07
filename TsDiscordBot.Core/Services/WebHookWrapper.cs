@@ -51,7 +51,7 @@ namespace TsDiscordBot.Core.Services
 
                 if (author is null)
                 {
-                    author = DiscordUtility.GetAvatarUrlFromMessage(socketMessage);
+                    author = DiscordUtility.GetAuthorNameFromMessage(socketMessage);
                 }
 
                 if (avatarUrl is null)
