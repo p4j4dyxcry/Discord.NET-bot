@@ -67,11 +67,10 @@ public class BeRealCommandModule : InteractionModuleBase<SocketInteractionContex
         });
 
         var postMsg = await postChannel.SendMessageAsync(
-            "画像を投稿すると 24 時間 #be-real-feed を閲覧できます！");
+            "画像を投稿すると 24 時間 の間 画像を閲覧できるよ！");
         await postMsg.PinAsync();
 
-        var feedMsg = await feedChannel.SendMessageAsync(
-            "#be-real-post から画像が転送されます。一般ユーザーの書き込み権限はありません。");
+        var feedMsg = await feedChannel.SendMessageAsync("投稿された画像が　24時間 確認できるよ！");
         await feedMsg.PinAsync();
 
         var config = new BeRealConfig
