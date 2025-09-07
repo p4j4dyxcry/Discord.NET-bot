@@ -3,6 +3,7 @@ using Discord;
 using Discord.Webhook;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
+using TsDiscordBot.Core.Utility;
 
 namespace TsDiscordBot.Core.Services
 {
@@ -50,17 +51,12 @@ namespace TsDiscordBot.Core.Services
 
                 if (author is null)
                 {
-                    author = (socketMessage.Author as SocketGuildUser)?.Nickname
-                             ?? socketMessage.Author.GlobalName
-                             ?? socketMessage.Author.Username;
+                    author = DiscordUtility.GetAvatarUrlFromMessage(socketMessage);
                 }
 
                 if (avatarUrl is null)
                 {
-                    avatarUrl = (socketMessage.Author as SocketGuildUser)?.GetGuildAvatarUrl()
-                                    ?? socketMessage.Author.GetAvatarUrl()
-                                    ?? socketMessage.Author.GetDefaultAvatarUrl();
-
+                    avatarUrl = DiscordUtility.GetAvatarUrlFromMessage(socketMessage);
                 }
 
                 if (!_attachmentCache.TryGetValue(socketMessage, out var attachments))

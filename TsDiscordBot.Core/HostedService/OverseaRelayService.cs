@@ -89,19 +89,8 @@ public class OverseaRelayService : IHostedService
             }
             else
             {
-                username = message.Author.Username;
-                if (message.Author is SocketGuildUser guildUser)
-                {
-                    username = guildUser.Nickname ?? message.Author.GlobalName ?? message.Author.Username;
-                    avatarUrl = guildUser.GetGuildAvatarUrl() ??
-                                guildUser.GetAvatarUrl() ??
-                                guildUser.GetDefaultAvatarUrl();
-                }
-                else
-                {
-                    avatarUrl = message.Author.GetAvatarUrl() ??
-                                message.Author.GetDefaultAvatarUrl();
-                }
+                username = DiscordUtility.GetAuthorNameFromMessage(message);
+                avatarUrl = DiscordUtility.GetAuthorNameFromMessage(message);
             }
 
             List<Task> tasks =

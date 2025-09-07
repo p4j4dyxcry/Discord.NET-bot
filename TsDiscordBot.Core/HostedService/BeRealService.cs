@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Services;
+using TsDiscordBot.Core.Utility;
 
 namespace TsDiscordBot.Core.HostedService;
 
@@ -81,7 +82,7 @@ public class BeRealService : IHostedService
                 var link = $"https://discord.com/channels/{guild.Id}/{feedChannel.Id}/{id}";
                 if (message.Channel is IMessageChannel postChannel)
                 {
-                    await postChannel.SendMessageAsync($"{message.Author.Username}さんがBeRealに画像を投稿したよ！{link}");
+                    await postChannel.SendMessageAsync($"{DiscordUtility.GetAuthorNameFromMessage(message)}さんがBeRealに画像を投稿したよ！{link}");
                 }
             }
 
