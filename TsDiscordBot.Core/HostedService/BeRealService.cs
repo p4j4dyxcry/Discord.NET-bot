@@ -72,15 +72,8 @@ public class BeRealService : IHostedService
                 return;
             }
 
-            foreach (var attachment in message.Attachments.Where(a => a.Width.HasValue))
-            {
-                var embed = new EmbedBuilder()
-                    .WithAuthor(message.Author)
-                    .WithImageUrl(attachment.Url)
-                    .Build();
-
-                await feedChannel.SendMessageAsync(message.Author.Mention, embed: embed);
-            }
+            var webhookClient = await WebHookWrapper.Default.GetOrCreateWebhookClientAsync(feedChannel, "be-real-relay");
+            await webhookClient.RelayMessageAsync(message, message.Content, logger:_logger);
 
             await message.DeleteAsync();
 
