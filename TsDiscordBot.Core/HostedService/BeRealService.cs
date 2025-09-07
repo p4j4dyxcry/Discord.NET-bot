@@ -143,11 +143,18 @@ public class BeRealService : IHostedService
                             var role = guild.GetRole(config.RoleId);
                             if (user != null && role != null)
                             {
-                                await user.RemoveRoleAsync(role);
+                                try
+                                {
+                                    await user.RemoveRoleAsync(role);
+                                    _databaseService.Delete(BeRealParticipant.TableName, participant.Id);
+                                }
+                                catch(Exception e)
+                                {
+                                    _logger.LogError(e, "Failed to remove role");
+                                }
+
                             }
                         }
-
-                        _databaseService.Delete(BeRealParticipant.TableName, participant.Id);
                     }
                 }
             }

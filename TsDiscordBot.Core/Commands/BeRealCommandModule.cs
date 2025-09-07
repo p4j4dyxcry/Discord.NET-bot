@@ -39,7 +39,7 @@ public class BeRealCommandModule : InteractionModuleBase<SocketInteractionContex
             return;
         }
 
-        var role = await guild.CreateRoleAsync("BeReal-24h", GuildPermissions.None, null, false, null);
+        var role = await guild.CreateRoleAsync("BeReal-24h", GuildPermissions.None, null, false, false);
         var everyone = guild.EveryoneRole;
 
         var postChannel = await guild.CreateTextChannelAsync("be-real-post", props =>
