@@ -2,8 +2,7 @@ namespace TsDiscordBot.Core.Data;
 
 public class BeRealConfig
 {
-    public const string TableName = "bereal-config";
-
+    public const string TableName = "bereal_config";
     public int Id { get; set; }
     public ulong GuildId { get; set; }
     public ulong PostChannelId { get; set; }
