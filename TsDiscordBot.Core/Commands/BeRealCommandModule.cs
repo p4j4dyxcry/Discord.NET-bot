@@ -66,7 +66,7 @@ public class BeRealCommandModule : InteractionModuleBase<SocketInteractionContex
         });
 
         var postMsg = await postChannel.SendMessageAsync(
-            "画像を投稿すると 24 時間 の間 画像を閲覧できるよ！");
+            "画像を投稿すると 24 時間 の間 他の人が投稿した画像を閲覧できるよ！");
         await postMsg.PinAsync();
 
         var feedMsg = await feedChannel.SendMessageAsync("投稿された画像が　24時間 確認できるよ！");
