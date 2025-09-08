@@ -1,3 +1,6 @@
+import { useState, useRef } from "react";
+
+import Header from "./Header";
 import AutoPlayVideo from "./components/AutoPlayVideo";
 
 import headerIcon from "./assets/hero.png";
@@ -76,72 +79,48 @@ export default function App() {
   return (
     <div className="min-h-screen bg-white text-gray-900">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b bg-white/80 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-screen-xl items-center justify-between px-4">
-          <a href={import.meta.env.BASE_URL} className="flex items-center gap-2 font-semibold">
-            <img
-              src={headerIcon}
-              alt="TsDiscordBot Logo"
-              className="h-6 w-6 rounded-full object-cover"
-            />
-            <span>つむぎ (Discord Bot)</span>
-          </a>
-          <nav className="flex items-center gap-4">
-            <a href="#features" className="text-sm text-gray-600 hover:text-gray-900">Features</a>
-            <a href="#introduction" className="text-sm text-gray-600 hover:text-gray-900">Introduction</a>
-            <a href="#commands" className="text-sm text-gray-600 hover:text-gray-900">Commands</a>
+      <Header/>
+
+    <section className="relative">
+      <div className="mx-auto grid max-w-screen-xl items-center gap-8 px-4 py-12 md:grid-cols-2 md:gap-10 md:py-20">
+        {/* 画像側（モバイルで先頭に表示 → order-1 md:order-2） */}
+        <div className="mx-auto w-full max-w-xs order-1 md:order-2 md:max-w-sm">
+          <img
+            src={headerIcon}
+            alt="TsDiscordBot Hero"
+            className="h-full w-full rounded-3xl object-cover shadow-xl ring-1 ring-black/5"
+          />
+        </div>
+
+        {/* テキスト側（モバイルでは後ろ → order-2 md:order-1） */}
+        <div className="order-2 md:order-1 text-center md:text-left">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-5xl">
+            サーバーに遊びを、<br/>
+            もっと自由に話せる Discord に
+          </h1>
+          <p className="mt-4 text-base text-gray-600 sm:text-lg md:mt-5 md:text-lg">
+            いつものサーバーが、ちょっと特別な遊び場に変わります。<br className="hidden md:block" />
+            キャラになりきって匿名で話したり、時間制限つきのチャンネルで秘密を共有したり。<br className="hidden md:block" />
+            さらに AI 会話や画像生成まで、会話を盛り上げるユニークな機能を搭載しています。
+          </p>
+
+          <div className="mt-6 md:mt-8 flex flex-wrap justify-center md:justify-start gap-3">
             <a
-              className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 hover:bg-gray-50"
               href="https://github.com/p4j4dyxcry/Discord.NET-bot"
-              target="_blank" rel="noreferrer"
+              target="_blank"
+              rel="noreferrer"
+              className="rounded-xl border px-4 py-2 text-sm sm:px-5 sm:py-3 sm:text-base hover:bg-gray-50"
             >
-              <img
-                src={githubIcon}
-                alt="GitHub"
-                className="h-5 w-5"
-              />
-              <span>GitHub</span>
+              GitHubで見る
             </a>
-          </nav>
-        </div>
-      </header>
-
-      <section className="relative">
-        <div className="mx-auto grid max-w-screen-xl items-center gap-10 px-4 py-20 md:grid-cols-2">
-          {/* テキスト側 */}
-          <div>
-            <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
-              サーバーに遊びを、<br />
-              もっと自由に話せるDiscordに
-            </h1>
-            <p className="mt-5 text-lg text-gray-600">
-              いつものサーバーが、ちょっと特別な遊び場に変わります。<br/>
-              キャラになりきって匿名で話したり、時間制限つきのチャンネルで秘密を共有したり。<br/>
-              さらに AI 会話や画像生成まで、会話を盛り上げるユニークな機能を搭載しています。
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              <a
-                href="https://github.com/p4j4dyxcry/Discord.NET-bot"
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-xl border px-5 py-3 hover:bg-gray-50"
-              >
-                GitHubで見る
-              </a>
-            </div>
-          </div>
-
-          {/* 画像側 */}
-          <div className="mx-auto w-full max-w-sm">
-            <img
-              src={headerIcon}
-              alt="TsDiscordBot Hero"
-              className="h-full w-full rounded-3xl object-cover shadow-xl ring-1 ring-black/5"
-            />
           </div>
         </div>
-      </section>
+      </div>
+    </section>
+
+      <div className="h-px bg-gray-200 mx-auto w-2/3 my-10" />
+
+      <IntroSection/>
 
       {/* Features */}
       <section id="features" className="mx-auto max-w-screen-xl px-4 py-20">
@@ -184,17 +163,17 @@ export default function App() {
         </div>
       </section>
 
-
-      <IntroSection/>
-
       {/* Commands */}
       <section id="commands" className="mx-auto max-w-screen-xl px-4 py-20">
         <h2 className="text-2xl font-bold text-center">コマンド一覧</h2>
+        <CommandsExpander>
         <div className="mt-10 grid gap-6 sm:grid-cols-2 md:grid-cols-3">
           {commands.map((c) => (
             <CommandItem key={c.name} name={c.name} desc={c.desc} />
           ))}
         </div>
+
+        </CommandsExpander>
         <p className="mt-6 text-gray-600">
           詳細は GitHub の README をご覧ください。
         </p>
@@ -224,6 +203,46 @@ export default function App() {
   );
 }
 
+function CommandsExpander({ children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const contentRef = useRef(null);
+
+  // コンテンツ高さを測ってスムーズに展開
+  const maxHeight = open && contentRef.current
+    ? `${contentRef.current.scrollHeight}px`
+    : "0px";
+
+  return (
+    <div className="mt-6 rounded-xl border bg-white/60 shadow-sm">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-3 text-left font-medium hover:bg-gray-50"
+        aria-expanded={open}
+        aria-controls="commands-panel"
+      >
+        <span>{open ? "閉じる" : "表示する"}</span>
+        <svg
+          className={`h-5 w-5 transform transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+          viewBox="0 0 24 24" fill="none"
+        >
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      <div
+        id="commands-panel"
+        ref={contentRef}
+        className="overflow-hidden transition-[max-height] duration-300"
+        style={{ maxHeight }}
+      >
+        <div className="px-4 pb-4">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Feature({ title, desc }) {
   return (
     <div className="rounded-2xl border bg-white p-6">
@@ -235,9 +254,12 @@ function Feature({ title, desc }) {
 
 function IntroSection() {
   return (
-    <section id="introduction" className="mx-auto max-w-screen-xl px-4 py-20">
+    <section id="introduction" className="mx-auto max-w-screen-xl px-4 py-0">
       <div className="mx-auto max-w-3xl text-center">
-        <h2 className="text-3xl font-bold">つむぎの雰囲気、まずは30秒で</h2>
+        <h2 className="text-3xl font-bold">
+          つむぎの雰囲気、<br className="md:hidden" />
+          まずは30秒で
+        </h2>
       </div>
 
 
