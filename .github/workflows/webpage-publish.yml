@@ -1,6 +1,11 @@
 name: Build docs & open PR
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'web/**'
   workflow_dispatch:
     inputs:
       note:
@@ -11,6 +16,7 @@ on:
 permissions:
   contents: write         # 変更のコミット/プッシュに必要
   pull-requests: write    # PR 作成に必要
+  workflow: write         # 後続ワークフローをトリガーするために必要
 
 concurrency:
   group: update-docs
