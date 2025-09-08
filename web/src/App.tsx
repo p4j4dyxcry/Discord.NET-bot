@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, type ReactNode } from "react";
 
-import Header from "./Header";
-import AutoPlayVideo from "./components/AutoPlayVideo";
+import Header from "./Header.tsx";
+import AutoPlayVideo from "./components/AutoPlayVideo.tsx";
 
 import headerIcon from "./assets/hero.png";
 import githubIcon from "./assets/github.svg";
@@ -13,7 +13,13 @@ import feature4Image from "./assets/feature_card/feature4.png";
 import feature5Image from "./assets/feature_card/feature5.png";
 import feature6Image from "./assets/feature_card/feature6.png";
 
-function FeatureCard({ img, title, desc }) {
+interface FeatureCardProps {
+  img: string;
+  title: string;
+  desc: string;
+}
+
+function FeatureCard({ img, title, desc }: FeatureCardProps) {
   return (
     <div className="rounded-2xl border bg-white shadow hover:shadow-lg transition p-4">
       <img
@@ -27,7 +33,12 @@ function FeatureCard({ img, title, desc }) {
   );
 }
 
-function CommandItem({ name, desc }) {
+interface CommandItemProps {
+  name: string;
+  desc: string;
+}
+
+function CommandItem({ name, desc }: CommandItemProps) {
   return (
     <div className="rounded-2xl border bg-white p-4">
       <h3 className="font-semibold">{name}</h3>
@@ -36,7 +47,7 @@ function CommandItem({ name, desc }) {
   );
 }
 
-const commands = [
+const commands: { name: string; desc: string }[] = [
   { name: "/be-real-initialize", desc: "be realのチャンネルとロールを作成します。(管理者用)" },
   { name: "/be-real-destroy", desc: "be real の設定を解除します。(管理者用)" },
   { name: "/auto-delete-enable", desc: "メッセージを一定時間後に自動削除するように設定します。" },
@@ -203,9 +214,14 @@ export default function App() {
   );
 }
 
-function CommandsExpander({ children, defaultOpen = false }) {
+interface CommandsExpanderProps {
+  children: ReactNode;
+  defaultOpen?: boolean;
+}
+
+function CommandsExpander({ children, defaultOpen = false }: CommandsExpanderProps) {
   const [open, setOpen] = useState(defaultOpen);
-  const contentRef = useRef(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // コンテンツ高さを測ってスムーズに展開
   const maxHeight = open && contentRef.current
@@ -243,7 +259,12 @@ function CommandsExpander({ children, defaultOpen = false }) {
   );
 }
 
-function Feature({ title, desc }) {
+interface FeatureProps {
+  title: string;
+  desc: string;
+}
+
+function Feature({ title, desc }: FeatureProps) {
   return (
     <div className="rounded-2xl border bg-white p-6">
       <h3 className="font-semibold">{title}</h3>
