@@ -20,6 +20,7 @@ namespace TsDiscordBot.Core.Commands;
     }
 
     [SlashCommand("add-banned-word", "禁止に該当するワードを登録します。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
     public async Task AddBannedWord(string word)
     {
         try
@@ -42,6 +43,7 @@ namespace TsDiscordBot.Core.Commands;
     }
 
     [SlashCommand("add-banned-words", "カンマまたは改行区切りで禁止ワードを登録します。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
     public async Task AddBannedWords(string words)
     {
         try
@@ -75,6 +77,7 @@ namespace TsDiscordBot.Core.Commands;
     }
 
     [SlashCommand("remove-banned-word", "登録されている禁止ワードを削除します。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
     public async Task RemoveBannedWord(string word)
     {
         try
@@ -186,6 +189,7 @@ namespace TsDiscordBot.Core.Commands;
     }
 
     [SlashCommand("set-banned-text-mode", "禁止テキストの処理モードを設定します。(hide/delete)")]
+    [RequireUserPermission(GuildPermission.Administrator)]
     public async Task SetBannedTextMode(string mode)
     {
         try
@@ -223,6 +227,7 @@ namespace TsDiscordBot.Core.Commands;
     }
 
     [SlashCommand("set-banned-text-enabled", "禁止テキスト機能を有効/無効にします。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
     public async Task SetBannedTextEnabled(bool enabled)
     {
         try

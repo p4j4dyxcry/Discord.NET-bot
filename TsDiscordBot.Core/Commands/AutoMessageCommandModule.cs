@@ -22,6 +22,7 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
     }
 
     [SlashCommand("auto-message", "AIで会話を促す自動メッセージを設定します。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
     public async Task RegisterAutoMessage(
         [Summary("t", "メッセージを送信する間隔(時間)")] int t = 1,
         [Summary("c", "メッセージを送信するチャンネル")] SocketTextChannel? channel = null,
@@ -99,6 +100,7 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
     }
 
     [SlashCommand("show-auto-message", "AIで会話を促す自動メッセージの現在の設定を表示します。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
     public async Task ShowAutoMessage()
     {
         var guildId = Context.Guild.Id;
@@ -175,6 +177,7 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
     }
 
     [SlashCommand("overwrite-auto-message", "AIで会話を促す自動メッセージの設定を上書きします。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
     public async Task OverwriteAutoMessage(
         [Summary("t", "メッセージを送信する間隔(時間)")] int t = -1,
         [Summary("c", "メッセージを送信するチャンネル")] SocketTextChannel? channel = null,
@@ -258,6 +261,7 @@ public class AutoMessageCommandModule: InteractionModuleBase<SocketInteractionCo
     }
 
     [SlashCommand("remove-auto-message", "AIで会話を促す自動メッセージの設定を解除します。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
     public async Task UnregisterAutoMessage()
     {
         var guildId = Context.Guild.Id;
