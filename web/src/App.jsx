@@ -22,6 +22,54 @@ function FeatureCard({ img, title, desc }) {
   );
 }
 
+function CommandItem({ name, desc }) {
+  return (
+    <div className="rounded-2xl border bg-white p-4">
+      <h3 className="font-semibold">{name}</h3>
+      <p className="mt-1 text-sm text-gray-600">{desc}</p>
+    </div>
+  );
+}
+
+const commands = [
+  { name: "/be-real-initialize", desc: "be realのチャンネルとロールを作成します。(管理者用)" },
+  { name: "/be-real-destroy", desc: "be real の設定を解除します。(管理者用)" },
+  { name: "/auto-delete-enable", desc: "メッセージを一定時間後に自動削除するように設定します。" },
+  { name: "/auto-delete-disable", desc: "このチャンネルの自動削除設定を解除します。" },
+  { name: "/auto-delete-next", desc: "次に削除されるメッセージを表示します。" },
+  { name: "/image", desc: "説明文から画像を生成します。" },
+  { name: "/image-detail", desc: "詳細を指定して画像を生成します。" },
+  { name: "/poll", desc: "質問と選択肢を指定して投票を開始します。" },
+  { name: "/poll-result", desc: "保存された投票の結果を集計します。" },
+  { name: "/remind", desc: "指定した時刻にリマインドを設定します。" },
+  { name: "/remind-list", desc: "あなたのリマインドを一覧表示します。" },
+  { name: "/remind-remove", desc: "あなたのリマインドを全て削除します。" },
+  { name: "/add-memory", desc: "つむぎちゃんに長期的に物事を覚えこませます。" },
+  { name: "/remove-memory", desc: "つむぎちゃんの記憶を消去します。" },
+  { name: "/show-memories", desc: "つむぎちゃんが覚えていること一覧を表示させる" },
+  { name: "/add-trigger-reaction", desc: "特定の言葉にリアクションをつけさせます。" },
+  { name: "/remove-trigger-reaction", desc: "特定の言葉からリアクションを解除します。" },
+  { name: "/dice", desc: "サイコロを振ります。" },
+  { name: "/oversea-register", desc: "当該チャンネルマルチサーバー用に登録します。" },
+  { name: "/oversea-leave", desc: "当該チャンネルに登録されているマルチサーバーを解除します。" },
+  { name: "/oversea-set-name", desc: "マルチサーバーで利用する専用の名前を設定します。" },
+  { name: "/oversea-set-icon", desc: "マルチサーバーで利用する匿名アイコンを設定します。" },
+  { name: "/who", desc: "サーバー全体で匿名化するキャラクターを選択します。" },
+  { name: "/iam", desc: "サーバー全体の匿名化を解除します。" },
+  { name: "/add-banned-word", desc: "禁止に該当するワードを登録します。" },
+  { name: "/add-banned-words", desc: "カンマまたは改行区切りで禁止ワードを登録します。" },
+  { name: "/remove-banned-word", desc: "登録されている禁止ワードを削除します。" },
+  { name: "/remove-banned-words", desc: "カンマまたは改行区切りで禁止ワードを削除します。" },
+  { name: "/export-banned-words", desc: "登録されている禁止ワードをCSV形式で出力します。" },
+  { name: "/set-banned-text-mode", desc: "禁止テキストの処理モードを設定します。(hide/delete)" },
+  { name: "/set-banned-text-enabled", desc: "禁止テキスト機能を有効/無効にします。" },
+  { name: "/auto-message", desc: "AIで会話を促す自動メッセージを設定します。" },
+  { name: "/show-auto-message", desc: "AIで会話を促す自動メッセージの現在の設定を表示します。" },
+  { name: "/debug-auto-message", desc: "デバッグ用に自動メッセージを今すぐ送信します。" },
+  { name: "/overwrite-auto-message", desc: "AIで会話を促す自動メッセージの設定を上書きします。" },
+  { name: "/remove-auto-message", desc: "AIで会話を促す自動メッセージの設定を解除します。" },
+];
+
 export default function App() {
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -61,11 +109,12 @@ export default function App() {
           <div>
             <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
               サーバーに遊びを、<br />
-              もっと自由に話せるDiscord
+              もっと自由に話せるDiscordに
             </h1>
             <p className="mt-5 text-lg text-gray-600">
-              匿名プロフィール、メッセージ自動削除、BeReal投稿、画像生成…  
-              ユニークな機能でサーバーの会話が盛り上げていきましょう！
+              いつものサーバーが、ちょっと特別な遊び場に変わります。<br/>
+              キャラになりきって匿名で話したり、時間制限つきのチャンネルで秘密を共有したり。<br/>
+              さらに AI 会話や画像生成まで、会話を盛り上げるユニークな機能を搭載しています。
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -95,7 +144,7 @@ export default function App() {
       <section id="features" className="mx-auto max-w-screen-xl px-4 py-20">
         <h2 className="text-2xl font-bold text-center">つむぎのできること</h2>
         <p className="mt-2 text-center text-gray-600">
-          ここに紹介されていない機能も盛りだくさん。随時開発中です！
+          つむぎには、ここで紹介する以外にもユニークな機能が盛りだくさん。サーバーの雰囲気や遊び方に合わせて、自由に活用できます。
         </p>
 
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
@@ -132,8 +181,14 @@ export default function App() {
         </div>
       </section>
 
-      {/* Install */}
+      {/* Commands */}
       <section id="commands" className="mx-auto max-w-screen-xl px-4 py-20">
+        <h2 className="text-2xl font-bold text-center">コマンド一覧</h2>
+        <div className="mt-10 grid gap-6 sm:grid-cols-2 md:grid-cols-3">
+          {commands.map((c) => (
+            <CommandItem key={c.name} name={c.name} desc={c.desc} />
+          ))}
+        </div>
         <p className="mt-6 text-gray-600">
           詳細は GitHub の README をご覧ください。
         </p>
