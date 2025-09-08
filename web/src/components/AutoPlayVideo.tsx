@@ -1,7 +1,13 @@
 import { useEffect, useRef } from "react";
 
-export default function AutoPlayVideo({ src, type, className }) {
-  const videoRef = useRef(null);
+interface AutoPlayVideoProps {
+  src: string;
+  type: string;
+  className?: string;
+}
+
+export default function AutoPlayVideo({ src, type, className }: AutoPlayVideoProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -25,7 +31,7 @@ export default function AutoPlayVideo({ src, type, className }) {
   return (
     <video
       ref={videoRef}
-      className={`mx-auto w-full rounded-2xl border shadow-lg ${className}`}
+      className={`mx-auto w-full rounded-2xl border shadow-lg ${className ?? ""}`}
       loop
       muted
       playsInline
