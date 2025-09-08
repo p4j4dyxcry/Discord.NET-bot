@@ -1,7 +1,7 @@
 import { useState, useRef, type ReactNode } from "react";
 
-import Header from "./Header.tsx";
-import AutoPlayVideo from "./components/AutoPlayVideo.tsx";
+import Header from "./Header";
+import AutoPlayVideo from "./components/AutoPlayVideo";
 
 import headerIcon from "./assets/hero.png";
 import githubIcon from "./assets/github.svg";
