@@ -1,3 +1,5 @@
+import AutoPlayVideo from "./components/AutoPlayVideo";
+
 import headerIcon from "./assets/hero.png";
 import githubIcon from "./assets/github.svg";
 
@@ -76,7 +78,7 @@ export default function App() {
       {/* Header */}
       <header className="sticky top-0 z-30 border-b bg-white/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-screen-xl items-center justify-between px-4">
-          <a href="/" className="flex items-center gap-2 font-semibold">
+          <a href={import.meta.env.BASE_URL} className="flex items-center gap-2 font-semibold">
             <img
               src={headerIcon}
               alt="TsDiscordBot Logo"
@@ -86,6 +88,7 @@ export default function App() {
           </a>
           <nav className="flex items-center gap-4">
             <a href="#features" className="text-sm text-gray-600 hover:text-gray-900">Features</a>
+            <a href="#introduction" className="text-sm text-gray-600 hover:text-gray-900">Introduction</a>
             <a href="#commands" className="text-sm text-gray-600 hover:text-gray-900">Commands</a>
             <a
               className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 hover:bg-gray-50"
@@ -181,6 +184,9 @@ export default function App() {
         </div>
       </section>
 
+
+      <IntroSection/>
+
       {/* Commands */}
       <section id="commands" className="mx-auto max-w-screen-xl px-4 py-20">
         <h2 className="text-2xl font-bold text-center">コマンド一覧</h2>
@@ -224,5 +230,38 @@ function Feature({ title, desc }) {
       <h3 className="font-semibold">{title}</h3>
       <p className="mt-2 text-sm text-gray-600">{desc}</p>
     </div>
+  );
+}
+
+function IntroSection() {
+  return (
+    <section id="introduction" className="mx-auto max-w-screen-xl px-4 py-20">
+      <div className="mx-auto max-w-3xl text-center">
+        <h2 className="text-3xl font-bold">つむぎの雰囲気、まずは30秒で</h2>
+      </div>
+
+
+      <div className="mt-12 space-y-16"> 
+        {/* space-y-16 でブロック間に大きめの余白 */}
+
+        {/* ブロック1 */}
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="mt-2 text-lg text-gray-600 leading-relaxed">
+            なりきりチャットで匿名会話！
+          </p>
+          <AutoPlayVideo src="media/introduction01.webm" type="video/webm" />
+        </div>
+
+        <div className="h-px bg-gray-200 mx-auto w-2/3" />
+
+        {/* ブロック2 */}
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="mt-2 text-lg text-gray-600 leading-relaxed">
+            画像生成で遊んでみよう！
+          </p>
+          <AutoPlayVideo src="media/introduction02.webm" type="video/webm" />
+        </div>
+      </div>
+    </section>
   );
 }
