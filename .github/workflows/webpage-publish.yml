@@ -1,0 +1,65 @@
+name: Build docs & open PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: "メモ（任意。PR本文に入ります）"
+        required: false
+        type: string
+
+permissions:
+  contents: write         # 変更のコミット/プッシュに必要
+  pull-requests: write    # PR 作成に必要
+
+concurrency:
+  group: update-docs
+  cancel-in-progress: false
+
+jobs:
+  build-and-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install deps
+        working-directory: web
+        run: npm ci
+
+      - name: Build site (outputs to ../docs)
+        working-directory: web
+        run: npm run build
+
+      # 任意: SPAの404フォールバック（docs/index.htmlを404.htmlにコピー）
+      - name: Add 404 fallback (optional)
+        run: |
+          if [ -f docs/index.html ]; then
+            cp docs/index.html docs/404.html
+          fi
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(docs): build site"
+          title: "docs: update built site"
+          body: |
+            自動生成: `web` をビルドして `docs/` を更新しました。
+            - 実行者: @${{ github.actor }}
+            - 元コミット: ${{ github.sha }}
+            - メモ: ${{ github.event.inputs.note }}
+          branch: ci/update-docs
+          delete-branch: true
+          labels: docs
+          add-paths: |
+            docs/**
