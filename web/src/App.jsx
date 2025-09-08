@@ -1,3 +1,27 @@
+import headerIcon from "./assets/hero.png";
+import githubIcon from "./assets/github.svg";
+
+import feature1Image from "./assets/feature_card/feature1.png";
+import feature2Image from "./assets/feature_card/feature2.png";
+import feature3Image from "./assets/feature_card/feature3.png";
+import feature4Image from "./assets/feature_card/feature4.png";
+import feature5Image from "./assets/feature_card/feature5.png";
+import feature6Image from "./assets/feature_card/feature6.png";
+
+function FeatureCard({ img, title, desc }) {
+  return (
+    <div className="rounded-2xl border bg-white shadow hover:shadow-lg transition p-4">
+      <img
+        src={img}
+        alt={title}
+        className="rounded-lg mb-3 w-full object-cover"
+      />
+      <h3 className="font-semibold text-lg">{title}</h3>
+      <p className="mt-1 text-sm text-gray-600">{desc}</p>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <div className="min-h-screen bg-white text-gray-900">
@@ -5,105 +29,111 @@ export default function App() {
       <header className="sticky top-0 z-30 border-b bg-white/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-screen-xl items-center justify-between px-4">
           <a href="/" className="flex items-center gap-2 font-semibold">
-            <span className="inline-block h-6 w-6 rounded bg-black" />
-            <span>TsDiscordBot</span>
+            <img
+              src={headerIcon}
+              alt="TsDiscordBot Logo"
+              className="h-6 w-6 rounded-full object-cover"
+            />
+            <span>つむぎ (Discord Bot)</span>
           </a>
           <nav className="flex items-center gap-4">
             <a href="#features" className="text-sm text-gray-600 hover:text-gray-900">Features</a>
-            <a href="#install" className="text-sm text-gray-600 hover:text-gray-900">Install</a>
+            <a href="#commands" className="text-sm text-gray-600 hover:text-gray-900">Commands</a>
             <a
-              className="rounded-lg border px-3 py-1.5 text-sm hover:bg-gray-50"
+              className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 hover:bg-gray-50"
               href="https://github.com/p4j4dyxcry/Discord.NET-bot"
               target="_blank" rel="noreferrer"
             >
-              GitHub
+              <img
+                src={githubIcon}
+                alt="GitHub"
+                className="h-5 w-5"
+              />
+              <span>GitHub</span>
             </a>
           </nav>
         </div>
       </header>
 
-      {/* Hero */}
-      <section className="mx-auto max-w-screen-xl px-4 py-24">
-        <div className="grid items-center gap-10 md:grid-cols-2">
+      <section className="relative">
+        <div className="mx-auto grid max-w-screen-xl items-center gap-10 px-4 py-20 md:grid-cols-2">
+          {/* テキスト側 */}
           <div>
             <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
-              シンプルに強い Discord.NET 製ボット
+              サーバーに遊びを、<br />
+              もっと自由に話せるDiscord
             </h1>
             <p className="mt-5 text-lg text-gray-600">
-              匿名プロフィール、マルチサーバー・リレー、Webhook 連携。
-              最低限の設定で導入できる、開発者フレンドリーな設計です。
+              匿名プロフィール、メッセージ自動削除、BeReal投稿、画像生成…  
+              ユニークな機能でサーバーの会話が盛り上げていきましょう！
             </p>
-            <div className="mt-8 flex gap-3">
-              <a
-                href="#install"
-                className="rounded-lg bg-black px-5 py-3 text-white hover:opacity-90"
-              >
-                Get Started
-              </a>
+
+            <div className="mt-8 flex flex-wrap gap-3">
               <a
                 href="https://github.com/p4j4dyxcry/Discord.NET-bot"
-                target="_blank" rel="noreferrer"
-                className="rounded-lg border px-5 py-3 hover:bg-gray-50"
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-xl border px-5 py-3 hover:bg-gray-50"
               >
-                View on GitHub
+                GitHubで見る
               </a>
             </div>
           </div>
-          <div className="rounded-2xl border bg-gray-50 p-6">
-            <pre className="overflow-x-auto text-sm leading-relaxed">
-{`// Sample: Oversea relay
-/oversea-register 1001
-/oversea-enable-anonymous @user
-// Post in this channel -> relayed to linked servers (anonymized)`}
-            </pre>
+
+          {/* 画像側 */}
+          <div className="mx-auto w-full max-w-sm">
+            <img
+              src={headerIcon}
+              alt="TsDiscordBot Hero"
+              className="h-full w-full rounded-3xl object-cover shadow-xl ring-1 ring-black/5"
+            />
           </div>
         </div>
       </section>
 
       {/* Features */}
-      <section id="features" className="border-t bg-gray-50">
-        <div className="mx-auto max-w-screen-xl px-4 py-20">
-          <h2 className="text-2xl font-semibold">主な機能</h2>
-          <p className="mt-2 text-gray-600">最初に知っておきたいポイント</p>
+      <section id="features" className="mx-auto max-w-screen-xl px-4 py-20">
+        <h2 className="text-2xl font-bold text-center">つむぎのできること</h2>
+        <p className="mt-2 text-center text-gray-600">
+          ここに紹介されていない機能も盛りだくさん。随時開発中です！
+        </p>
 
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <Feature
-              title="匿名プロフィール"
-              desc="キャラ名＋アイコンで投稿。ユーザー本体を隠して会話できます。"
-            />
-            <Feature
-              title="マルチサーバー・リレー"
-              desc="登録チャンネル間でメッセージを中継。匿名/実名は設定で切替。"
-            />
-            <Feature
-              title="Webhook 連携"
-              desc="チャンネルごとにWebhookを再利用。高速で安定したマルチポスト。"
-            />
-            <Feature
-              title="簡単セットアップ"
-              desc="必要最低限のコマンドだけで開始。あとから細かい調整も可能。"
-            />
-            <Feature
-              title=".NET ベース"
-              desc="Discord.NET を採用。C#で実装されており拡張も容易。"
-            />
-            <Feature
-              title="OSS / GitHub"
-              desc="ソースと導入手順は GitHub に公開。Issue/PR 歓迎。"
-            />
-          </div>
+        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-2">
+          <FeatureCard
+            img={feature1Image}
+            title="匿名会話"
+            desc="キャラ名とアイコンでなりきり投稿。ユーザー本人を隠して会話できます。更に追加の設定で別サーバーと匿名同士の会話も可能！"
+          />
+          <FeatureCard
+            img={feature2Image}
+            title="テレグラムモード"
+            desc="30分で自動削除されるチャンネル。秘密の話やログを残したくない会話に最適。最短１分から自由に設定できます。残したいメッセージはピン止めで残すことも。"
+          />
+          <FeatureCard
+            img={feature3Image}
+            title="Be-real 投稿"
+            desc="画像を投稿すると24時間だけ他人の投稿を閲覧可能。BeReal風の体験をDiscordで。"
+          />
+          <FeatureCard
+            img={feature4Image}
+            title="禁止ワードフィルター"
+            desc="管理者が登録したワードを即座にブロック。健全なサーバー運営をサポート。投稿の伏字化とメッセージの削除の２つのモードから選べます。"
+          />
+          <FeatureCard
+            img={feature5Image}
+            title="AI会話"
+            desc="AI Botのつむぎちゃんと自然に会話。アイディア出しや雑談、英語練習など多用途に活用できます。"
+          />
+          <FeatureCard
+            img={feature6Image}
+            title="画像生成"
+            desc="Discord上でAI画像生成。キャラ立ち絵やネタ画像を簡単に作成できます。既存の画像を元にイラスト化や高画質化の依頼も可能！"
+          />
         </div>
       </section>
 
       {/* Install */}
-      <section id="install" className="mx-auto max-w-screen-xl px-4 py-20">
-        <h2 className="text-2xl font-semibold">導入手順（ざっくり）</h2>
-        <ol className="mt-6 list-decimal space-y-3 pl-6 text-gray-700">
-          <li>Bot をサーバーに招待し、対象チャンネルで権限を確認</li>
-          <li><code className="rounded bg-gray-100 px-1.5 py-0.5">/oversea-register &lt;id&gt;</code> を実行</li>
-          <li>匿名にしたい場合は <code className="rounded bg-gray-100 px-1.5 py-0.5">/oversea-enable-anonymous @user</code></li>
-          <li>メッセージを送って中継・匿名化の動作を確認</li>
-        </ol>
+      <section id="commands" className="mx-auto max-w-screen-xl px-4 py-20">
         <p className="mt-6 text-gray-600">
           詳細は GitHub の README をご覧ください。
         </p>
@@ -112,13 +142,20 @@ export default function App() {
       {/* Footer */}
       <footer className="border-t py-10 text-center text-sm text-gray-500">
         <p>
-          © {new Date().getFullYear()} TsDiscordBot —{" "}
+          © {new Date().getFullYear()} p4j4dyxcry (ytsune) —{" "}
+
           <a
-            className="underline hover:text-gray-700"
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 hover:bg-gray-50"
             href="https://github.com/p4j4dyxcry/Discord.NET-bot"
             target="_blank" rel="noreferrer"
           >
-            GitHub
+              <span>GitHub</span>
+              <img
+                src={githubIcon}
+                alt="GitHub"
+                className="h-5 w-5"
+              />
+
           </a>
         </p>
       </footer>
