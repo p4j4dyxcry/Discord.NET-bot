@@ -23,6 +23,11 @@ It supports chat generation, automatic reactions, banned word detection, and sch
 - 長期記憶の追加・削除・一覧表示 / Manage long-term memories (add/remove/list)
 - 複数サーバー間で匿名メッセージを中継（Oversea） / Relay anonymous messages across servers (Oversea)
 - 「なう(20xx/xx/xx ...)」への自動応答 / Automatic response to messages starting with "なう(20xx/xx/xx ...)"
+- be real 風の 24時間限定画像共有 / BeReal-style 24-hour image sharing
+
+## be real 機能 / BeReal Feature
+`/be-real-initialize` で専用ロールとチャンネルを作成し、画像を投稿すると 24 時間他のユーザーの投稿を閲覧できます。`/be-real-destroy` で設定を解除します。
+Use `/be-real-initialize` to create dedicated channels and role. Posting an image grants 24-hour access to others' images; use `/be-real-destroy` to remove the setup.
 
 ## 必要な環境変数 / Required Environment Variables
 - `DISCORD_TOKEN` : Discord ボットのトークン / Discord bot token
