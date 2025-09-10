@@ -25,7 +25,7 @@
 
     <ItemGroup>
       <None Remove="Resources\rand_topics.json" />
-      <Resource Include="Resources\rand_topics.json" />
+      <EmbeddedResource Include="Resources\rand_topics.json" />
     </ItemGroup>
 
 </Project>
