@@ -43,7 +43,8 @@ public class DailyTopicService : BackgroundService
                 foreach (var config in configs)
                 {
                     var nowJst = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, jst);
-                    var lastPostedJst = TimeZoneInfo.ConvertTimeFromUtc(config.LastPostedUtc, jst);
+                    var lastPostedUtc = DateTime.SpecifyKind(config.LastPostedUtc, DateTimeKind.Utc);
+                    var lastPostedJst = TimeZoneInfo.ConvertTimeFromUtc(lastPostedUtc, jst);
                     if (nowJst.Date > lastPostedJst.Date && nowJst.TimeOfDay >= config.PostAtJst)
                     {
                         var guildId = config.GuildId;
