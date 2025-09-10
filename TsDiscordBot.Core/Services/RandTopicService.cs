@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace TsDiscordBot.Core.Services;
 
@@ -44,7 +45,9 @@ public class RandTopicService
 
     private class Topic
     {
+        [JsonPropertyName("date")]
         public string Date { get; set; } = "";
+        [JsonPropertyName("text")]
         public string Text { get; set; } = "";
     }
 }
