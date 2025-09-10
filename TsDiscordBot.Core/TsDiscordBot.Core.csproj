@@ -19,4 +19,13 @@
         <PackageReference Include="OpenAI" Version="2.3.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Resources\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Resources\rand_topics.json" />
+      <Resource Include="Resources\rand_topics.json" />
+    </ItemGroup>
+
 </Project>
