@@ -2,8 +2,7 @@ name: CI
 
 on:
   push:
-  pull_request:
-  workflow_run: 
+  workflow_run:
     workflows: ["Build docs & open PR"]
 
 jobs:
