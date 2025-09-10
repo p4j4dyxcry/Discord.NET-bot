@@ -34,6 +34,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddSingleton<DatabaseService>();
         services.AddSingleton<OpenAIService>();
         services.AddSingleton<IUserCommandLimitService, UserCommandLimitService>();
+        services.AddSingleton<RandTopicService>();
         services.AddSingleton<IOpenAIImageService>(_ =>
         {
             var opts = new OpenAIImageOptions
@@ -54,6 +55,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<NauAriService>();
         services.AddHostedService<TsumugiService>();
         services.AddHostedService<AutoMessageService>();
+        services.AddHostedService<DailyTopicService>();
         services.AddHostedService<ReminderService>();
         services.AddHostedService<ImageReviseService>();
         services.AddHostedService<AutoDeleteService>();
