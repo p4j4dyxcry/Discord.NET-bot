@@ -14,6 +14,7 @@ It supports chat generation, automatic reactions, banned word detection, and sch
 - 複数禁止ワードの一括登録 / Bulk-register multiple banned words
 - 禁止テキストモードの設定 (/set-banned-text-mode hide|delete)
 - 禁止テキスト機能の有効/無効切り替え (/set-banned-text-enabled true|false)
+- 不適切発言のタイムアウト設定 (/setting-banned-words <enabled> <count> <within> <timeout>)
 - 一定時間後にメッセージを自動削除 / Automatically delete messages after a set time
 - 会話を促す自動メッセージ投稿 / Posts prompts automatically to encourage conversation
 - AI を使った画像生成・編集 / Generate and edit images with AI
