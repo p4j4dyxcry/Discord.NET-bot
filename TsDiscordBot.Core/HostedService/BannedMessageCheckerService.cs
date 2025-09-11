@@ -3,6 +3,7 @@ using Discord.Net;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Text.RegularExpressions;
 using TsDiscordBot.Core.Data;
@@ -21,6 +22,7 @@ namespace TsDiscordBot.Core.HostedService
         private BannedTextSetting[] _settingsCache = [];
         private DateTime _lastFetchTime = DateTime.MinValue;
         private readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
+        private readonly ConcurrentDictionary<ulong, List<DateTime>> _userBannedWordTimestamps = new();
 
         public BannedMessageCheckerService(
             DiscordSocketClient client,
@@ -54,6 +56,43 @@ namespace TsDiscordBot.Core.HostedService
                 return Task.CompletedTask;
 
             return CheckMessageAsync(after);
+        }
+
+        private async Task HandleBannedWordAsync(SocketGuildUser user)
+        {
+            try
+            {
+                var list = _userBannedWordTimestamps.GetOrAdd(user.Id, _ => new List<DateTime>());
+                var shouldTimeout = false;
+                lock (list)
+                {
+                    var now = DateTime.UtcNow;
+                    list.Add(now);
+                    list.RemoveAll(t => (now - t) > TimeSpan.FromMinutes(5));
+                    if (list.Count >= 5)
+                    {
+                        list.Clear();
+                        shouldTimeout = true;
+                    }
+                }
+
+                if (shouldTimeout)
+                {
+                    try
+                    {
+                        await user.SetTimeOutAsync(TimeSpan.FromMinutes(1));
+                        _logger.LogInformation("Timed out user {User} for repeated banned words", user.Username);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to timeout user {User}", user.Username);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to track banned word usage for {User}", user.Username);
+            }
         }
 
         private async Task CheckMessageAsync(SocketMessage message)
@@ -176,6 +215,11 @@ namespace TsDiscordBot.Core.HostedService
                             }
 
                             _logger.LogInformation($"Masked banned message from {message.Author.Username}: {keyword.Word}");
+                        }
+
+                        if (message.Author is SocketGuildUser guildUser && !guildUser.GuildPermissions.Administrator)
+                        {
+                            await HandleBannedWordAsync(guildUser);
                         }
 
                         break; // 1件でもヒットしたら処理終了（重複削除防止）
