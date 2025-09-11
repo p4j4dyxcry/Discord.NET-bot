@@ -58,7 +58,7 @@ namespace TsDiscordBot.Core.HostedService
             return CheckMessageAsync(after);
         }
 
-        private async Task HandleBannedWordAsync(SocketGuildUser user)
+        private async Task HandleBannedWordAsync(SocketGuildUser user, ISocketMessageChannel channel)
         {
             try
             {
@@ -82,6 +82,15 @@ namespace TsDiscordBot.Core.HostedService
                     {
                         await user.SetTimeOutAsync(TimeSpan.FromMinutes(1));
                         _logger.LogInformation("Timed out user {User} for repeated banned words", user.Username);
+
+                        try
+                        {
+                            await channel.SendMessageAsync($"{user.Mention} さんは不適切な発言が多いため一旦タイムアウトさせてもらったね！");
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to notify channel about timeout for {User}", user.Username);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -219,7 +228,7 @@ namespace TsDiscordBot.Core.HostedService
 
                         if (message.Author is SocketGuildUser guildUser && !guildUser.GuildPermissions.Administrator)
                         {
-                            await HandleBannedWordAsync(guildUser);
+                            await HandleBannedWordAsync(guildUser, message.Channel);
                         }
 
                         break; // 1件でもヒットしたら処理終了（重複削除防止）
