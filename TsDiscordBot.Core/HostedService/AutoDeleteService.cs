@@ -12,6 +12,7 @@ public class AutoDeleteService : BackgroundService
     private readonly DiscordSocketClient _client;
     private readonly ILogger<AutoDeleteService> _logger;
     private readonly DatabaseService _databaseService;
+    private DateTime _lastDeleteAtUtc = DateTime.MinValue;
 
     public AutoDeleteService(DiscordSocketClient client, ILogger<AutoDeleteService> logger, DatabaseService databaseService)
     {
@@ -80,7 +81,15 @@ public class AutoDeleteService : BackgroundService
                             continue;
                         }
 
+                        var now = DateTime.UtcNow;
+                        var diff = now - _lastDeleteAtUtc;
+                        if (diff < TimeSpan.FromSeconds(1))
+                        {
+                            await Task.Delay(TimeSpan.FromSeconds(1) - diff, stoppingToken);
+                        }
+
                         await msg.DeleteAsync();
+                        _lastDeleteAtUtc = DateTime.UtcNow;
                         _databaseService.Delete(AutoDeleteMessage.TableName, entry.Id);
                     }
                     else
