@@ -9,9 +9,9 @@ using TsDiscordBot.Core.Services;
 namespace TsDiscordBot.Core.Commands;
 
     public class BannedCommandModule : InteractionModuleBase<SocketInteractionContext>
-{
-    private readonly ILogger<BannedCommandModule> _logger;
-    private readonly DatabaseService _databaseService;
+    {
+        private readonly ILogger<BannedCommandModule> _logger;
+        private readonly DatabaseService _databaseService;
 
     public BannedCommandModule(ILogger<BannedCommandModule> logger, DatabaseService databaseService)
     {
@@ -259,6 +259,46 @@ namespace TsDiscordBot.Core.Commands;
         {
             _logger.LogError(ex, "Failed to set banned text enabled.");
             await RespondAsync("⚠️ 禁止テキスト機能の設定に失敗しました。");
+        }
+    }
+
+    [SlashCommand("setting-banned-words", "不適切発言のタイムアウト設定を変更します。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
+    public async Task SettingBannedWords(bool enabled, int count, int withinMinutes, int timeoutMinutes)
+    {
+        try
+        {
+            var guildId = Context.Guild.Id;
+
+            var setting = _databaseService.FindAll<BannedWordTimeoutSetting>(BannedWordTimeoutSetting.TableName)
+                .FirstOrDefault(x => x.GuildId == guildId);
+
+            if (setting is null)
+            {
+                _databaseService.Insert(BannedWordTimeoutSetting.TableName, new BannedWordTimeoutSetting
+                {
+                    GuildId = guildId,
+                    IsEnabled = enabled,
+                    Count = count,
+                    WindowMinutes = withinMinutes,
+                    TimeoutMinutes = timeoutMinutes
+                });
+            }
+            else
+            {
+                setting.IsEnabled = enabled;
+                setting.Count = count;
+                setting.WindowMinutes = withinMinutes;
+                setting.TimeoutMinutes = timeoutMinutes;
+                _databaseService.Update(BannedWordTimeoutSetting.TableName, setting);
+            }
+
+            await RespondAsync($"タイムアウト設定を更新しました。 有効: {enabled}, 回数: {count}, 期間: {withinMinutes}分, タイムアウト: {timeoutMinutes}分");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to set banned word timeout setting.");
+            await RespondAsync("⚠️ タイムアウト設定に失敗しました。");
         }
     }
 }

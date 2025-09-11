@@ -20,9 +20,10 @@ namespace TsDiscordBot.Core.HostedService
 
         private BannedTriggerWord[] _cache = [];
         private BannedTextSetting[] _settingsCache = [];
+        private BannedWordTimeoutSetting[] _timeoutSettingsCache = [];
         private DateTime _lastFetchTime = DateTime.MinValue;
         private readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
-        private readonly ConcurrentDictionary<ulong, List<DateTime>> _userBannedWordTimestamps = new();
+        private readonly ConcurrentDictionary<(ulong GuildId, ulong UserId), List<DateTime>> _userBannedWordTimestamps = new();
 
         public BannedMessageCheckerService(
             DiscordSocketClient client,
@@ -58,18 +59,26 @@ namespace TsDiscordBot.Core.HostedService
             return CheckMessageAsync(after);
         }
 
-        private async Task HandleBannedWordAsync(SocketGuildUser user, ISocketMessageChannel channel)
+        private async Task HandleBannedWordAsync(SocketGuildUser user, ISocketMessageChannel channel, BannedWordTimeoutSetting? timeoutSetting)
         {
             try
             {
-                var list = _userBannedWordTimestamps.GetOrAdd(user.Id, _ => new List<DateTime>());
+                if (timeoutSetting is not null && !timeoutSetting.IsEnabled)
+                    return;
+
+                var threshold = timeoutSetting?.Count ?? 5;
+                var window = TimeSpan.FromMinutes(timeoutSetting?.WindowMinutes ?? 5);
+                var duration = TimeSpan.FromMinutes(timeoutSetting?.TimeoutMinutes ?? 1);
+
+                var key = (user.Guild.Id, user.Id);
+                var list = _userBannedWordTimestamps.GetOrAdd(key, _ => new List<DateTime>());
                 var shouldTimeout = false;
                 lock (list)
                 {
                     var now = DateTime.UtcNow;
                     list.Add(now);
-                    list.RemoveAll(t => (now - t) > TimeSpan.FromMinutes(5));
-                    if (list.Count >= 5)
+                    list.RemoveAll(t => (now - t) > window);
+                    if (list.Count >= threshold)
                     {
                         list.Clear();
                         shouldTimeout = true;
@@ -80,7 +89,7 @@ namespace TsDiscordBot.Core.HostedService
                 {
                     try
                     {
-                        await user.SetTimeOutAsync(TimeSpan.FromMinutes(1));
+                        await user.SetTimeOutAsync(duration);
                         _logger.LogInformation("Timed out user {User} for repeated banned words", user.Username);
 
                         try
@@ -127,6 +136,7 @@ namespace TsDiscordBot.Core.HostedService
                 {
                     _cache = _databaseService.FindAll<BannedTriggerWord>(BannedTriggerWord.TableName).ToArray();
                     _settingsCache = _databaseService.FindAll<BannedTextSetting>(BannedTextSetting.TableName).ToArray();
+                    _timeoutSettingsCache = _databaseService.FindAll<BannedWordTimeoutSetting>(BannedWordTimeoutSetting.TableName).ToArray();
                     _lastFetchTime = DateTime.Now;
                 }
 
@@ -139,6 +149,8 @@ namespace TsDiscordBot.Core.HostedService
                 {
                     return;
                 }
+
+                var timeoutSetting = _timeoutSettingsCache.FirstOrDefault(x => x.GuildId == guildId);
 
                 foreach (var keyword in keywords)
                 {
@@ -228,7 +240,7 @@ namespace TsDiscordBot.Core.HostedService
 
                         if (message.Author is SocketGuildUser guildUser && !guildUser.GuildPermissions.Administrator)
                         {
-                            await HandleBannedWordAsync(guildUser, message.Channel);
+                            await HandleBannedWordAsync(guildUser, message.Channel, timeoutSetting);
                         }
 
                         break; // 1件でもヒットしたら処理終了（重複削除防止）

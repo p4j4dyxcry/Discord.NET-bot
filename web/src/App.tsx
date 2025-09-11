@@ -79,6 +79,7 @@ const commands: { name: string; desc: string }[] = [
   { name: "/export-banned-words", desc: "登録されている禁止ワードをCSV形式で出力します。" },
   { name: "/set-banned-text-mode", desc: "禁止テキストの処理モードを設定します。(hide/delete)" },
   { name: "/set-banned-text-enabled", desc: "禁止テキスト機能を有効/無効にします。" },
+  { name: "/setting-banned-words", desc: "不適切発言のタイムアウト設定を変更します。" },
   { name: "/auto-message", desc: "AIで会話を促す自動メッセージを設定します。" },
   { name: "/show-auto-message", desc: "AIで会話を促す自動メッセージの現在の設定を表示します。" },
   { name: "/debug-auto-message", desc: "デバッグ用に自動メッセージを今すぐ送信します。" },
