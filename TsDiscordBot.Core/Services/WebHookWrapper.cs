@@ -71,7 +71,7 @@ namespace TsDiscordBot.Core.Services
                 if (attachments is { Count: > 0 })
                 {
                     var files = attachments
-                        .Select(a => new FileAttachment(new MemoryStream(a.Data), a.FileName, a.ContentType))
+                        .Select(a => new FileAttachment(new MemoryStream(a.Data), a.FileName))
                         .ToList();
                     try
                     {
