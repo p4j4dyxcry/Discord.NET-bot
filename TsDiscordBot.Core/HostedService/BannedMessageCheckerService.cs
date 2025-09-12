@@ -4,6 +4,7 @@ using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net;
 using System.Text.RegularExpressions;
 using TsDiscordBot.Core.Data;
@@ -21,6 +22,7 @@ namespace TsDiscordBot.Core.HostedService
         private BannedTriggerWord[] _cache = [];
         private BannedTextSetting[] _settingsCache = [];
         private BannedWordTimeoutSetting[] _timeoutSettingsCache = [];
+        private BannedExcludeWord[] _excludeCache = [];
         private DateTime _lastFetchTime = DateTime.MinValue;
         private readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
         private readonly ConcurrentDictionary<(ulong GuildId, ulong UserId), List<DateTime>> _userBannedWordTimestamps = new();
@@ -137,12 +139,19 @@ namespace TsDiscordBot.Core.HostedService
                     _cache = _databaseService.FindAll<BannedTriggerWord>(BannedTriggerWord.TableName).ToArray();
                     _settingsCache = _databaseService.FindAll<BannedTextSetting>(BannedTextSetting.TableName).ToArray();
                     _timeoutSettingsCache = _databaseService.FindAll<BannedWordTimeoutSetting>(BannedWordTimeoutSetting.TableName).ToArray();
+                    _excludeCache = _databaseService.FindAll<BannedExcludeWord>(BannedExcludeWord.TableName).ToArray();
                     _lastFetchTime = DateTime.Now;
                 }
 
                 var keywords = _cache
                     .Where(x => x.GuildId == guildId)
                     .Where(x => !string.IsNullOrWhiteSpace(x.Word));
+
+                var excludeWords = _excludeCache
+                    .Where(x => x.GuildId == guildId)
+                    .Where(x => !string.IsNullOrWhiteSpace(x.Word))
+                    .Select(x => x.Word)
+                    .ToArray();
 
                 var setting = _settingsCache.FirstOrDefault(x => x.GuildId == guildId);
                 if (setting is not null && !setting.IsEnabled)
@@ -152,9 +161,19 @@ namespace TsDiscordBot.Core.HostedService
 
                 var timeoutSetting = _timeoutSettingsCache.FirstOrDefault(x => x.GuildId == guildId);
 
+                var content = message.Content;
+                var placeholders = new Dictionary<string, string>();
+                var idx = 0;
+                foreach (var e in excludeWords)
+                {
+                    var placeholder = $"__ALLOW{idx++}__";
+                    placeholders[placeholder] = e;
+                    content = Regex.Replace(content, Regex.Escape(e), placeholder, RegexOptions.IgnoreCase);
+                }
+
                 foreach (var keyword in keywords)
                 {
-                    if (message.Content.Contains(keyword.Word, StringComparison.OrdinalIgnoreCase))
+                    if (content.Contains(keyword.Word, StringComparison.OrdinalIgnoreCase))
                     {
                         var mode = setting?.Mode ?? BannedTextMode.Hide;
 
@@ -175,10 +194,14 @@ namespace TsDiscordBot.Core.HostedService
                         }
                         else
                         {
-                            var sanitized = message.Content;
+                            var sanitized = content;
                             foreach (var k in keywords)
                             {
                                 sanitized = Regex.Replace(sanitized, Regex.Escape(k.Word), new string('＊', k.Word.Length), RegexOptions.IgnoreCase);
+                            }
+                            foreach (var kv in placeholders)
+                            {
+                                sanitized = sanitized.Replace(kv.Key, kv.Value);
                             }
 
                             if (message is IUserMessage userMessage && userMessage.Author.Id == _client.CurrentUser.Id)

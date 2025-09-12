@@ -76,6 +76,29 @@ namespace TsDiscordBot.Core.Commands;
         }
     }
 
+    [SlashCommand("add-banned-exclude-word", "禁止除外ワードを登録します。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
+    public async Task AddBannedExcludeWord(string word)
+    {
+        try
+        {
+            var guildId = Context.Guild.Id;
+
+            _databaseService.Insert(BannedExcludeWord.TableName, new BannedExcludeWord
+            {
+                GuildId = guildId,
+                Word = word
+            });
+
+            await RespondAsync($"✅ 禁止除外ワードを登録しました: `{word}`");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to add banned exclude word.");
+            await RespondAsync("⚠️ 禁止除外ワードの登録に失敗しました。");
+        }
+    }
+
     [SlashCommand("remove-banned-word", "登録されている禁止ワードを削除します。")]
     [RequireUserPermission(GuildPermission.Administrator)]
     public async Task RemoveBannedWord(string word)
@@ -150,6 +173,33 @@ namespace TsDiscordBot.Core.Commands;
         {
             _logger.LogError(ex, "Failed to remove banned words.");
             await RespondAsync(ErrorMessages.BannedWordRemoveFailed);
+        }
+    }
+
+    [SlashCommand("remove-banned-exclude-word", "登録されている禁止除外ワードを削除します。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
+    public async Task RemoveBannedExcludeWord(string word)
+    {
+        try
+        {
+            var guildId = Context.Guild.Id;
+
+            var matched = _databaseService.FindAll<BannedExcludeWord>(BannedExcludeWord.TableName)
+                .Where(x => x.GuildId == guildId)
+                .Where(x => x.Word.Equals(word, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+
+            foreach (var item in matched)
+            {
+                _databaseService.Delete(BannedExcludeWord.TableName, item.Id);
+            }
+
+            await RespondAsync($"🗑️ 禁止除外ワードを削除しました: `{word}`");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to remove banned exclude word.");
+            await RespondAsync("⚠️ 禁止除外ワードの削除に失敗しました。");
         }
     }
 
