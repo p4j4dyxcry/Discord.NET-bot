@@ -12,6 +12,7 @@ It supports chat generation, automatic reactions, banned word detection, and sch
 - 特定ワードへのリアクション設定 / Custom reactions triggered by keywords
 - 禁止 ワードの検知と伏字または削除 / Detects banned words and hides or deletes offending messages
 - 複数禁止ワードの一括登録 / Bulk-register multiple banned words
+- 禁止除外ワードの設定 / Configure exceptions for banned words
 - 禁止テキストモードの設定 (/set-banned-text-mode hide|delete)
 - 禁止テキスト機能の有効/無効切り替え (/set-banned-text-enabled true|false)
 - 不適切発言のタイムアウト設定 (/setting-banned-words <enabled> <count> <within> <timeout>)
