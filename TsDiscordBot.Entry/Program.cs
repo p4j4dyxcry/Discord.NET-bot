@@ -43,11 +43,12 @@ using IHost host = Host.CreateDefaultBuilder(args)
             };
             return OpenAIImageService.Create(opts);
         });
+        services.AddSingleton<WebHookService>();
 
         // Add hosted services
         services.AddHostedService<InteractionHandlingService>();
         services.AddHostedService<DiscordStartupService>();
-        // Message delete related services should run before reaction handling
+        services.AddHostedService<MessageReceiverHub>();
         services.AddHostedService<BannedMessageCheckerService>();
         services.AddHostedService<OverseaRelayService>();
         services.AddHostedService<AnonymousRelayService>();

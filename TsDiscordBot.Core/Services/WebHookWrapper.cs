@@ -2,22 +2,37 @@
 using Discord;
 using Discord.Webhook;
 using Discord.WebSocket;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using TsDiscordBot.Core.Utility;
+using TsDiscordBot.Core.Framework;
 
 namespace TsDiscordBot.Core.Services
 {
-    public class WebHookWrapper
+    public class WebHookService : IWebHookService
     {
-        public static WebHookWrapper Default { get; } = new();
+        private readonly DiscordSocketClient _discordSocketClient;
+        private readonly ILogger<WebHookService> _logger;
+
+        public WebHookService(DiscordSocketClient discordSocketClient, ILogger<WebHookService> logger)
+        {
+            _discordSocketClient = discordSocketClient;
+            _logger = logger;
+        }
 
         private readonly ConcurrentDictionary<(ulong,string), DiscordWebhookClient> _webhookCache = new();
-        public async Task<WebHookEx> GetOrCreateWebhookClientAsync(ITextChannel channel, string name)
+        public async Task<IWebHookClient> GetOrCreateWebhookClientAsync(ulong textChannelId, string name)
         {
             // 既にキャッシュ済みならそれを返す
-            if (_webhookCache.TryGetValue((channel.Id,name), out var cachedClient))
+            if (_webhookCache.TryGetValue((textChannelId,name), out var cachedClient))
             {
-                return new(cachedClient);
+                return new WebHookEx(cachedClient, _logger);
+            }
+
+            var channel = await _discordSocketClient.GetChannelAsync(textChannelId) as ITextChannel;
+
+            if (channel is null)
+            {
+                throw new NullReferenceException($"Channel {textChannelId} not found");
             }
 
             // チャンネルの既存 webhook を探す
@@ -26,52 +41,47 @@ namespace TsDiscordBot.Core.Services
                        ?? await channel.CreateWebhookAsync(name);
 
             var client = new DiscordWebhookClient(hook);
-            _webhookCache[(channel.Id,name)] = client;
+            _webhookCache[(textChannelId,name)] = client;
 
-            return new(client);
+            return new WebHookEx(client, _logger);
         }
     }
 
-    public class WebHookEx
+    public class WebHookEx : IWebHookClient
     {
         private readonly DiscordWebhookClient _client;
+        private readonly ILogger? _logger;
 
-        private ConcurrentDictionary<SocketMessage, IReadOnlyList<(string FileName, string ContentType, byte[] Data)>> _attachmentCache = new();
-
-        public WebHookEx(DiscordWebhookClient client)
+        public WebHookEx(DiscordWebhookClient client,ILogger? logger = null)
         {
             _client = client;
+            _logger = logger;
         }
 
-        public async Task<ulong?> RelayMessageAsync(SocketMessage socketMessage, string? content, string? author = null, string? avatarUrl = null, ILogger? logger = null)
+        public async Task<ulong?> RelayMessageAsync(IMessageData message, string? content, string? author = null, string? avatarUrl = null)
         {
             try
             {
-                content ??= string.IsNullOrWhiteSpace(socketMessage.Content) ? string.Empty : socketMessage.Content;
+                content ??= string.IsNullOrWhiteSpace(message.Content) ? string.Empty : message.Content;
 
                 if (author is null)
                 {
-                    author = DiscordUtility.GetAuthorNameFromMessage(socketMessage);
+                    author = message.AuthorName;
                 }
 
                 if (avatarUrl is null)
                 {
-                    avatarUrl = DiscordUtility.GetAvatarUrlFromMessage(socketMessage);
+                    avatarUrl = message.AvatarUrl;
                 }
-
-                if (!_attachmentCache.TryGetValue(socketMessage, out var attachments))
-                {
-                    attachments = await DiscordUtility.CorrectAttachmentsAsync(socketMessage, logger);
-                    _attachmentCache[socketMessage] = attachments;
-                }
-
 
                 ulong? messageId = null;
 
-                if (attachments is { Count: > 0 })
+                await message.CreateAttachmentSourceIfNotCachedAsync();
+
+                if (message.Attachments is { Count: > 0 })
                 {
-                    var files = attachments
-                        .Select(a => new FileAttachment(new MemoryStream(a.Data), a.FileName))
+                    var files = message.Attachments
+                        .Select(a => new FileAttachment(new MemoryStream(a.Bytes), a.FileName))
                         .ToList();
                     try
                     {
@@ -79,7 +89,7 @@ namespace TsDiscordBot.Core.Services
                     }
                     catch(Exception e)
                     {
-                        logger?.LogError(e, "An error occured while sending files.");
+                        _logger?.LogError(e, "An error occured while sending files.");
                     }
                     finally
                     {
@@ -97,7 +107,7 @@ namespace TsDiscordBot.Core.Services
                     }
                     catch(Exception e)
                     {
-                        logger?.LogError(e,"An error occured while sending message.");
+                        _logger?.LogError(e,"An error occured while sending message.");
                     }
 
                 }
@@ -106,7 +116,7 @@ namespace TsDiscordBot.Core.Services
             }
             catch(Exception e)
             {
-                logger?.LogError(e, "Error while relaying message");
+                _logger?.LogError(e, "Error while relaying message");
                 return null;
             }
         }

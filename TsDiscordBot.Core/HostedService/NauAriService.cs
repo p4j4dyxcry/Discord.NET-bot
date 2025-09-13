@@ -1,15 +1,15 @@
-﻿using Discord.WebSocket;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using TsDiscordBot.Core.Framework;
 
 namespace TsDiscordBot.Core.HostedService
 {
     public class NauAriService: IHostedService
     {
-        private readonly DiscordSocketClient _client;
+        private readonly IMessageReceiver _client;
         private readonly ILogger<NauAriService> _logger;
-
-        public NauAriService(DiscordSocketClient client, ILogger<NauAriService> logger)
+        private IDisposable? _subscription;
+        public NauAriService(IMessageReceiver client, ILogger<NauAriService> logger)
         {
             _client = client;
             _logger = logger;
@@ -17,34 +17,33 @@ namespace TsDiscordBot.Core.HostedService
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _client.MessageReceived += OnMessageReceivedAsync;
+            _subscription = _client.OnReceivedSubscribe(OnMessageReceived, nameof(NauAriService), ServicePriority.Low);
             return Task.CompletedTask;
         }
-
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _client.MessageReceived -= OnMessageReceivedAsync;
+            _subscription?.Dispose();
             return Task.CompletedTask;
         }
 
-            private async Task OnMessageReceivedAsync(SocketMessage message)
+        private async Task OnMessageReceived(IMessageData message)
+        {
+            try
             {
-                try
+                if (message.IsBot)
                 {
-                    if (message.Author.IsBot || message.Channel is not SocketGuildChannel)
-                    {
-                        return;
-                    }
-
-                    if (message.Content.StartsWith("なう(20"))
-                    {
-                        await message.Channel.SendMessageAsync("なうあり！");
-                    }
+                    return;
                 }
-                catch(Exception e)
+
+                if (message.Content.StartsWith("なう(20"))
                 {
-                    _logger.LogError(e,"Failed to Nauari");
+                    await message.SendMessageAsync("なうあり！");
                 }
             }
+            catch(Exception e)
+            {
+                _logger.LogError(e,"Failed to Nauari");
+            }
+        }
     }
 }

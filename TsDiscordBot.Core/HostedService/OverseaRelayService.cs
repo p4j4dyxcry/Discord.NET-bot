@@ -1,8 +1,7 @@
-using Discord;
-using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Data;
+using TsDiscordBot.Core.Framework;
 using TsDiscordBot.Core.Services;
 using TsDiscordBot.Core.Utility;
 
@@ -10,7 +9,8 @@ namespace TsDiscordBot.Core.HostedService;
 
 public class OverseaRelayService : IHostedService
 {
-    private readonly DiscordSocketClient _client;
+    private readonly IMessageReceiver _client;
+    private readonly IWebHookService _webHookService;
     private readonly ILogger<OverseaRelayService> _logger;
     private readonly DatabaseService _databaseService;
 
@@ -18,31 +18,33 @@ public class OverseaRelayService : IHostedService
     private OverseaUserSetting[] _userCache = [];
     private DateTime _lastQueryTime = DateTime.MinValue;
     private readonly TimeSpan _querySpan = TimeSpan.FromSeconds(5);
+    private IDisposable? _subscription;
 
-    public OverseaRelayService(DiscordSocketClient client, ILogger<OverseaRelayService> logger, DatabaseService databaseService)
+    public OverseaRelayService(IMessageReceiver client, IWebHookService webHookService, ILogger<OverseaRelayService> logger, DatabaseService databaseService)
     {
         _client = client;
+        _webHookService = webHookService;
         _logger = logger;
         _databaseService = databaseService;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _client.MessageReceived += OnMessageReceivedAsync;
+        _subscription = _client.OnReceivedSubscribe(OnMessageReceivedAsync, nameof(OverseaRelayService));
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _client.MessageReceived -= OnMessageReceivedAsync;
+        _subscription?.Dispose();
         return Task.CompletedTask;
     }
 
-    private async Task OnMessageReceivedAsync(SocketMessage message)
+    private async Task OnMessageReceivedAsync(IMessageData message)
     {
         try
         {
-            if (message.Source != MessageSource.User || message.Channel is not SocketGuildChannel)
+            if (message.IsBot)
             {
                 return;
             }
@@ -54,7 +56,7 @@ public class OverseaRelayService : IHostedService
                 _lastQueryTime = DateTime.Now;
             }
 
-            var current = _channelCache.FirstOrDefault(x => x.ChannelId == message.Channel.Id);
+            var current = _channelCache.FirstOrDefault(x => x.ChannelId == message.ChannelId);
             if (current is null)
             {
                 return;
@@ -69,15 +71,15 @@ public class OverseaRelayService : IHostedService
                 return;
             }
 
-            var userSetting = _userCache.FirstOrDefault(x => x.UserId == message.Author.Id);
+            var userSetting = _userCache.FirstOrDefault(x => x.UserId == message.AuthorId);
             bool anonymous = userSetting?.IsAnonymous ?? true;
             string username;
             string? avatarUrl = null;
 
             if (anonymous)
             {
-                var profile = AnonymousProfileProvider.GetProfile(message.Author.Id);
-                var discriminator = AnonymousProfileProvider.GetDiscriminator(message.Author.Id);
+                var profile = AnonymousProfileProvider.GetProfile(message.AuthorId);
+                var discriminator = AnonymousProfileProvider.GetDiscriminator(message.AuthorId);
                 var baseName = string.IsNullOrEmpty(userSetting?.AnonymousName)
                     ? profile.Name
                     : userSetting.AnonymousName!;
@@ -89,8 +91,8 @@ public class OverseaRelayService : IHostedService
             }
             else
             {
-                username = DiscordUtility.GetAuthorNameFromMessage(message);
-                avatarUrl = DiscordUtility.GetAvatarUrlFromMessage(message);
+                username = message.AuthorName;
+                avatarUrl = message.AvatarUrl;
             }
 
             List<Task> tasks =
@@ -117,11 +119,8 @@ public class OverseaRelayService : IHostedService
                     await semaphore.WaitAsync();
                     try
                     {
-                        if (await _client.GetChannelAsync(target.ChannelId) is ITextChannel channel)
-                        {
-                            var client = await WebHookWrapper.Default.GetOrCreateWebhookClientAsync(channel,"oversea-relay");
-                            await client.RelayMessageAsync(message, message.Content,username,avatarUrl,_logger);
-                        }
+                        var client = await _webHookService.GetOrCreateWebhookClientAsync(message.ChannelId,"oversea-relay");
+                        await client.RelayMessageAsync(message, message.Content,username,avatarUrl);
                     }
                     catch (Exception e)
                     {
