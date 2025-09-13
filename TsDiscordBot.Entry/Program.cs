@@ -58,6 +58,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<DailyTopicService>();
         services.AddHostedService<ReminderService>();
         services.AddHostedService<ImageReviseService>();
+        services.AddHostedService<ImageReviseWorkerService>();
         services.AddHostedService<AutoDeleteService>();
         services.AddHostedService<BeRealService>();
     })
