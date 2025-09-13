@@ -69,6 +69,8 @@ namespace TsDiscordBot.Core.HostedService
                         break;
                     }
                 }
+
+                await progressMessage.DeleteAsync();
             }, token);
         }
 
@@ -84,11 +86,11 @@ namespace TsDiscordBot.Core.HostedService
                 return;
             }
 
+            using CancellationTokenSource cts = new();
             try
             {
                 string progressContent = "つむぎが入力中";
                 var progressMessage = await message.ReplyMessageAsync(progressContent);
-                using CancellationTokenSource cts = new();
                 var progressTask = RunProgressAsync(progressMessage,progressContent,cts.Token);
 
                 var channel = await _discordSocketClient.GetChannelAsync(message.ChannelId) as ISocketMessageChannel;
@@ -131,12 +133,24 @@ namespace TsDiscordBot.Core.HostedService
 
                     string result = await _openAiService.GetResponse(message.GuildId, null, previousMessages);
 
-                    await Task.WhenAll(cts.CancelAsync(), progressTask, message.ReplyMessageAsync(result));
+                    var sendMessageTask = message.ReplyMessageAsync(result);
+                    try
+                    {
+                        await cts.CancelAsync();
+                        await progressTask;
+                    }
+                    catch(Exception e)
+                    {
+                        _logger.LogWarning(e,"Failed");
+                    }
+
+                    await sendMessageTask;
                 }
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Failed to Nauari");
+                _logger.LogError(e, "Failed to TsumugiService");
+                await cts.CancelAsync();
             }
         }
 
