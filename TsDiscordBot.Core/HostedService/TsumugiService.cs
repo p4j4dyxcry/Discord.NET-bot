@@ -40,6 +40,38 @@ namespace TsDiscordBot.Core.HostedService
             return Task.CompletedTask;
         }
 
+        private Task RunProgressAsync(IMessageData? progressMessage,string original, CancellationToken token)
+        {
+            if (progressMessage is null)
+            {
+                return Task.CompletedTask;
+            }
+
+            string[] dotAnimation = new[]
+            {
+                ".",
+                "..",
+                "..."
+            };
+
+            return Task.Run(async () =>
+            {
+                int i = 0;
+                while (!token.IsCancellationRequested)
+                {
+                    await progressMessage.ModifyMessageAsync(msg => $"{original}{dotAnimation[i++ % dotAnimation.Length]}");
+                    try
+                    {
+                        await Task.Delay(300, token);
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        break;
+                    }
+                }
+            }, token);
+        }
+
         private async Task OnMessageReceivedAsync(IMessageData message)
         {
             if (message.IsDeleted || message.IsBot)
@@ -54,6 +86,11 @@ namespace TsDiscordBot.Core.HostedService
 
             try
             {
+                string progressContent = "つむぎが入力中";
+                var progressMessage = await message.ReplyMessageAsync(progressContent);
+                using CancellationTokenSource cts = new();
+                var progressTask = RunProgressAsync(progressMessage,progressContent,cts.Token);
+
                 var channel = await _discordSocketClient.GetChannelAsync(message.ChannelId) as ISocketMessageChannel;
 
                 if (channel is null)
@@ -94,7 +131,7 @@ namespace TsDiscordBot.Core.HostedService
 
                     string result = await _openAiService.GetResponse(message.GuildId, null, previousMessages);
 
-                    await message.SendMessageAsyncOnChannel(result);
+                    await Task.WhenAll(cts.CancelAsync(), progressTask, message.ReplyMessageAsync(result));
                 }
             }
             catch (Exception e)
