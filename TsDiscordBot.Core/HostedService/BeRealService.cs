@@ -2,6 +2,7 @@ using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Services;
 using TsDiscordBot.Core.Utility;
@@ -14,6 +15,8 @@ public class BeRealService : IHostedService
     private readonly DatabaseService _databaseService;
     private readonly ILogger<BeRealService> _logger;
     private CancellationTokenSource? _cts;
+    private readonly ConcurrentDictionary<ulong, BeRealConfig> _configCache = new();
+    private readonly ConcurrentDictionary<(ulong GuildId, ulong UserId), BeRealParticipant> _participantCache = new();
 
     public BeRealService(DiscordSocketClient client, DatabaseService databaseService, ILogger<BeRealService> logger)
     {
@@ -26,6 +29,7 @@ public class BeRealService : IHostedService
     {
         _client.MessageReceived += OnMessageReceivedAsync;
         _cts = new CancellationTokenSource();
+        _ = Task.Run(RefreshCacheAsync);
         _ = Task.Run(() => TimerLoopAsync(_cts.Token));
         return Task.CompletedTask;
     }
@@ -51,12 +55,9 @@ public class BeRealService : IHostedService
                 return;
             }
 
-            var config = _databaseService
-                .FindAll<BeRealConfig>(BeRealConfig.TableName)
-                .FirstOrDefault(x => x.PostChannelId == guildChannel.Id);
-
-            if (config is null)
+            if (!_configCache.TryGetValue(guildChannel.Id, out var config))
             {
+                _ = Task.Run(RefreshConfigCacheAsync);
                 return;
             }
 
@@ -94,24 +95,23 @@ public class BeRealService : IHostedService
                     await guildUser.AddRoleAsync(role);
                 }
 
-                var existing = _databaseService
-                    .FindAll<BeRealParticipant>(BeRealParticipant.TableName)
-                    .FirstOrDefault(x => x.GuildId == guild.Id && x.UserId == guildUser.Id);
-
-                if (existing is null)
+                if (!_participantCache.TryGetValue((guild.Id, guildUser.Id), out var existing))
                 {
+                    _ = Task.Run(RefreshParticipantCacheAsync);
                     existing = new BeRealParticipant
                     {
                         GuildId = guild.Id,
                         UserId = guildUser.Id,
                         LastPostedAtUtc = DateTime.UtcNow
                     };
-                    _databaseService.Insert(BeRealParticipant.TableName, existing);
+                    _participantCache[(guild.Id, guildUser.Id)] = existing;
+                    _ = Task.Run(() => _databaseService.Insert(BeRealParticipant.TableName, existing));
                 }
                 else
                 {
                     existing.LastPostedAtUtc = DateTime.UtcNow;
-                    _databaseService.Update(BeRealParticipant.TableName, existing);
+                    _participantCache[(guild.Id, guildUser.Id)] = existing;
+                    _ = Task.Run(() => _databaseService.Update(BeRealParticipant.TableName, existing));
                 }
             }
         }
@@ -121,24 +121,62 @@ public class BeRealService : IHostedService
         }
     }
 
+    private async Task RefreshCacheAsync()
+    {
+        await Task.WhenAll(RefreshConfigCacheAsync(), RefreshParticipantCacheAsync());
+    }
+
+    private async Task RefreshConfigCacheAsync()
+    {
+        try
+        {
+            var configs = await Task.Run(() => _databaseService
+                .FindAll<BeRealConfig>(BeRealConfig.TableName)
+                .ToArray());
+            foreach (var config in configs)
+            {
+                _configCache[config.PostChannelId] = config;
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to refresh be-real config cache");
+        }
+    }
+
+    private async Task RefreshParticipantCacheAsync()
+    {
+        try
+        {
+            var participants = await Task.Run(() => _databaseService
+                .FindAll<BeRealParticipant>(BeRealParticipant.TableName)
+                .ToArray());
+            foreach (var participant in participants)
+            {
+                _participantCache[(participant.GuildId, participant.UserId)] = participant;
+            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to refresh be-real participant cache");
+        }
+    }
+
     private async Task TimerLoopAsync(CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
             try
             {
-                var participants = _databaseService
-                    .FindAll<BeRealParticipant>(BeRealParticipant.TableName)
-                    .ToArray();
+                await RefreshCacheAsync();
+                var participants = _participantCache.Values.ToArray();
 
                 foreach (var participant in participants)
                 {
                     if (DateTime.UtcNow - participant.LastPostedAtUtc >= TimeSpan.FromHours(24))
                     {
                         var guild = _client.GetGuild(participant.GuildId);
-                        var config = _databaseService
-                            .FindAll<BeRealConfig>(BeRealConfig.TableName)
-                            .FirstOrDefault(x => x.GuildId == participant.GuildId);
+                        var config = _configCache.Values.FirstOrDefault(x => x.GuildId == participant.GuildId);
                         if (guild != null && config != null)
                         {
                             var user = guild.GetUser(participant.UserId);
@@ -148,7 +186,8 @@ public class BeRealService : IHostedService
                                 try
                                 {
                                     await user.RemoveRoleAsync(role);
-                                    _databaseService.Delete(BeRealParticipant.TableName, participant.Id);
+                                    _participantCache.TryRemove((participant.GuildId, participant.UserId), out _);
+                                    _ = Task.Run(() => _databaseService.Delete(BeRealParticipant.TableName, participant.Id));
                                 }
                                 catch(Exception e)
                                 {
