@@ -1,23 +1,23 @@
-﻿using Discord;
-using Discord.WebSocket;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Data;
+using TsDiscordBot.Core.Framework;
 using TsDiscordBot.Core.Services;
 
 namespace TsDiscordBot.Core.HostedService;
 
 public class TriggerReactionService : IHostedService
 {
-    private readonly DiscordSocketClient _client;
+    private readonly IMessageReceiver _client;
     private readonly ILogger<TriggerReactionService> _logger;
     private readonly DatabaseService _databaseService;
     private TriggerReactionPost[] _cache = Array.Empty<TriggerReactionPost>();
     private DateTime _lastExecuteDate = DateTime.Now;
 
     private readonly TimeSpan QuerySpan = TimeSpan.FromSeconds(5);
+    private IDisposable? _subscription;
 
-    public TriggerReactionService(DiscordSocketClient client, ILogger<TriggerReactionService> logger, DatabaseService databaseService)
+    public TriggerReactionService(IMessageReceiver client, ILogger<TriggerReactionService> logger, DatabaseService databaseService)
     {
         _client = client;
         _logger = logger;
@@ -26,28 +26,20 @@ public class TriggerReactionService : IHostedService
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _client.MessageReceived += OnMessageReceivedAsync;
+        _subscription = _client.OnReceivedSubscribe(OnMessageReceivedAsync, nameof(TriggerReactionService), ServicePriority.Low);
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _client.MessageReceived -= OnMessageReceivedAsync;
+        _subscription?.Dispose();
         return Task.CompletedTask;
     }
 
-    private async Task OnMessageReceivedAsync(SocketMessage message)
+    private async Task OnMessageReceivedAsync(IMessageData message)
     {
         try
         {
-            // Allow bot messages to trigger reactions; only skip non-guild channels
-            if (message.Channel is not SocketGuildChannel guildChannel)
-            {
-                return;
-            }
-
-            ulong guildId = guildChannel.Guild.Id;
-
             TimeSpan timeSpan = DateTime.Now - _lastExecuteDate;
 
             // Should be reduced calling, because the API is need to access the DB.
@@ -61,7 +53,7 @@ public class TriggerReactionService : IHostedService
             }
 
             IEnumerable<TriggerReactionPost> settings = _cache
-                .Where(x => x.GuildId == guildId)
+                .Where(x => x.GuildId == message.GuildId)
                 .Where(x => !string.IsNullOrWhiteSpace(x.TriggerWord));
 
             foreach (var config in settings)
@@ -71,14 +63,7 @@ public class TriggerReactionService : IHostedService
                     continue;
                 }
 
-                if (Emote.TryParse(config.Reaction, out var emote))
-                {
-                    await message.AddReactionAsync(emote);
-                }
-                else if(Emoji.TryParse(config.Reaction,out var emoji))
-                {
-                    await message.AddReactionAsync(emoji,new RequestOptions());
-                }
+                await message.TryAddReactionAsync(config.Reaction);
             }
         }
         catch(Exception e)

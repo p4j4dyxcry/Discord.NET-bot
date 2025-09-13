@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TsDiscordBot.Core;
+using TsDiscordBot.Core.Framework;
 using TsDiscordBot.Core.HostedService;
 using TsDiscordBot.Core.Services;
 
@@ -43,11 +44,14 @@ using IHost host = Host.CreateDefaultBuilder(args)
             };
             return OpenAIImageService.Create(opts);
         });
-
+        services.AddSingleton<IWebHookService, WebHookService>();
+        services.AddSingleton<IMessageReceiver, MessageReceiverHub>();
+        services.AddSingleton<MessageReceiverHub>();
+        services.AddSingleton<IMessageReceiver>(sp => sp.GetRequiredService<MessageReceiverHub>());
+        services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<MessageReceiverHub>());
         // Add hosted services
         services.AddHostedService<InteractionHandlingService>();
         services.AddHostedService<DiscordStartupService>();
-        // Message delete related services should run before reaction handling
         services.AddHostedService<BannedMessageCheckerService>();
         services.AddHostedService<OverseaRelayService>();
         services.AddHostedService<AnonymousRelayService>();

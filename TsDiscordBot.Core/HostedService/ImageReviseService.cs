@@ -1,22 +1,22 @@
 using System.Diagnostics;
 using System.Text;
-using Discord;
-using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Constants;
+using TsDiscordBot.Core.Framework;
 using TsDiscordBot.Core.Services;
 
 namespace TsDiscordBot.Core.HostedService
 {
     public class ImageReviseService : IHostedService
     {
-        private readonly DiscordSocketClient _client;
+        private readonly IMessageReceiver _client;
         private readonly ILogger<ImageReviseService> _logger;
         private readonly IOpenAIImageService _imageService;
         private readonly IUserCommandLimitService _limitService;
+        private IDisposable? _subscription;
 
-        public ImageReviseService(DiscordSocketClient client, ILogger<ImageReviseService> logger, IOpenAIImageService imageService, IUserCommandLimitService limitService)
+        public ImageReviseService(IMessageReceiver client, ILogger<ImageReviseService> logger, IOpenAIImageService imageService, IUserCommandLimitService limitService)
         {
             _client = client;
             _logger = logger;
@@ -26,25 +26,30 @@ namespace TsDiscordBot.Core.HostedService
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _client.MessageReceived += OnMessageReceivedAsync;
+            _subscription = _client.OnReceivedSubscribe(OnMessageReceivedAsync, nameof(ImageReviseService));
             return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _client.MessageReceived -= OnMessageReceivedAsync;
+            _subscription?.Dispose();
             return Task.CompletedTask;
         }
 
-        private Task RunProgressAsync(IUserMessage progressMessage, string original, Stopwatch stopwatch, CancellationToken token)
+        private Task RunProgressAsync(IMessageData? progressMessage, string original, Stopwatch stopwatch, CancellationToken token)
         {
+            if (progressMessage is null)
+            {
+                return Task.CompletedTask;
+            }
+
             return Task.Run(async () =>
             {
                 while (!token.IsCancellationRequested)
                 {
                     StringBuilder builder = new(original);
                     builder.AppendLine($"{stopwatch.Elapsed.Seconds}秒経過中...");
-                    await progressMessage.ModifyAsync(msg => msg.Content = builder.ToString());
+                    await progressMessage.ModifyMessageAsync(msg => builder.ToString());
                     try
                     {
                         await Task.Delay(1000, token);
@@ -79,30 +84,32 @@ namespace TsDiscordBot.Core.HostedService
             return progressMessageBuilder.ToString();
         }
 
-        private async Task OnMessageReceivedAsync(SocketMessage message)
+        private async Task OnMessageReceivedAsync(IMessageData message)
         {
             try
             {
-                if (message.Author.IsBot)
+                if (message.IsBot)
                     return;
 
-                if (message.Reference?.MessageId.IsSpecified != true)
+                if (!message.IsReplay)
                     return;
 
                 if (!message.Content.StartsWith("!revise "))
                     return;
 
-                var referenced = await message.Channel.GetMessageAsync(message.Reference.MessageId.Value);
+                var referenced = message.ReplaySource;
                 if (referenced is null)
                     return;
+
+                await referenced.CreateAttachmentSourceIfNotCachedAsync();
 
                 var attachment = referenced.Attachments.FirstOrDefault(a => a.ContentType?.StartsWith("image/") == true);
                 if (attachment is null)
                     return;
 
-                if (!_limitService.TryAdd(message.Author.Id, "image"))
+                if (!_limitService.TryAdd(message.AuthorId, "image"))
                 {
-                    await message.Channel.SendMessageAsync(ErrorMessages.CommandLimitExceeded, messageReference: new MessageReference(message.Id));
+                    await message.ReplyMessageAsync(ErrorMessages.CommandLimitExceeded);
                     return;
                 }
 
@@ -110,21 +117,26 @@ namespace TsDiscordBot.Core.HostedService
 
                 Stopwatch stopWatch = Stopwatch.StartNew();
                 var progressContent = GetProgressMessage(prompt);
-                var progressMessage = await message.Channel.SendMessageAsync(progressContent, messageReference: new MessageReference(message.Id));
+                var progressMessage = await message.ReplyMessageAsync(progressContent);
+
+                if (progressMessage is null)
+                {
+                    return;
+                }
+
                 using var cts = new CancellationTokenSource();
                 var progressTask = RunProgressAsync(progressMessage, progressContent, stopWatch, cts.Token);
 
                 try
                 {
-                    using var http = new HttpClient();
-                    await using var stream = await http.GetStreamAsync(attachment.Url);
+                    await using var stream = new MemoryStream(attachment.Bytes);
 
                     var results = await _imageService.EditAsync(stream, prompt, 1024, cts.Token);
                     if (results.Count == 0)
                     {
-                        cts.Cancel();
+                        await cts.CancelAsync();
                         await progressTask;
-                        await progressMessage.ModifyAsync(msg => msg.Content = GetFailedMessage(prompt, stopWatch.Elapsed.Seconds));
+                        await progressMessage.ModifyMessageAsync(msg => GetFailedMessage(prompt, stopWatch.Elapsed.Seconds));
                         return;
                     }
 
@@ -139,7 +151,7 @@ namespace TsDiscordBot.Core.HostedService
                     byte[] imageBytes;
                     if (result.HasUri)
                     {
-                        imageBytes = await http.GetByteArrayAsync(result.Uri, cts.Token);
+                        imageBytes = await HttpClientStatic.Default.GetByteArrayAsync(result.Uri, cts.Token);
                     }
                     else if (result.HasBytes)
                     {
@@ -147,9 +159,9 @@ namespace TsDiscordBot.Core.HostedService
                     }
                     else
                     {
-                        cts.Cancel();
+                        await cts.CancelAsync();
                         await progressTask;
-                        await progressMessage.ModifyAsync(msg => msg.Content = GetFailedMessage(prompt, stopWatch.Elapsed.Seconds));
+                        await progressMessage.ModifyMessageAsync(msg => GetFailedMessage(prompt, stopWatch.Elapsed.Seconds));
                         return;
                     }
 
@@ -158,16 +170,18 @@ namespace TsDiscordBot.Core.HostedService
 
                     cts.Cancel();
                     await progressTask;
-                    await progressMessage.ModifyAsync(msg => msg.Content = GetSucceedMessage(prompt, stopWatch.Elapsed.Seconds));
+                    await progressMessage.ModifyMessageAsync(msg => GetSucceedMessage(prompt, stopWatch.Elapsed.Seconds));
 
-                    await message.Channel.SendFileAsync(filePath, text: $"画像を修正したよ！\n\"{prompt}\"", messageReference: new MessageReference(message.Id));
+                    await message.ReplyMessageAsync($"画像を修正したよ！\n\"{prompt}\"", filePath);
+
+                    await progressMessage.DeleteAsync();
                 }
                 catch (Exception ex)
                 {
                     cts.Cancel();
                     await progressTask;
                     _logger.LogError(ex, "Failed to revise image");
-                    await progressMessage.ModifyAsync(msg => msg.Content = GetFailedMessage(prompt, stopWatch.Elapsed.Seconds));
+                    await progressMessage.ModifyMessageAsync(msg => GetFailedMessage(prompt, stopWatch.Elapsed.Seconds));
                 }
             }
             catch (Exception ex)

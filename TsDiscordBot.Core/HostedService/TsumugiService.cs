@@ -3,6 +3,7 @@ using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using TsDiscordBot.Core.Framework;
 using TsDiscordBot.Core.Services;
 using TsDiscordBot.Core.Utility;
 
@@ -10,14 +11,18 @@ namespace TsDiscordBot.Core.HostedService
 {
     public class TsumugiService : IHostedService
     {
-        private readonly DiscordSocketClient _client;
+        private readonly DiscordSocketClient _discordSocketClient;
+        private readonly IMessageReceiver _client;
         private readonly ILogger<NauAriService> _logger;
         private readonly OpenAIService _openAiService;
 
         private readonly ConcurrentDictionary<ulong, ConvertedMessage[]> _firstHistory = new();
 
-        public TsumugiService(DiscordSocketClient client, ILogger<NauAriService> logger, OpenAIService openAiService)
+        private IDisposable? _subscription;
+
+        public TsumugiService(DiscordSocketClient discordSocketClient, IMessageReceiver client, ILogger<NauAriService> logger, OpenAIService openAiService)
         {
+            _discordSocketClient = discordSocketClient;
             _client = client;
             _logger = logger;
             _openAiService = openAiService;
@@ -25,62 +30,71 @@ namespace TsDiscordBot.Core.HostedService
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _client.MessageReceived += OnMessageReceivedAsync;
+            _subscription = _client.OnReceivedSubscribe(OnMessageReceivedAsync, nameof(TsumugiService));
             return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _client.MessageReceived -= OnMessageReceivedAsync;
+            _subscription?.Dispose();
             return Task.CompletedTask;
         }
 
-        private async Task OnMessageReceivedAsync(SocketMessage message)
+        private async Task OnMessageReceivedAsync(IMessageData message)
         {
+            if (message.IsDeleted || message.IsBot)
+            {
+                return;
+            }
+
+            if (message.Content.StartsWith("!revise"))
+            {
+                return;
+            }
+
             try
             {
-                if (!_firstHistory.TryGetValue(message.Channel.Id, out var cache))
+                var channel = await _discordSocketClient.GetChannelAsync(message.ChannelId) as ISocketMessageChannel;
+
+                if (channel is null)
                 {
-                    var firstMessages = await message.Channel.GetMessagesAsync()
+                    return;
+                }
+
+                if (!_firstHistory.TryGetValue(message.ChannelId, out var cache))
+                {
+                    var firstMessages = await channel.GetMessagesAsync()
                         .FlattenAsync();
                     var convertedFirst = new List<ConvertedMessage>();
                     foreach (var m in firstMessages)
                     {
-                        convertedFirst.Add(await ConvertMessageAsync(m));
+                        var c = await MessageData.FromIMessageAsync(m,_logger);
+                        convertedFirst.Add(ConvertMessageAsync(c));
                     }
-                    _firstHistory[message.Channel.Id] = convertedFirst.ToArray();
+                    _firstHistory[message.ChannelId] = convertedFirst.ToArray();
                 }
 
-                if (message.Author.IsBot || message.Channel is not SocketGuildChannel guildChannel)
+                if (message.MentionTsumugi || message.Content.StartsWith("!つむぎ"))
                 {
-                    return;
-                }
-
-                if (message.Content.StartsWith("!revise"))
-                {
-                    return;
-                }
-
-                if (message.MentionedUsers.Any(x => x.Id == _client.CurrentUser.Id) ||
-                    message.Content.StartsWith("!つむぎ"))
-                {
-                    var previousMessagesTasks = message.Channel.GetCachedMessages(100)
+                    var previousMessagesTasks = channel.GetCachedMessages(100)
                         .Where(m => m.Id != message.Id)
-                        .Select(ConvertMessageAsync);
+                        .Select(async x => await MessageData.FromIMessageAsync(x))
+                        .Select(async x => ConvertMessageAsync(await x));
+
                     var previousMessages = await Task.WhenAll(previousMessagesTasks);
 
-                    var current = await ConvertMessageAsync(message);
+                    var current = ConvertMessageAsync(message);
 
-                    previousMessages = _firstHistory[message.Channel.Id]
+                    previousMessages = _firstHistory[message.ChannelId]
                         .Concat(previousMessages)
                         .Concat(new[] { current })
                         .OrderBy(x => x.Date)
                         .TakeLast(30)
                         .ToArray();
 
-                    string result = await _openAiService.GetResponse(guildChannel.Guild.Id, null, previousMessages);
+                    string result = await _openAiService.GetResponse(message.GuildId, null, previousMessages);
 
-                    await message.Channel.SendMessageAsync(result);
+                    await message.SendMessageAsyncOnChannel(result);
                 }
             }
             catch (Exception e)
@@ -89,26 +103,9 @@ namespace TsDiscordBot.Core.HostedService
             }
         }
 
-        private async Task<ConvertedMessage?> GetReplyReferenceAsync(IMessage message)
+        private ConvertedMessage ConvertMessageAsync(IMessageData message)
         {
-            ConvertedMessage? reply = null;
-            if (message.Reference?.MessageId.IsSpecified == true)
-            {
-                var referencedMessage = await message.Channel.GetMessageAsync(message.Reference.MessageId.Value);
-
-                if (referencedMessage != null)
-                {
-                    reply = DiscordToOpenAIMessageConverter.ConvertFromDiscord(referencedMessage);
-                }
-            }
-
-            return reply;
-        }
-
-        private async Task<ConvertedMessage> ConvertMessageAsync(IMessage message)
-        {
-            var reply = await GetReplyReferenceAsync(message);
-            return DiscordToOpenAIMessageConverter.ConvertFromDiscord(message, reply);
+            return DiscordToOpenAIMessageConverter.ConvertFromDiscord(message);
         }
     }
 }

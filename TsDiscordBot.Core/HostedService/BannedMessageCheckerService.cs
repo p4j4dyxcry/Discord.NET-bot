@@ -1,21 +1,20 @@
-using Discord;
-using Discord.Net;
-using Discord.WebSocket;
+using TsDiscordBot.Core.Framework;
+
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Net;
 using System.Text.RegularExpressions;
+using Discord.WebSocket;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Services;
-using TsDiscordBot.Core.Utility;
 
 namespace TsDiscordBot.Core.HostedService
 {
     public class BannedMessageCheckerService : IHostedService
     {
-        private readonly DiscordSocketClient _client;
+        private readonly DiscordSocketClient _discordSocketClient;
+        private readonly IMessageReceiver _client;
+        private readonly IWebHookService _webHookService;
         private readonly ILogger<BannedMessageCheckerService> _logger;
         private readonly DatabaseService _databaseService;
 
@@ -27,41 +26,38 @@ namespace TsDiscordBot.Core.HostedService
         private readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
         private readonly ConcurrentDictionary<(ulong GuildId, ulong UserId), List<DateTime>> _userBannedWordTimestamps = new();
 
+        private IDisposable? _subscription1;
+        private IDisposable? _subscription2;
+
         public BannedMessageCheckerService(
-            DiscordSocketClient client,
+            DiscordSocketClient discordSocketClient,
+            IMessageReceiver client,
+            IWebHookService webHookService,
             ILogger<BannedMessageCheckerService> logger,
             DatabaseService databaseService)
         {
+            _discordSocketClient = discordSocketClient;
             _client = client;
+            _webHookService = webHookService;
             _logger = logger;
             _databaseService = databaseService;
         }
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _client.MessageReceived += OnMessageReceivedAsync;
-            _client.MessageUpdated += OnMessageUpdatedAsync;
+            _subscription1 = _client.OnReceivedSubscribe(CheckMessageAsync,nameof(BannedMessageCheckerService),ServicePriority.Urgent);
+            _subscription2 = _client.OnEditedSubscribe(CheckMessageAsync,nameof(BannedMessageCheckerService),ServicePriority.Urgent);
             return Task.CompletedTask;
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _client.MessageReceived -= OnMessageReceivedAsync;
-            _client.MessageUpdated -= OnMessageUpdatedAsync;
+            _subscription1?.Dispose();
+            _subscription2?.Dispose();
             return Task.CompletedTask;
         }
 
-        private Task OnMessageReceivedAsync(SocketMessage message) => CheckMessageAsync(message);
-
-        private Task OnMessageUpdatedAsync(Cacheable<IMessage, ulong> before, SocketMessage after, ISocketMessageChannel channel)
-        {
-            if (after is null)
-                return Task.CompletedTask;
-
-            return CheckMessageAsync(after);
-        }
-
-        private async Task HandleBannedWordAsync(SocketGuildUser user, ISocketMessageChannel channel, BannedWordTimeoutSetting? timeoutSetting)
+        private async Task HandleBannedWordAsync(IMessageData messageData, BannedWordTimeoutSetting? timeoutSetting)
         {
             try
             {
@@ -72,7 +68,7 @@ namespace TsDiscordBot.Core.HostedService
                 var window = TimeSpan.FromMinutes(timeoutSetting?.WindowMinutes ?? 5);
                 var duration = TimeSpan.FromMinutes(timeoutSetting?.TimeoutMinutes ?? 1);
 
-                var key = (user.Guild.Id, user.Id);
+                var key = (messageData.GuildId, messageData.AuthorId);
                 var list = _userBannedWordTimestamps.GetOrAdd(key, _ => new List<DateTime>());
                 var shouldTimeout = false;
                 lock (list)
@@ -89,6 +85,13 @@ namespace TsDiscordBot.Core.HostedService
 
                 if (shouldTimeout)
                 {
+                    var user = _discordSocketClient.GetGuild(messageData.GuildId)?.GetUser(messageData.AuthorId);
+
+                    if (user is null)
+                    {
+                        return;
+                    }
+
                     try
                     {
                         await user.SetTimeOutAsync(duration);
@@ -96,7 +99,7 @@ namespace TsDiscordBot.Core.HostedService
 
                         try
                         {
-                            await channel.SendMessageAsync($"{user.Mention} さんは不適切な発言が多いため一旦タイムアウトさせてもらったね！");
+                            await messageData.SendMessageAsyncOnChannel($"{messageData.AuthorMention} さんは不適切な発言が多いため一旦タイムアウトさせてもらったね！");
                         }
                         catch (Exception ex)
                         {
@@ -111,28 +114,24 @@ namespace TsDiscordBot.Core.HostedService
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed to track banned word usage for {User}", user.Username);
+                _logger.LogWarning(ex, "Failed to track banned word usage for {User}", messageData.AuthorName);
             }
         }
 
-        private async Task CheckMessageAsync(SocketMessage message)
+        private async Task CheckMessageAsync(IMessageData message)
         {
             try
             {
-                if (message.Author.IsBot || message.Channel is not SocketGuildChannel guildChannel)
-                    return;
-
-                if (message.Channel.Name.Contains("閲覧注意"))
-                    return;
-
-                var currentUser = guildChannel.Guild.CurrentUser;
-                if (!currentUser.GetPermissions(guildChannel).ManageMessages)
+                if (message.IsBot || message.IsDeleted)
                 {
-                    _logger.LogWarning("Missing ManageMessages permission in channel {ChannelName}", guildChannel.Name);
                     return;
                 }
 
-                var guildId = guildChannel.Guild.Id;
+                if (message.ChannelName.Contains("閲覧注意"))
+                {
+                    return;
+                }
+
 
                 if ((DateTime.Now - _lastFetchTime) > CacheDuration)
                 {
@@ -144,22 +143,22 @@ namespace TsDiscordBot.Core.HostedService
                 }
 
                 var keywords = _cache
-                    .Where(x => x.GuildId == guildId)
+                    .Where(x => x.GuildId == message.GuildId)
                     .Where(x => !string.IsNullOrWhiteSpace(x.Word));
 
                 var excludeWords = _excludeCache
-                    .Where(x => x.GuildId == guildId)
+                    .Where(x => x.GuildId == message.GuildId)
                     .Where(x => !string.IsNullOrWhiteSpace(x.Word))
                     .Select(x => x.Word)
                     .ToArray();
 
-                var setting = _settingsCache.FirstOrDefault(x => x.GuildId == guildId);
+                var setting = _settingsCache.FirstOrDefault(x => x.GuildId == message.GuildId);
                 if (setting is not null && !setting.IsEnabled)
                 {
                     return;
                 }
 
-                var timeoutSetting = _timeoutSettingsCache.FirstOrDefault(x => x.GuildId == guildId);
+                var timeoutSetting = _timeoutSettingsCache.FirstOrDefault(x => x.GuildId == message.GuildId);
 
                 var content = message.Content;
                 var placeholders = new Dictionary<string, string>();
@@ -180,12 +179,11 @@ namespace TsDiscordBot.Core.HostedService
                         if (mode == BannedTextMode.Delete)
                         {
                             await message.DeleteAsync();
-                            _logger.LogInformation($"Deleted banned message from {message.Author.Username}: {keyword.Word}");
+                            _logger.LogInformation($"Deleted banned message from {message.AuthorName}: {keyword.Word}");
 
                             try
                             {
-                                await message.Channel.SendMessageAsync(
-                                    $"🔞 {message.Author.Mention} さん、不適切な発言が検出されたためメッセージを削除しました。");
+                                await message.SendMessageAsyncOnChannel($"🔞 {message.AuthorMention} さん、不適切な発言が検出されたためメッセージを削除しました。");
                             }
                             catch (Exception dmEx)
                             {
@@ -204,66 +202,15 @@ namespace TsDiscordBot.Core.HostedService
                                 sanitized = sanitized.Replace(kv.Key, kv.Value);
                             }
 
-                            if (message is IUserMessage userMessage && userMessage.Author.Id == _client.CurrentUser.Id)
-                            {
-                                try
-                                {
-                                    _logger.LogDebug("Modifying bot's own message for sanitization");
-                                    await userMessage.ModifyAsync(m => m.Content = sanitized);
-                                }
-                                catch (HttpException httpEx) when (httpEx.HttpCode == HttpStatusCode.Forbidden)
-                                {
-                                    _logger.LogWarning(httpEx, "Missing permissions to modify message");
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogWarning(ex, "Failed to modify message, deleting and reposting sanitized copy");
-                                    await userMessage.DeleteAsync();
-                                    if (message.Channel is ITextChannel editChannel)
-                                    {
-                                        var username = DiscordUtility.GetAuthorNameFromMessage(message);
-                                        var avatarUrl = DiscordUtility.GetAvatarUrlFromMessage(message);
-                                        var webhookClient = await WebHookWrapper.Default.GetOrCreateWebhookClientAsync(editChannel, "banned-relay");
-                                        await webhookClient.RelayMessageAsync(message,sanitized, author: username, avatarUrl: avatarUrl,_logger);
-                                    }
-                                    else
-                                    {
-                                        await message.Channel.SendMessageAsync($"{message.Author.Mention}: {sanitized}");
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                _logger.LogInformation("Deleting and reposting message not sent by bot");
-                                try
-                                {
-                                    await message.DeleteAsync();
-                                    if (message.Channel is ITextChannel channel)
-                                    {
-                                        var webhookClient = await WebHookWrapper.Default.GetOrCreateWebhookClientAsync(channel, "banned-relay");
-                                        await webhookClient.RelayMessageAsync(message,sanitized, logger:_logger);
-                                    }
-                                    else
-                                    {
-                                        await message.Channel.SendMessageAsync($"{message.Author.Mention}: {sanitized}");
-                                    }
-                                }
-                                catch (HttpException httpEx) when (httpEx.HttpCode == HttpStatusCode.Forbidden)
-                                {
-                                    _logger.LogWarning(httpEx, "Missing permissions to delete message or send sanitized copy");
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogWarning(ex, "Failed to delete message or send sanitized copy");
-                                }
-                            }
+                            await message.DeleteAsync();
+                            var webhookClient = await _webHookService.GetOrCreateWebhookClientAsync(message.ChannelId, "banned-relay");
+                            await webhookClient.RelayMessageAsync(message,sanitized);
 
-                            _logger.LogInformation($"Masked banned message from {message.Author.Username}: {keyword.Word}");
                         }
 
-                        if (message.Author is SocketGuildUser guildUser && !guildUser.GuildPermissions.Administrator)
+                        if (!message.FromAdmin)
                         {
-                            await HandleBannedWordAsync(guildUser, message.Channel, timeoutSetting);
+                            await HandleBannedWordAsync(message, timeoutSetting);
                         }
 
                         break; // 1件でもヒットしたら処理終了（重複削除防止）

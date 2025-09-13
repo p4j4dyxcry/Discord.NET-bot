@@ -1,30 +1,34 @@
-using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Data;
+using TsDiscordBot.Core.Framework;
 using TsDiscordBot.Core.Services;
-using TsDiscordBot.Core.Utility;
 
 namespace TsDiscordBot.Core.HostedService;
 
 public class BeRealService : IHostedService
 {
     private readonly DiscordSocketClient _client;
+    private readonly IMessageReceiver _messageReceiver;
+    private readonly IWebHookService _webHookService;
     private readonly DatabaseService _databaseService;
     private readonly ILogger<BeRealService> _logger;
     private CancellationTokenSource? _cts;
+    private IDisposable? _subscription = null;
 
-    public BeRealService(DiscordSocketClient client, DatabaseService databaseService, ILogger<BeRealService> logger)
+    public BeRealService(DiscordSocketClient client, IMessageReceiver messageReceiver, IWebHookService webHookService, DatabaseService databaseService, ILogger<BeRealService> logger)
     {
         _client = client;
+        _messageReceiver = messageReceiver;
+        _webHookService = webHookService;
         _databaseService = databaseService;
         _logger = logger;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _client.MessageReceived += OnMessageReceivedAsync;
+        _subscription = _messageReceiver.OnReceivedSubscribe(OnMessageReceivedAsync,nameof(BeRealService));
         _cts = new CancellationTokenSource();
         _ = Task.Run(() => TimerLoopAsync(_cts.Token));
         return Task.CompletedTask;
@@ -32,87 +36,74 @@ public class BeRealService : IHostedService
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _client.MessageReceived -= OnMessageReceivedAsync;
+        _subscription?.Dispose();
         _cts?.Cancel();
         return Task.CompletedTask;
     }
 
-    private async Task OnMessageReceivedAsync(SocketMessage message)
+    private async Task OnMessageReceivedAsync(IMessageData message)
     {
         try
         {
-            if (message.Channel is not SocketGuildChannel guildChannel)
-            {
-                return;
-            }
-
-            if (message.Author.IsBot)
+            if (message.IsBot || message.IsDeleted)
             {
                 return;
             }
 
             var config = _databaseService
                 .FindAll<BeRealConfig>(BeRealConfig.TableName)
-                .FirstOrDefault(x => x.PostChannelId == guildChannel.Id);
+                .FirstOrDefault(x => x.PostChannelId == message.ChannelId);
 
             if (config is null)
             {
                 return;
             }
 
+            await message.CreateAttachmentSourceIfNotCachedAsync();
+
             if (!message.Attachments.Any(a => a.Width.HasValue))
             {
                 return;
             }
 
-            var guild = guildChannel.Guild;
-            var feedChannel = guild.GetTextChannel(config.FeedChannelId);
-            if (feedChannel is null)
-            {
-                return;
-            }
-
-            var webhookClient = await WebHookWrapper.Default.GetOrCreateWebhookClientAsync(feedChannel, "be-real-relay");
-            var feedMessageId = await webhookClient.RelayMessageAsync(message, message.Content, logger:_logger);
+            var webhookClient = await _webHookService.GetOrCreateWebhookClientAsync(config.FeedChannelId, "be-real-relay");
+            var feedMessageId = await webhookClient.RelayMessageAsync(message, message.Content);
 
             await message.DeleteAsync();
 
             if (feedMessageId is { } id)
             {
-                var link = $"https://discord.com/channels/{guild.Id}/{feedChannel.Id}/{id}";
-                if (message.Channel is IMessageChannel postChannel)
-                {
-                    await postChannel.SendMessageAsync($"{DiscordUtility.GetAuthorNameFromMessage(message)}さんがBeRealに画像を投稿したよ！{link}");
-                }
+                var link = $"https://discord.com/channels/{message.GuildId}/{config.FeedChannelId}/{id}";
+                await message.SendMessageAsyncOnChannel($"{message.AuthorName}さんがBeRealに画像を投稿したよ！{link}");
             }
 
-            if (message.Author is SocketGuildUser guildUser)
+            var guild = _client.GetGuild(message.GuildId);
+            var user = _client.GetGuild(message.GuildId)?.GetUser(message.AuthorId);
+
+            var role = guild.GetRole(config.RoleId);
+            if (role is not null && user is not null)
             {
-                var role = guild.GetRole(config.RoleId);
-                if (role is not null)
-                {
-                    await guildUser.AddRoleAsync(role);
-                }
+                await user.AddRoleAsync(role);
+            }
 
-                var existing = _databaseService
-                    .FindAll<BeRealParticipant>(BeRealParticipant.TableName)
-                    .FirstOrDefault(x => x.GuildId == guild.Id && x.UserId == guildUser.Id);
+            var existing = _databaseService
+                .FindAll<BeRealParticipant>(BeRealParticipant.TableName)
+                .FirstOrDefault(x => x.GuildId == guild.Id && x.UserId == message.AuthorId);
 
-                if (existing is null)
+            if (existing is null)
+            {
+                existing = new BeRealParticipant
                 {
-                    existing = new BeRealParticipant
-                    {
-                        GuildId = guild.Id,
-                        UserId = guildUser.Id,
-                        LastPostedAtUtc = DateTime.UtcNow
-                    };
-                    _databaseService.Insert(BeRealParticipant.TableName, existing);
-                }
-                else
-                {
-                    existing.LastPostedAtUtc = DateTime.UtcNow;
-                    _databaseService.Update(BeRealParticipant.TableName, existing);
-                }
+                    GuildId = guild.Id,
+                    UserId = message.AuthorId,
+                    LastPostedAtUtc = DateTime.UtcNow
+                };
+                _databaseService.Insert(BeRealParticipant.TableName, existing);
+            }
+            else
+            {
+                existing.LastPostedAtUtc = DateTime.UtcNow;
+                _databaseService.Update(BeRealParticipant.TableName, existing);
             }
         }
         catch (Exception e)
