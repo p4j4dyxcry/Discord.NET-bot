@@ -89,10 +89,6 @@ namespace TsDiscordBot.Core.HostedService
             using CancellationTokenSource cts = new();
             try
             {
-                string progressContent = "つむぎが入力中";
-                var progressMessage = await message.ReplyMessageAsync(progressContent);
-                var progressTask = RunProgressAsync(progressMessage,progressContent,cts.Token);
-
                 var channel = await _discordSocketClient.GetChannelAsync(message.ChannelId) as ISocketMessageChannel;
 
                 if (channel is null)
