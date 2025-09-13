@@ -38,10 +38,10 @@ namespace TsDiscordBot.Core.Utility
             body = NormalizeCodeBlocks(body);
 
             // 返信（リプライ）を要約して先頭に付与
-            if (message.ReplaySource is not null && !string.IsNullOrWhiteSpace(message.ReplaySource.Content))
+            if (message.ReplySource is not null && !string.IsNullOrWhiteSpace(message.ReplySource.Content))
             {
-                var quoted = TrimOneLine(message.ReplaySource.Content, MaxQuoteLen);
-                body = $"⤷ @{message.ReplaySource.AuthorMention}: {quoted}\n{body}";
+                var quoted = TrimOneLine(message.ReplySource.Content, MaxQuoteLen);
+                body = $"⤷ @{message.ReplySource.AuthorMention}: {quoted}\n{body}";
             }
 
             // 本文が空ならプレースホルダ（例：添付のみの投稿対策）

@@ -8,6 +8,10 @@ using TsDiscordBot.Core.Framework;
 
 namespace TsDiscordBot.Core.HostedService;
 
+/// <summary>
+/// Acts as a central hub that dispatches Discord message events to subscribed
+/// services based on their configured priorities.
+/// </summary>
 public class MessageReceiverHub : IHostedService, IMessageReceiver
 {
     private readonly DiscordSocketClient _discord;
@@ -30,6 +34,7 @@ public class MessageReceiverHub : IHostedService, IMessageReceiver
     private readonly ConcurrentDictionary<ServicePriority, List<ServiceRegistration>> ReceivedServiceList = new();
     private readonly ConcurrentDictionary<ServicePriority, List<ServiceRegistration>> EditedServiceList = new();
 
+    /// <inheritdoc />
     public IDisposable OnReceivedSubscribe(Func<IMessageData, Task> onMessageReceived, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
     {
         if (!ReceivedServiceList.ContainsKey(priority))
@@ -45,13 +50,14 @@ public class MessageReceiverHub : IHostedService, IMessageReceiver
         });
     }
 
+    /// <inheritdoc />
     public IDisposable OnEditedSubscribe(Func<IMessageData, Task> onMessageReceived, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
     {
         if (!EditedServiceList.ContainsKey(priority))
         {
             EditedServiceList[priority] = [];
         }
-        ServiceRegistration registration = new ServiceRegistration(onMessageReceived,serviceName,"MessageReceived");
+        ServiceRegistration registration = new ServiceRegistration(onMessageReceived,serviceName,"MessageUpdated");
         EditedServiceList[priority].Add(registration);
 
         return Disposable.Create(() =>

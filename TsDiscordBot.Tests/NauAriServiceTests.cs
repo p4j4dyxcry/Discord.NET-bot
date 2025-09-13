@@ -46,12 +46,12 @@ public class NauAriServiceTests
         public bool FromTsumugi { get; set; }
         public bool MentionTsumugi { get; set; }
         public string Content { get; set; } = string.Empty;
-        public bool IsReplay { get; set; }
+        public bool IsReply { get; set; }
         public bool FromAdmin { get; set; }
         public string? AvatarUrl { get; set; }
         public string AuthorMention { get; set; } = string.Empty;
         public string ChannelName { get; set; } = string.Empty;
-        public MessageData? ReplaySource { get; set; }
+        public MessageData? ReplySource { get; set; }
         public bool IsDeleted { get; set; }
         public DateTimeOffset Timestamp { get; set; }
         public List<AttachmentData> Attachments { get; set; } = new();
