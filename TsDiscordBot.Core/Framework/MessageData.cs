@@ -17,7 +17,10 @@ public class MessageData : IMessageData
         if (message.Reference?.MessageId.IsSpecified is true)
         {
             var refMessage = await message.Channel.GetMessageAsync(message.Reference.MessageId.Value);
-            referencedMessage = await FromIMessageAsync(refMessage);
+            if (refMessage is not null)
+            {
+                referencedMessage = await FromIMessageAsync(refMessage);
+            }
         }
 
         return new MessageData()

@@ -87,7 +87,7 @@ public class AnonymousRelayService : IHostedService
                 _logger.LogError(ex, "Failed to delete original message");
             }
 
-            var client = await _webHookService.GetOrCreateWebhookClientAsync(message.ChannelId, message.Content);
+            var client = await _webHookService.GetOrCreateWebhookClientAsync(message.ChannelId, "anonymous-relay");
             await client.RelayMessageAsync(message, content ?? string.Empty, username, avatarUrl);
         }
         catch (Exception e)

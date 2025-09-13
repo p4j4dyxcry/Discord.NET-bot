@@ -45,11 +45,13 @@ using IHost host = Host.CreateDefaultBuilder(args)
             return OpenAIImageService.Create(opts);
         });
         services.AddSingleton<IWebHookService, WebHookService>();
-
+        services.AddSingleton<IMessageReceiver, MessageReceiverHub>();
+        services.AddSingleton<MessageReceiverHub>();
+        services.AddSingleton<IMessageReceiver>(sp => sp.GetRequiredService<MessageReceiverHub>());
+        services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<MessageReceiverHub>());
         // Add hosted services
         services.AddHostedService<InteractionHandlingService>();
         services.AddHostedService<DiscordStartupService>();
-        services.AddHostedService<MessageReceiverHub>();
         services.AddHostedService<BannedMessageCheckerService>();
         services.AddHostedService<OverseaRelayService>();
         services.AddHostedService<AnonymousRelayService>();
