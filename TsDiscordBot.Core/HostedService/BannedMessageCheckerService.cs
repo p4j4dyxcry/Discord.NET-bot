@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Threading;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Services;
 using TsDiscordBot.Core.Utility;
@@ -23,9 +24,11 @@ namespace TsDiscordBot.Core.HostedService
         private BannedTextSetting[] _settingsCache = [];
         private BannedWordTimeoutSetting[] _timeoutSettingsCache = [];
         private BannedExcludeWord[] _excludeCache = [];
-        private DateTime _lastFetchTime = DateTime.MinValue;
         private readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(10);
         private readonly ConcurrentDictionary<(ulong GuildId, ulong UserId), List<DateTime>> _userBannedWordTimestamps = new();
+        private CancellationTokenSource? _cts;
+        private Dictionary<string, Regex> _keywordRegexCache = new(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, Regex> _excludeRegexCache = new(StringComparer.OrdinalIgnoreCase);
 
         public BannedMessageCheckerService(
             DiscordSocketClient client,
@@ -41,6 +44,8 @@ namespace TsDiscordBot.Core.HostedService
         {
             _client.MessageReceived += OnMessageReceivedAsync;
             _client.MessageUpdated += OnMessageUpdatedAsync;
+            _cts = new CancellationTokenSource();
+            _ = Task.Run(() => RefreshLoopAsync(_cts.Token));
             return Task.CompletedTask;
         }
 
@@ -48,6 +53,7 @@ namespace TsDiscordBot.Core.HostedService
         {
             _client.MessageReceived -= OnMessageReceivedAsync;
             _client.MessageUpdated -= OnMessageUpdatedAsync;
+            _cts?.Cancel();
             return Task.CompletedTask;
         }
 
@@ -115,48 +121,37 @@ namespace TsDiscordBot.Core.HostedService
             }
         }
 
-        private async Task CheckMessageAsync(SocketMessage message)
+        private Task CheckMessageAsync(SocketMessage message)
         {
             try
             {
                 if (message.Author.IsBot || message.Channel is not SocketGuildChannel guildChannel)
-                    return;
+                    return Task.CompletedTask;
 
                 if (message.Channel.Name.Contains("閲覧注意"))
-                    return;
+                    return Task.CompletedTask;
 
                 var currentUser = guildChannel.Guild.CurrentUser;
                 if (!currentUser.GetPermissions(guildChannel).ManageMessages)
                 {
                     _logger.LogWarning("Missing ManageMessages permission in channel {ChannelName}", guildChannel.Name);
-                    return;
+                    return Task.CompletedTask;
                 }
 
                 var guildId = guildChannel.Guild.Id;
-
-                if ((DateTime.Now - _lastFetchTime) > CacheDuration)
-                {
-                    _cache = _databaseService.FindAll<BannedTriggerWord>(BannedTriggerWord.TableName).ToArray();
-                    _settingsCache = _databaseService.FindAll<BannedTextSetting>(BannedTextSetting.TableName).ToArray();
-                    _timeoutSettingsCache = _databaseService.FindAll<BannedWordTimeoutSetting>(BannedWordTimeoutSetting.TableName).ToArray();
-                    _excludeCache = _databaseService.FindAll<BannedExcludeWord>(BannedExcludeWord.TableName).ToArray();
-                    _lastFetchTime = DateTime.Now;
-                }
 
                 var keywords = _cache
                     .Where(x => x.GuildId == guildId)
                     .Where(x => !string.IsNullOrWhiteSpace(x.Word));
 
-                var excludeWords = _excludeCache
+                var excludeEntries = _excludeCache
                     .Where(x => x.GuildId == guildId)
-                    .Where(x => !string.IsNullOrWhiteSpace(x.Word))
-                    .Select(x => x.Word)
-                    .ToArray();
+                    .Where(x => !string.IsNullOrWhiteSpace(x.Word));
 
                 var setting = _settingsCache.FirstOrDefault(x => x.GuildId == guildId);
                 if (setting is not null && !setting.IsEnabled)
                 {
-                    return;
+                    return Task.CompletedTask;
                 }
 
                 var timeoutSetting = _timeoutSettingsCache.FirstOrDefault(x => x.GuildId == guildId);
@@ -164,106 +159,130 @@ namespace TsDiscordBot.Core.HostedService
                 var content = message.Content;
                 var placeholders = new Dictionary<string, string>();
                 var idx = 0;
-                foreach (var e in excludeWords)
+                foreach (var e in excludeEntries)
                 {
-                    var placeholder = $"__ALLOW{idx++}__";
-                    placeholders[placeholder] = e;
-                    content = Regex.Replace(content, Regex.Escape(e), placeholder, RegexOptions.IgnoreCase);
+                    if (_excludeRegexCache.TryGetValue(e.Word, out var regex))
+                    {
+                        var placeholder = $"__ALLOW{idx++}__";
+                        placeholders[placeholder] = e.Word;
+                        content = regex.Replace(content, placeholder);
+                    }
                 }
 
                 foreach (var keyword in keywords)
                 {
-                    if (content.Contains(keyword.Word, StringComparison.OrdinalIgnoreCase))
+                    if (_keywordRegexCache.TryGetValue(keyword.Word, out var keywordRegex) && keywordRegex.IsMatch(content))
                     {
                         var mode = setting?.Mode ?? BannedTextMode.Hide;
 
                         if (mode == BannedTextMode.Delete)
                         {
-                            await message.DeleteAsync();
-                            _logger.LogInformation($"Deleted banned message from {message.Author.Username}: {keyword.Word}");
+                            _ = Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    await message.DeleteAsync();
+                                    _logger.LogInformation("Deleted banned message from {User}: {Word}", message.Author.Username, keyword.Word);
 
-                            try
-                            {
-                                await message.Channel.SendMessageAsync(
-                                    $"🔞 {message.Author.Mention} さん、不適切な発言が検出されたためメッセージを削除しました。");
-                            }
-                            catch (Exception dmEx)
-                            {
-                                _logger.LogWarning(dmEx, "Failed to send DM to user");
-                            }
+                                    try
+                                    {
+                                        await message.Channel.SendMessageAsync(
+                                            $"🔞 {message.Author.Mention} さん、不適切な発言が検出されたためメッセージを削除しました。");
+                                    }
+                                    catch (Exception dmEx)
+                                    {
+                                        _logger.LogWarning(dmEx, "Failed to send DM to user");
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogWarning(ex, "Failed to delete message or notify user");
+                                }
+                            });
                         }
                         else
                         {
                             var sanitized = content;
                             foreach (var k in keywords)
                             {
-                                sanitized = Regex.Replace(sanitized, Regex.Escape(k.Word), new string('＊', k.Word.Length), RegexOptions.IgnoreCase);
+                                if (_keywordRegexCache.TryGetValue(k.Word, out var kRegex))
+                                {
+                                    sanitized = kRegex.Replace(sanitized, new string('＊', k.Word.Length));
+                                }
                             }
                             foreach (var kv in placeholders)
                             {
                                 sanitized = sanitized.Replace(kv.Key, kv.Value);
                             }
 
-                            if (message is IUserMessage userMessage && userMessage.Author.Id == _client.CurrentUser.Id)
+                            _ = Task.Run(async () =>
                             {
                                 try
                                 {
-                                    _logger.LogDebug("Modifying bot's own message for sanitization");
-                                    await userMessage.ModifyAsync(m => m.Content = sanitized);
-                                }
-                                catch (HttpException httpEx) when (httpEx.HttpCode == HttpStatusCode.Forbidden)
-                                {
-                                    _logger.LogWarning(httpEx, "Missing permissions to modify message");
-                                }
-                                catch (Exception ex)
-                                {
-                                    _logger.LogWarning(ex, "Failed to modify message, deleting and reposting sanitized copy");
-                                    await userMessage.DeleteAsync();
-                                    if (message.Channel is ITextChannel editChannel)
+                                    if (message is IUserMessage userMessage && userMessage.Author.Id == _client.CurrentUser.Id)
                                     {
-                                        var username = DiscordUtility.GetAuthorNameFromMessage(message);
-                                        var avatarUrl = DiscordUtility.GetAvatarUrlFromMessage(message);
-                                        var webhookClient = await WebHookWrapper.Default.GetOrCreateWebhookClientAsync(editChannel, "banned-relay");
-                                        await webhookClient.RelayMessageAsync(message,sanitized, author: username, avatarUrl: avatarUrl,_logger);
+                                        try
+                                        {
+                                            _logger.LogDebug("Modifying bot's own message for sanitization");
+                                            await userMessage.ModifyAsync(m => m.Content = sanitized);
+                                        }
+                                        catch (HttpException httpEx) when (httpEx.HttpCode == HttpStatusCode.Forbidden)
+                                        {
+                                            _logger.LogWarning(httpEx, "Missing permissions to modify message");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            _logger.LogWarning(ex, "Failed to modify message, deleting and reposting sanitized copy");
+                                            await userMessage.DeleteAsync();
+                                            if (message.Channel is ITextChannel editChannel)
+                                            {
+                                                var username = DiscordUtility.GetAuthorNameFromMessage(message);
+                                                var avatarUrl = DiscordUtility.GetAvatarUrlFromMessage(message);
+                                                var webhookClient = await WebHookWrapper.Default.GetOrCreateWebhookClientAsync(editChannel, "banned-relay");
+                                                await webhookClient.RelayMessageAsync(message, sanitized, author: username, avatarUrl: avatarUrl, _logger);
+                                            }
+                                            else
+                                            {
+                                                await message.Channel.SendMessageAsync($"{message.Author.Mention}: {sanitized}");
+                                            }
+                                        }
                                     }
                                     else
                                     {
-                                        await message.Channel.SendMessageAsync($"{message.Author.Mention}: {sanitized}");
+                                        _logger.LogInformation("Deleting and reposting message not sent by bot");
+                                        try
+                                        {
+                                            await message.DeleteAsync();
+                                            if (message.Channel is ITextChannel channel)
+                                            {
+                                                var webhookClient = await WebHookWrapper.Default.GetOrCreateWebhookClientAsync(channel, "banned-relay");
+                                                await webhookClient.RelayMessageAsync(message, sanitized, logger:_logger);
+                                            }
+                                            else
+                                            {
+                                                await message.Channel.SendMessageAsync($"{message.Author.Mention}: {sanitized}");
+                                            }
+                                        }
+                                        catch (HttpException httpEx) when (httpEx.HttpCode == HttpStatusCode.Forbidden)
+                                        {
+                                            _logger.LogWarning(httpEx, "Missing permissions to delete message or send sanitized copy");
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            _logger.LogWarning(ex, "Failed to delete message or send sanitized copy");
+                                        }
                                     }
-                                }
-                            }
-                            else
-                            {
-                                _logger.LogInformation("Deleting and reposting message not sent by bot");
-                                try
-                                {
-                                    await message.DeleteAsync();
-                                    if (message.Channel is ITextChannel channel)
-                                    {
-                                        var webhookClient = await WebHookWrapper.Default.GetOrCreateWebhookClientAsync(channel, "banned-relay");
-                                        await webhookClient.RelayMessageAsync(message,sanitized, logger:_logger);
-                                    }
-                                    else
-                                    {
-                                        await message.Channel.SendMessageAsync($"{message.Author.Mention}: {sanitized}");
-                                    }
-                                }
-                                catch (HttpException httpEx) when (httpEx.HttpCode == HttpStatusCode.Forbidden)
-                                {
-                                    _logger.LogWarning(httpEx, "Missing permissions to delete message or send sanitized copy");
                                 }
                                 catch (Exception ex)
                                 {
-                                    _logger.LogWarning(ex, "Failed to delete message or send sanitized copy");
+                                    _logger.LogWarning(ex, "Failed to sanitize message");
                                 }
-                            }
-
-                            _logger.LogInformation($"Masked banned message from {message.Author.Username}: {keyword.Word}");
+                            });
                         }
 
                         if (message.Author is SocketGuildUser guildUser && !guildUser.GuildPermissions.Administrator)
                         {
-                            await HandleBannedWordAsync(guildUser, message.Channel, timeoutSetting);
+                            _ = Task.Run(() => HandleBannedWordAsync(guildUser, message.Channel, timeoutSetting));
                         }
 
                         break; // 1件でもヒットしたら処理終了（重複削除防止）
@@ -274,6 +293,43 @@ namespace TsDiscordBot.Core.HostedService
             {
                 _logger.LogError(ex, "Error in banned message checker");
             }
+
+            return Task.CompletedTask;
+        }
+
+        private async Task RefreshLoopAsync(CancellationToken token)
+        {
+            await RefreshCacheAsync();
+            var timer = new PeriodicTimer(CacheDuration);
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                try
+                {
+                    await RefreshCacheAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to refresh banned word cache");
+                }
+            }
+        }
+
+        private Task RefreshCacheAsync()
+        {
+            _cache = _databaseService.FindAll<BannedTriggerWord>(BannedTriggerWord.TableName).ToArray();
+            _settingsCache = _databaseService.FindAll<BannedTextSetting>(BannedTextSetting.TableName).ToArray();
+            _timeoutSettingsCache = _databaseService.FindAll<BannedWordTimeoutSetting>(BannedWordTimeoutSetting.TableName).ToArray();
+            _excludeCache = _databaseService.FindAll<BannedExcludeWord>(BannedExcludeWord.TableName).ToArray();
+
+            _keywordRegexCache = _cache
+                .Where(x => !string.IsNullOrWhiteSpace(x.Word))
+                .ToDictionary(x => x.Word, x => new Regex(Regex.Escape(x.Word), RegexOptions.IgnoreCase | RegexOptions.Compiled), StringComparer.OrdinalIgnoreCase);
+
+            _excludeRegexCache = _excludeCache
+                .Where(x => !string.IsNullOrWhiteSpace(x.Word))
+                .ToDictionary(x => x.Word, x => new Regex(Regex.Escape(x.Word), RegexOptions.IgnoreCase | RegexOptions.Compiled), StringComparer.OrdinalIgnoreCase);
+
+            return Task.CompletedTask;
         }
     }
 }
