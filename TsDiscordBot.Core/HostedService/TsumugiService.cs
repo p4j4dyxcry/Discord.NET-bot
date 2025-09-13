@@ -107,14 +107,20 @@ namespace TsDiscordBot.Core.HostedService
                     var convertedFirst = new List<ConvertedMessage>();
                     foreach (var m in firstMessages)
                     {
-                        var c = await MessageData.FromIMessageAsync(m,_logger);
+                        var c = await MessageData.FromIMessageAsync(m, _logger);
                         convertedFirst.Add(ConvertMessageAsync(c));
                     }
+
                     _firstHistory[message.ChannelId] = convertedFirst.ToArray();
                 }
 
                 if (message.MentionTsumugi || message.Content.StartsWith("!つむぎ"))
                 {
+                    string progressContent = "つむぎが入力中";
+                    var progressMessage = await message.ReplyMessageAsync(progressContent);
+                    var progressTask = RunProgressAsync(progressMessage, progressContent, cts.Token);
+
+
                     var previousMessagesTasks = channel.GetCachedMessages(100)
                         .Where(m => m.Id != message.Id)
                         .Select(async x => await MessageData.FromIMessageAsync(x))
@@ -150,6 +156,9 @@ namespace TsDiscordBot.Core.HostedService
             catch (Exception e)
             {
                 _logger.LogError(e, "Failed to TsumugiService");
+            }
+            finally
+            {
                 await cts.CancelAsync();
             }
         }
