@@ -139,12 +139,12 @@ public class BannedMessageCheckerServiceTests
         public bool FromTsumugi => false;
         public bool MentionTsumugi => false;
         public string Content { get; set; } = string.Empty;
-        public bool IsReplay => false;
+        public bool IsReply => false;
         public bool FromAdmin => false;
         public string? AvatarUrl => null;
         public string AuthorMention { get; set; } = "@user";
         public string ChannelName { get; set; } = string.Empty;
-        public MessageData? ReplaySource => null;
+        public MessageData? ReplySource => null;
         public bool IsDeleted => DeleteCalled;
         public DateTimeOffset Timestamp => DateTimeOffset.Now;
         public List<AttachmentData> Attachments { get; } = new();

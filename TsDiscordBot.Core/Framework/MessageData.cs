@@ -6,20 +6,28 @@ using TsDiscordBot.Core.Utility;
 namespace TsDiscordBot.Core.Framework
 {
 
+/// <summary>
+/// Immutable representation of a Discord message with helper methods for
+/// replying, editing and managing attachments.
+/// </summary>
 public class MessageData : IMessageData
 {
     private ILogger? Logger = null;
 
     private const ulong _tsumugiId = 1315441123715579985;
+
+    /// <summary>
+    /// Creates a <see cref="MessageData"/> from an <see cref="IMessage"/>.
+    /// </summary>
     public static async Task<MessageData> FromIMessageAsync(IMessage message, ILogger? logger = null)
     {
-        MessageData? referencedMessage = null;
+        MessageData? repliedMessage = null;
         if (message.Reference?.MessageId.IsSpecified is true)
         {
             var refMessage = await message.Channel.GetMessageAsync(message.Reference.MessageId.Value);
             if (refMessage is not null)
             {
-                referencedMessage = await FromIMessageAsync(refMessage);
+                repliedMessage = await FromIMessageAsync(refMessage);
             }
         }
 
@@ -34,8 +42,8 @@ public class MessageData : IMessageData
             Content = message.Content,
             FromAdmin = (message.Author as SocketGuildUser)?.GuildPermissions.Administrator ?? false,
             FromTsumugi = message.Author.Id == _tsumugiId,
-            IsReplay = referencedMessage is not null,
-            ReplaySource = referencedMessage,
+            IsReply = repliedMessage is not null,
+            ReplySource = repliedMessage,
             IsBot = message.Author.IsBot,
             OriginalSocketMessage = message,
             ChannelName = message.Channel.Name,
@@ -55,13 +63,15 @@ public class MessageData : IMessageData
     public bool FromTsumugi { get; init; }
     public bool MentionTsumugi { get; init; }
     public string Content { get; init; } = string.Empty;
-    public bool IsReplay { get; init; }
+    /// <inheritdoc />
+    public bool IsReply { get; init; }
     public bool FromAdmin { get; init; }
     public string? AvatarUrl { get; init; }
     public DateTimeOffset Timestamp { get; init; }
     public string AuthorMention { get; init; } = string.Empty;
     public string ChannelName { get; init; } = string.Empty;
-    public MessageData? ReplaySource { get; private set; }
+    /// <inheritdoc />
+    public MessageData? ReplySource { get; private set; }
     public bool IsDeleted { get; private set; }
 
     public bool CheckedAttachmentIs => _attachments is not null;

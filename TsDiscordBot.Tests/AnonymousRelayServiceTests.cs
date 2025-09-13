@@ -82,12 +82,12 @@ public class AnonymousRelayServiceTests
         public bool FromTsumugi => false;
         public bool MentionTsumugi => false;
         public string Content { get; set; } = string.Empty;
-        public bool IsReplay => false;
+        public bool IsReply => false;
         public bool FromAdmin => false;
         public string? AvatarUrl { get; set; }
         public string AuthorMention => string.Empty;
         public string ChannelName => string.Empty;
-        public MessageData? ReplaySource => null;
+        public MessageData? ReplySource => null;
         public bool IsDeleted { get; private set; }
         public DateTimeOffset Timestamp => DateTimeOffset.Now;
         public List<AttachmentData> Attachments { get; } = new();

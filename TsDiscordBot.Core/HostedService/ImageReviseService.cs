@@ -91,13 +91,13 @@ namespace TsDiscordBot.Core.HostedService
                 if (message.IsBot)
                     return;
 
-                if (!message.IsReplay)
+                if (!message.IsReply)
                     return;
 
                 if (!message.Content.StartsWith("!revise "))
                     return;
 
-                var referenced = message.ReplaySource;
+                var referenced = message.ReplySource;
                 if (referenced is null)
                     return;
 
