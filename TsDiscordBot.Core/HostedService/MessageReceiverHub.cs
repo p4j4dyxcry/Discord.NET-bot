@@ -129,7 +129,15 @@ public class MessageReceiverHub : IHostedService, IMessageReceiver
                 {
                     foreach (var subscription in priority)
                     {
-                        await subscription.Event(data);
+                        try
+                        {
+                            await subscription.Event(data);
+                        }
+                        catch(Exception e)
+                        {
+                            _logger.LogError(e, $"An exception occured while processing message in {subscription.ServiceName}");
+                        }
+
                     }
                 }
             });
