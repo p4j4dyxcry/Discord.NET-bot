@@ -90,7 +90,7 @@ public class OverseaRelayService : IHostedService
             else
             {
                 username = DiscordUtility.GetAuthorNameFromMessage(message);
-                avatarUrl = DiscordUtility.GetAuthorNameFromMessage(message);
+                avatarUrl = DiscordUtility.GetAvatarUrlFromMessage(message);
             }
 
             List<Task> tasks =
