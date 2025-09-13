@@ -53,8 +53,8 @@ public class TriggerReactionService : IHostedService
             // Should be reduced calling, because the API is need to access the DB.
             if (timeSpan > QuerySpan)
             {
-                IEnumerable<TriggerReactionPost> collection = _databaseService
-                    .FindAll<TriggerReactionPost>(TriggerReactionPost.TableName);
+                IEnumerable<TriggerReactionPost> collection = await _databaseService
+                    .FindAllAsync<TriggerReactionPost>(TriggerReactionPost.TableName);
 
                 _cache = collection.ToArray();
                 _lastExecuteDate = DateTime.Now;
