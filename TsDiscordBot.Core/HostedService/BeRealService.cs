@@ -78,12 +78,12 @@ public class BeRealService : IHostedService
             }
 
             var guild = _client.GetGuild(message.GuildId);
-            var user = await _client.GetUserAsync(message.AuthorId);
+            var user = _client.GetGuild(message.GuildId)?.GetUser(message.AuthorId);
 
             var role = guild.GetRole(config.RoleId);
-            if (role is not null && user is SocketGuildUser guildUser)
+            if (role is not null && user is not null)
             {
-                await guildUser.AddRoleAsync(role);
+                await user.AddRoleAsync(role);
             }
 
             var existing = _databaseService

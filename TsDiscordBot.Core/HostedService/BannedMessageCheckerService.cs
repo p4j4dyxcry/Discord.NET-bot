@@ -3,12 +3,10 @@ using TsDiscordBot.Core.Framework;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
-using System.Net;
 using System.Text.RegularExpressions;
 using Discord.WebSocket;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Services;
-using TsDiscordBot.Core.Utility;
 
 namespace TsDiscordBot.Core.HostedService
 {
@@ -210,7 +208,10 @@ namespace TsDiscordBot.Core.HostedService
 
                         }
 
-                        await HandleBannedWordAsync(message, timeoutSetting);
+                        if (!message.FromAdmin)
+                        {
+                            await HandleBannedWordAsync(message, timeoutSetting);
+                        }
 
                         break; // 1件でもヒットしたら処理終了（重複削除防止）
                     }
