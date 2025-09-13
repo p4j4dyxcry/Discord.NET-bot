@@ -111,6 +111,11 @@ public class DatabaseService : IDisposable
         }
     }
 
+    public virtual Task<IEnumerable<T>> FindAllAsync<T>(string tableName)
+    {
+        return Task.Run(() => FindAll<T>(tableName));
+    }
+
     public void Dispose()
     {
         _litedb?.Dispose();
