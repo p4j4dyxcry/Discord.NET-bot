@@ -37,7 +37,7 @@ namespace TsDiscordBot.Core.HostedService
 
                 if (message.Content.StartsWith("なう(20"))
                 {
-                    await message.SendMessageAsync("なうあり！");
+                    await message.SendMessageAsyncOnChannel("なうあり！");
                 }
             }
             catch(Exception e)

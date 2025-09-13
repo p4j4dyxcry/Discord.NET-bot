@@ -119,7 +119,7 @@ public class OverseaRelayService : IHostedService
                     await semaphore.WaitAsync();
                     try
                     {
-                        var client = await _webHookService.GetOrCreateWebhookClientAsync(message.ChannelId,"oversea-relay");
+                        var client = await _webHookService.GetOrCreateWebhookClientAsync(target.ChannelId,"oversea-relay");
                         await client.RelayMessageAsync(message, message.Content,username,avatarUrl);
                     }
                     catch (Exception e)

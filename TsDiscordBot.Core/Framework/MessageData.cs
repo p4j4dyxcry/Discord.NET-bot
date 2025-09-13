@@ -37,6 +37,8 @@ public class MessageData : IMessageData
             OriginalSocketMessage = message,
             ChannelName = message.Channel.Name,
             AuthorMention = message.Author.Mention,
+            MentionTsumugi = message.MentionedUserIds.Contains(_tsumugiId),
+            Timestamp = message.Timestamp,
             Logger = logger
         };
     }
@@ -48,10 +50,12 @@ public class MessageData : IMessageData
     public ulong AuthorId { get; init; }
     public bool IsBot { get; init; }
     public bool FromTsumugi { get; init; }
+    public bool MentionTsumugi { get; init; }
     public string Content { get; init; } = string.Empty;
     public bool IsReplay { get; init; }
     public bool FromAdmin { get; init; }
     public string? AvatarUrl { get; init; }
+    public DateTimeOffset Timestamp { get; init; }
     public string AuthorMention { get; init; } = string.Empty;
     public string ChannelName { get; init; } = string.Empty;
     public MessageData? ReplaySource { get; private set; }
@@ -99,10 +103,15 @@ public class MessageData : IMessageData
 
     public Task<IMessageData?> ReplyMessageAsync(string message, string? filePath = null)
     {
+        if (IsDeleted)
+        {
+            return Task.FromResult<IMessageData?>(null);
+        }
+
         return SendMessageInternalAsync(message, Id, filePath);
     }
 
-    public Task<IMessageData?> SendMessageAsync(string message,string? filePath = null)
+    public Task<IMessageData?> SendMessageAsyncOnChannel(string message,string? filePath = null)
     {
         return SendMessageInternalAsync(message, null,filePath);
     }
@@ -138,11 +147,6 @@ public class MessageData : IMessageData
 
     private async Task<IMessageData?> SendMessageInternalAsync(string content, ulong? referenceMessageId, string? filePath = null)
     {
-        if (IsDeleted)
-        {
-            return null;
-        }
-
         if (OriginalSocketMessage is null)
         {
             return null;

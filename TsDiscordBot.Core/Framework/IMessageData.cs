@@ -10,6 +10,7 @@ public interface IMessageData
     public ulong AuthorId { get;  }
     public bool IsBot { get;  }
     public bool FromTsumugi { get;  }
+    public bool MentionTsumugi { get; }
     public string Content { get;  }
     public bool IsReplay { get;  }
     public bool FromAdmin { get;  }
@@ -18,10 +19,11 @@ public interface IMessageData
     public string ChannelName { get; }
     public MessageData? ReplaySource { get;  }
     public bool IsDeleted { get; }
+    public DateTimeOffset Timestamp { get; }
     public List<AttachmentData> Attachments { get; }
 
     public Task<bool> TryAddReactionAsync(string reaction);
-    public Task<IMessageData?> SendMessageAsync(string content, string? filePath = null);
+    public Task<IMessageData?> SendMessageAsyncOnChannel(string content, string? filePath = null);
     public Task<IMessageData?> ReplyMessageAsync(string content, string? filePath = null);
     public Task<IMessageData?> ModifyMessageAsync(Func<string, string> modify);
     public Task<bool> DeleteAsync();

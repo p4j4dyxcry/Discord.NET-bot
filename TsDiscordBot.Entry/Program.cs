@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TsDiscordBot.Core;
+using TsDiscordBot.Core.Framework;
 using TsDiscordBot.Core.HostedService;
 using TsDiscordBot.Core.Services;
 
@@ -43,7 +44,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
             };
             return OpenAIImageService.Create(opts);
         });
-        services.AddSingleton<WebHookService>();
+        services.AddSingleton<IWebHookService, WebHookService>();
 
         // Add hosted services
         services.AddHostedService<InteractionHandlingService>();

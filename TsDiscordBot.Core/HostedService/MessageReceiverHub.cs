@@ -8,9 +8,7 @@ using TsDiscordBot.Core.Framework;
 
 namespace TsDiscordBot.Core.HostedService;
 
-
-
-public class MessageReceiverHub : IHostedService
+public class MessageReceiverHub : IHostedService, IMessageReceiver
 {
     private readonly DiscordSocketClient _discord;
     private readonly ILogger<MessageReceiverHub> _logger;
@@ -32,7 +30,7 @@ public class MessageReceiverHub : IHostedService
     private readonly ConcurrentDictionary<ServicePriority, List<ServiceRegistration>> ReceivedServiceList = new();
     private readonly ConcurrentDictionary<ServicePriority, List<ServiceRegistration>> EditedServiceList = new();
 
-    public IDisposable OnReceivedSubscribe(Func<MessageData, Task> onMessageReceived, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
+    public IDisposable OnReceivedSubscribe(Func<IMessageData, Task> onMessageReceived, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
     {
         if (!ReceivedServiceList.ContainsKey(priority))
         {
@@ -47,7 +45,7 @@ public class MessageReceiverHub : IHostedService
         });
     }
 
-    public IDisposable OnEditedSubscribe(Func<MessageData, Task> onMessageReceived, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
+    public IDisposable OnEditedSubscribe(Func<IMessageData, Task> onMessageReceived, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
     {
         if (!EditedServiceList.ContainsKey(priority))
         {

@@ -3,6 +3,7 @@ using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Data;
+using TsDiscordBot.Core.Framework;
 using TsDiscordBot.Core.Services;
 using TsDiscordBot.Core.Utility;
 
@@ -43,8 +44,13 @@ public class AutoMessageService : BackgroundService
 
                         if (channel is not null)
                         {
-                            var previousMessages = (await channel.GetMessagesAsync(20).FlattenAsync())
-                                .Select(DiscordToOpenAIMessageConverter.ConvertFromDiscord)
+                            var previousMessagesTasks = (await channel.GetMessagesAsync(20).FlattenAsync())
+                                .Select(async x=> await MessageData.FromIMessageAsync(x))
+                                .Select(async x => DiscordToOpenAIMessageConverter.ConvertFromDiscord(await x));
+
+                            var previousMessages = await Task.WhenAll(previousMessagesTasks);
+
+                            previousMessages = previousMessages
                                 .OrderBy(x => x.Date)
                                 .Where(x=>!x.FromTsumugi)
                                 .Where(x=>!x.FromSystem)

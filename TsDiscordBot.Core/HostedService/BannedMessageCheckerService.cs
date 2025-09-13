@@ -48,7 +48,7 @@ namespace TsDiscordBot.Core.HostedService
         public Task StartAsync(CancellationToken cancellationToken)
         {
             _subscription1 = _client.OnReceivedSubscribe(CheckMessageAsync,nameof(BannedMessageCheckerService),ServicePriority.Urgent);
-            _subscription2 = _client.OnReceivedSubscribe(CheckMessageAsync,nameof(BannedMessageCheckerService),ServicePriority.Urgent);
+            _subscription2 = _client.OnEditedSubscribe(CheckMessageAsync,nameof(BannedMessageCheckerService),ServicePriority.Urgent);
             return Task.CompletedTask;
         }
 
@@ -87,7 +87,7 @@ namespace TsDiscordBot.Core.HostedService
 
                 if (shouldTimeout)
                 {
-                    var user = await _discordSocketClient.GetUserAsync(messageData.AuthorId) as SocketGuildUser;
+                    var user = _discordSocketClient.GetGuild(messageData.GuildId)?.GetUser(messageData.AuthorId);
 
                     if (user is null)
                     {
@@ -101,7 +101,7 @@ namespace TsDiscordBot.Core.HostedService
 
                         try
                         {
-                            await messageData.SendMessageAsync($"{messageData.AuthorMention} さんは不適切な発言が多いため一旦タイムアウトさせてもらったね！");
+                            await messageData.SendMessageAsyncOnChannel($"{messageData.AuthorMention} さんは不適切な発言が多いため一旦タイムアウトさせてもらったね！");
                         }
                         catch (Exception ex)
                         {
@@ -185,7 +185,7 @@ namespace TsDiscordBot.Core.HostedService
 
                             try
                             {
-                                await message.SendMessageAsync($"🔞 {message.AuthorMention} さん、不適切な発言が検出されたためメッセージを削除しました。");
+                                await message.SendMessageAsyncOnChannel($"🔞 {message.AuthorMention} さん、不適切な発言が検出されたためメッセージを削除しました。");
                             }
                             catch (Exception dmEx)
                             {

@@ -74,7 +74,7 @@ public class BeRealService : IHostedService
             if (feedMessageId is { } id)
             {
                 var link = $"https://discord.com/channels/{message.GuildId}/{message.ChannelId}/{id}";
-                await message.SendMessageAsync($"{message.AuthorName}さんがBeRealに画像を投稿したよ！{link}");
+                await message.SendMessageAsyncOnChannel($"{message.AuthorName}さんがBeRealに画像を投稿したよ！{link}");
             }
 
             var guild = _client.GetGuild(message.GuildId);
