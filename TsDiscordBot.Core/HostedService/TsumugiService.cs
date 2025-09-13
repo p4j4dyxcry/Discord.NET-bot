@@ -40,6 +40,40 @@ namespace TsDiscordBot.Core.HostedService
             return Task.CompletedTask;
         }
 
+        private Task RunProgressAsync(IMessageData? progressMessage,string original, CancellationToken token)
+        {
+            if (progressMessage is null)
+            {
+                return Task.CompletedTask;
+            }
+
+            string[] dotAnimation = new[]
+            {
+                ".",
+                "..",
+                "..."
+            };
+
+            return Task.Run(async () =>
+            {
+                int i = 0;
+                while (!token.IsCancellationRequested)
+                {
+                    await progressMessage.ModifyMessageAsync(msg => $"{original}{dotAnimation[i++ % dotAnimation.Length]}");
+                    try
+                    {
+                        await Task.Delay(300, token);
+                    }
+                    catch (TaskCanceledException)
+                    {
+                        break;
+                    }
+                }
+
+                await progressMessage.DeleteAsync();
+            }, token);
+        }
+
         private async Task OnMessageReceivedAsync(IMessageData message)
         {
             if (message.IsDeleted || message.IsBot)
@@ -52,8 +86,13 @@ namespace TsDiscordBot.Core.HostedService
                 return;
             }
 
+            using CancellationTokenSource cts = new();
             try
             {
+                string progressContent = "つむぎが入力中";
+                var progressMessage = await message.ReplyMessageAsync(progressContent);
+                var progressTask = RunProgressAsync(progressMessage,progressContent,cts.Token);
+
                 var channel = await _discordSocketClient.GetChannelAsync(message.ChannelId) as ISocketMessageChannel;
 
                 if (channel is null)
@@ -94,12 +133,24 @@ namespace TsDiscordBot.Core.HostedService
 
                     string result = await _openAiService.GetResponse(message.GuildId, null, previousMessages);
 
-                    await message.SendMessageAsyncOnChannel(result);
+                    var sendMessageTask = message.ReplyMessageAsync(result);
+                    try
+                    {
+                        await cts.CancelAsync();
+                        await progressTask;
+                    }
+                    catch(Exception e)
+                    {
+                        _logger.LogWarning(e,"Failed");
+                    }
+
+                    await sendMessageTask;
                 }
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Failed to Nauari");
+                _logger.LogError(e, "Failed to TsumugiService");
+                await cts.CancelAsync();
             }
         }
 
