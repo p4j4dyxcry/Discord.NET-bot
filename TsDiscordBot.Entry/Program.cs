@@ -8,6 +8,7 @@ using TsDiscordBot.Core;
 using TsDiscordBot.Core.Framework;
 using TsDiscordBot.Core.HostedService;
 using TsDiscordBot.Core.Services;
+using TsDiscordBot.Core.Amuse;
 
 // logging
 Envs.LogEnvironmentVariables();
@@ -49,6 +50,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddSingleton<MessageReceiverHub>();
         services.AddSingleton<IMessageReceiver>(sp => sp.GetRequiredService<MessageReceiverHub>());
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<MessageReceiverHub>());
+        services.AddSingleton<IAmuseCommandParser, AmuseCommandParser>();
         // Add hosted services
         services.AddHostedService<InteractionHandlingService>();
         services.AddHostedService<DiscordStartupService>();
@@ -64,6 +66,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<ImageReviseService>();
         services.AddHostedService<AutoDeleteService>();
         services.AddHostedService<BeRealService>();
+        services.AddHostedService<AmuseMessageService>();
         services.AddHostedService<InviteTrackingService>();
     })
     .Build();
