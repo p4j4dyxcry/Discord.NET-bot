@@ -105,7 +105,7 @@ public class GameBackgroundService(DiscordSocketClient client, ILogger<GameBackg
                 return;
             }
 
-            await component.DeferAsync();
+            // await component.DeferAsync();
 
             var game = session.Game;
 
