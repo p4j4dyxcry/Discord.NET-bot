@@ -78,7 +78,7 @@ public class GameBackgroundService(DiscordSocketClient client, ILogger<GameBackg
     {
         try
         {
-            if (!component.Data.CustomId.StartsWith("bj_"))
+            if (!component.Data.CustomId.StartsWith("empty_bj_"))
             {
                 return;
             }
@@ -105,7 +105,7 @@ public class GameBackgroundService(DiscordSocketClient client, ILogger<GameBackg
                 return;
             }
 
-            // await component.DeferAsync();
+            await component.DeferAsync();
 
             var game = session.Game;
 
