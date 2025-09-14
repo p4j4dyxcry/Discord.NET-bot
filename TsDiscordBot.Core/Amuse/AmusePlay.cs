@@ -11,5 +11,7 @@ public class AmusePlay
     public DateTime CreatedAtUtc { get; set; }
     public string GameKind { get; set; } = string.Empty;
     public ulong MessageId { get; set; }
+    public ulong ChannelId { get; set; }
+    public int Bet { get; set; }
 }
 
