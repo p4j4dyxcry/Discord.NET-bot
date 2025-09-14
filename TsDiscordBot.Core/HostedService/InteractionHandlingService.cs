@@ -56,6 +56,12 @@ public class InteractionHandlingService : IHostedService
     {
         try
         {
+            if (interaction is SocketMessageComponent smc &&
+                smc.Data?.CustomId?.StartsWith("empty_") == true)
+            {
+                return;
+            }
+
             var context = new SocketInteractionContext(_discord, interaction);
             var result = await _interactions.ExecuteCommandAsync(context, _services);
 

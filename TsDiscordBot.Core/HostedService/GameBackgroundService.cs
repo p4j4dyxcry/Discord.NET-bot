@@ -111,13 +111,13 @@ public class GameBackgroundService(DiscordSocketClient client, ILogger<GameBackg
 
             switch (parts[0])
             {
-                case "bj_hit":
+                case "empty_bj_hit":
                     game.Hit();
                     break;
-                case "bj_stand":
+                case "empty_bj_stand":
                     game.Stand();
                     break;
-                case "bj_double":
+                case "empty_bj_double":
                     if (!game.DoubleDowned && game.PlayerCards.Count == 2)
                     {
                         var cash = _databaseService
@@ -200,35 +200,35 @@ public class GameBackgroundService(DiscordSocketClient client, ILogger<GameBackg
             : $"{FormatCard(game.DealerVisibleCard)} ??";
         var dealerScore = revealDealer
             ? BlackJackGame.CalculateScore(game.DealerCards).ToString()
-            : "?";
+            : BlackJackGame.CalculateScore([game.DealerCards[0]]).ToString();
 
         var playerCards = string.Join(" ", game.PlayerCards.Select(FormatCard));
         var playerScore = BlackJackGame.CalculateScore(game.PlayerCards);
 
         var builder = new System.Text.StringBuilder();
-        builder.AppendLine($"<@{play.UserId}> bet {play.Bet} to play blackjack");
-        builder.AppendLine($"Dealer [{dealerScore}]: {dealerCards}");
-        builder.AppendLine($"Player [{playerScore}]: {playerCards}");
+        builder.AppendLine($"<@{play.UserId}> が {play.Bet} がベットしました！");
+        builder.AppendLine($"つむぎ [{dealerScore}]: {dealerCards}");
+        builder.AppendLine($"あなた [{playerScore}]: {playerCards}");
 
         if (game.IsFinished && game.Result is not null)
         {
             var outcome = game.Result.Outcome switch
             {
-                GameOutcome.PlayerWin => "勝ち",
-                GameOutcome.DealerWin => "負け",
+                GameOutcome.PlayerWin => "勝利",
+                GameOutcome.DealerWin => "敗北",
                 _ => "引き分け"
             };
-            builder.AppendLine($"結果: {outcome}");
+            builder.AppendLine($"結果: {outcome}！ {game.Result.Payout}GAL円ゲット！");
         }
 
         var components = new ComponentBuilder();
         if (!game.IsFinished)
         {
-            components.WithButton("ヒット", $"bj_hit:{play.MessageId}", ButtonStyle.Primary);
-            components.WithButton("スタンド", $"bj_stand:{play.MessageId}", ButtonStyle.Secondary);
+            components.WithButton("ヒット", $"empty_bj_hit:{play.MessageId}", ButtonStyle.Primary);
+            components.WithButton("スタンド", $"empty_bj_stand:{play.MessageId}", ButtonStyle.Secondary);
             if (!game.DoubleDowned && game.PlayerCards.Count == 2)
             {
-                components.WithButton("ダブルダウン", $"bj_double:{play.MessageId}", ButtonStyle.Danger);
+                components.WithButton("ダブルダウン", $"empty_bj_double:{play.MessageId}", ButtonStyle.Danger);
             }
         }
 
