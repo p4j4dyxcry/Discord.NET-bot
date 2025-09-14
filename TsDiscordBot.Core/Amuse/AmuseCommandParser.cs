@@ -33,6 +33,16 @@ public class AmuseCommandParser : IAmuseCommandParser
                 return new PlayBlackJackService(bet, _databaseService);
             }
 
+            if (parts[1].Equals("dice", StringComparison.OrdinalIgnoreCase))
+            {
+                int bet = 0;
+                if (parts.Length >= 3 && int.TryParse(parts[2], out var parsed))
+                {
+                    bet = parsed;
+                }
+                return new PlayDiceService(bet, _databaseService);
+            }
+
             if (parts[1].Equals("cash", StringComparison.OrdinalIgnoreCase) ||
                 parts[1].Equals("money", StringComparison.OrdinalIgnoreCase))
             {
