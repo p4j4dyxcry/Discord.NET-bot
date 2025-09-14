@@ -30,7 +30,7 @@ public class AmuseCommandParser : IAmuseCommandParser
                 {
                     bet = parsed;
                 }
-                return new PlayBlackJackService(bet);
+                return new PlayBlackJackService(bet, _databaseService);
             }
 
             if (parts[1].Equals("cash", StringComparison.OrdinalIgnoreCase) ||
