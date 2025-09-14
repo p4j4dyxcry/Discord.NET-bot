@@ -46,7 +46,7 @@ public class GameBackgroundService(DiscordSocketClient client, ILogger<GameBackg
 
     private async Task ProcessBlackJackGames(AmusePlay[] amusePlays)
     {
-        foreach (var play in amusePlays.Where(x=>x.GameKind == "BJ"))
+        foreach (var play in amusePlays.Where(x => x.GameKind == "BJ" && !x.Started))
         {
             if (_games.ContainsKey(play.MessageId))
             {
@@ -63,13 +63,10 @@ public class GameBackgroundService(DiscordSocketClient client, ILogger<GameBackg
                 continue;
             }
 
-            if (userMessage.Content != "ブラックジャックのゲームを開始します。")
-            {
-                continue;
-            }
-
             var game = new BlackJackGame(play.Bet);
             _games[play.MessageId] = new GameSession(play, game);
+            play.Started = true;
+            _databaseService.Update(AmusePlay.TableName, play);
             await UpdateMessageAsync(userMessage, game, play, false);
         }
     }

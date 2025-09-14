@@ -13,5 +13,6 @@ public class AmusePlay
     public ulong MessageId { get; set; }
     public ulong ChannelId { get; set; }
     public int Bet { get; set; }
+    public bool Started { get; set; }
 }
 
