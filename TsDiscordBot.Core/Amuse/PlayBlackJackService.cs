@@ -8,6 +8,7 @@ namespace TsDiscordBot.Core.Amuse;
 
 public class PlayBlackJackService : IAmuseService
 {
+    private const string GameKind = "BJ";
     private readonly int _bet;
     private readonly DatabaseService _databaseService;
 
@@ -17,8 +18,31 @@ public class PlayBlackJackService : IAmuseService
         _databaseService = databaseService;
     }
 
-    public Task ExecuteAsync(IMessageData message)
+    public async Task ExecuteAsync(IMessageData message)
     {
+        var existing = _databaseService
+            .FindAll<AmusePlay>(AmusePlay.TableName)
+            .FirstOrDefault(x => x.UserId == message.AuthorId && x.GameKind == GameKind);
+
+        if (existing is not null)
+        {
+            var elapsed = DateTime.UtcNow - existing.CreatedAtUtc;
+            if (elapsed < TimeSpan.FromMinutes(5))
+            {
+                await message.ReplyMessageAsync("現在ブラックジャックをプレイ中です。5分後に再試行してください。");
+                return;
+            }
+
+            _databaseService.Delete(AmusePlay.TableName, existing.Id);
+        }
+
+        var play = new AmusePlay
+        {
+            UserId = message.AuthorId,
+            CreatedAtUtc = DateTime.UtcNow,
+            GameKind = GameKind
+        };
+        _databaseService.Insert(AmusePlay.TableName, play);
         // Load or create cash record
         var cash = _databaseService
             .FindAll<AmuseCash>(AmuseCash.TableName)
@@ -109,6 +133,16 @@ public class PlayBlackJackService : IAmuseService
                           $"ディーラーの手札: {dealerCards} (計{dealerScore})\n" +
                           $"結果: {outcome}\n現在の所持金: {finalCash}GAL円";
 
-        return message.ReplyMessageAsync(messageText);
+        var reply = await message.ReplyMessageAsync(messageText);
+
+        if (reply is not null)
+        {
+            play.MessageId = reply.Id;
+            _databaseService.Update(AmusePlay.TableName, play);
+        }
+
+        _databaseService.Delete(AmusePlay.TableName, play.Id);
+
+        return;
     }
 }
