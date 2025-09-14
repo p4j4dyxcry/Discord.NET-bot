@@ -76,7 +76,8 @@ public class PlayBlackJackService(int bet, DatabaseService databaseService) : IA
             CreatedAtUtc = DateTime.UtcNow,
             GameKind = GameKind,
             ChannelId = message.ChannelId,
-            Bet = bet
+            Bet = bet,
+            Started = false
         };
         _databaseService.Insert(AmusePlay.TableName, play);
 
