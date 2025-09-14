@@ -203,9 +203,10 @@ public class GameBackgroundService(DiscordSocketClient client, ILogger<GameBackg
         var playerScore = BlackJackGame.CalculateScore(game.PlayerCards);
 
         var builder = new System.Text.StringBuilder();
-        builder.AppendLine($"<@{play.UserId}> が {play.Bet} がベットしました！");
-        builder.AppendLine($"つむぎ [{dealerScore}]: {dealerCards}");
-        builder.AppendLine($"あなた [{playerScore}]: {playerCards}");
+        builder.AppendLine($"<@{play.UserId}> さん、");
+        builder.AppendLine($"{play.Bet}GAL円 賭けて勝負だよ！！");
+        builder.AppendLine($"- つむぎ [{dealerScore}]: {dealerCards}");
+        builder.AppendLine($"- あなた [{playerScore}]: {playerCards}");
 
         if (game.IsFinished && game.Result is not null)
         {
@@ -215,7 +216,12 @@ public class GameBackgroundService(DiscordSocketClient client, ILogger<GameBackg
                 GameOutcome.DealerWin => "敗北",
                 _ => "引き分け"
             };
-            builder.AppendLine($"結果: {outcome}！ {game.Result.Payout}GAL円ゲット！");
+            builder.AppendLine($"結果: {outcome}！");
+
+            if (game.Result.Outcome == GameOutcome.PlayerWin)
+            {
+                builder.AppendLine($"{game.Result.Payout}GAL円ゲット！");
+            }
         }
 
         var components = new ComponentBuilder();
