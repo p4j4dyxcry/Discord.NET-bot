@@ -53,6 +53,16 @@ public class AmuseCommandParser : IAmuseCommandParser
             {
                 return new DailyBonusService(_databaseService);
             }
+
+            if (parts[1].Equals("top", StringComparison.OrdinalIgnoreCase))
+            {
+                return new ShowTopCashService(_databaseService);
+            }
+
+            if (parts[1].Equals("rank", StringComparison.OrdinalIgnoreCase))
+            {
+                return new ShowRankService(_databaseService);
+            }
         }
 
         return null;
