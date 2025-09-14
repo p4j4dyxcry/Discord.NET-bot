@@ -31,7 +31,7 @@ public class ShowTopCashService : IAmuseService
         for (var i = 0; i < topUsers.Length; i++)
         {
             var rank = i + 1;
-            sb.AppendLine($"{rank}. <@{topUsers[i].UserId}>さん　{topUsers[i].Cash}GAL円");
+            sb.AppendLine($"{rank}. <@{topUsers[i].UserId}>　{topUsers[i].Cash}GAL円");
         }
 
         return message.ReplyMessageAsync(sb.ToString().TrimEnd());

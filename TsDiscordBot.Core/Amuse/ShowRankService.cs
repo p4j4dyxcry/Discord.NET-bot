@@ -36,33 +36,26 @@ public class ShowRankService : IAmuseService
         var sb = new StringBuilder();
 
         var top = users[0];
-        var topLine = $"1. <@{top.UserId}>さん　{top.Cash}GAL円　←１位";
-        if (index == 0)
-        {
-            topLine += " ←あなた";
-        }
-        else if (index == 1)
-        {
-            topLine += " ←あなたの1個上";
-        }
+        var topLine = $"1. <@{top.UserId}>　{top.Cash}GAL円";
+
         sb.AppendLine(topLine);
 
         if (index > 1)
         {
             var above = users[index - 1];
-            sb.AppendLine($"{rank - 1}. <@{above.UserId}>さん　{above.Cash}GAL円　←あなたの1個上");
+            sb.AppendLine($"{rank - 1}. <@{above.UserId}>　{above.Cash}GAL円");
         }
 
         if (index > 0)
         {
             var self = users[index];
-            sb.AppendLine($"{rank}. <@{self.UserId}>さん　{self.Cash}GAL円　←あなた");
+            sb.AppendLine($"{rank}. <@{self.UserId}>　{self.Cash}GAL円");
         }
 
         if (index < users.Length - 1)
         {
             var below = users[index + 1];
-            sb.AppendLine($"{rank + 1}. <@{below.UserId}>さん　{below.Cash}GAL円　←あなたの1個下");
+            sb.AppendLine($"{rank + 1}. <@{below.UserId}>　{below.Cash}GAL円");
         }
 
         return message.ReplyMessageAsync(sb.ToString().TrimEnd());
