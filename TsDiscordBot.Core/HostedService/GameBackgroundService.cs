@@ -9,10 +9,10 @@ using TsDiscordBot.Core.Services;
 
 namespace TsDiscordBot.Core.HostedService;
 
-public class BlackJackGameService(DiscordSocketClient client, ILogger<BlackJackGameService> logger, DatabaseService databaseService) : BackgroundService
+public class GameBackgroundService(DiscordSocketClient client, ILogger<GameBackgroundService> logger, DatabaseService databaseService) : BackgroundService
 {
     private readonly DiscordSocketClient _client = client;
-    private readonly ILogger<BlackJackGameService> _logger = logger;
+    private readonly ILogger<GameBackgroundService> _logger = logger;
     private readonly DatabaseService _databaseService = databaseService;
     private readonly ConcurrentDictionary<ulong, GameSession> _games = new();
 
@@ -28,45 +28,50 @@ public class BlackJackGameService(DiscordSocketClient client, ILogger<BlackJackG
             {
                 var plays = _databaseService
                     .FindAll<AmusePlay>(AmusePlay.TableName)
-                    .Where(x => x.GameKind == "BJ" && x.MessageId != 0)
                     .ToArray();
 
-                foreach (var play in plays)
-                {
-                    if (_games.ContainsKey(play.MessageId))
-                    {
-                        continue;
-                    }
+                await ProcessBlackJackGames(plays);
 
-                    if (_client.GetChannel(play.ChannelId) is not IMessageChannel channel)
-                    {
-                        continue;
-                    }
-
-                    if (await channel.GetMessageAsync(play.MessageId) is not IUserMessage userMessage)
-                    {
-                        continue;
-                    }
-
-                    if (userMessage.Content != "ブラックジャックのゲームを開始します。")
-                    {
-                        continue;
-                    }
-
-                    var game = new BlackJackGame(play.Bet);
-                    _games[play.MessageId] = new GameSession(play, game);
-                    await UpdateMessageAsync(userMessage, game, play, false);
-                }
             }
             catch (Exception e)
             {
                 _logger.LogError(e, "Failed to start blackjack game");
             }
 
-            await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
         }
 
         _client.ButtonExecuted -= OnButtonExecuted;
+    }
+
+    private async Task ProcessBlackJackGames(AmusePlay[] amusePlays)
+    {
+        foreach (var play in amusePlays.Where(x=>x.GameKind == "BJ"))
+        {
+            if (_games.ContainsKey(play.MessageId))
+            {
+                continue;
+            }
+
+            if (_client.GetChannel(play.ChannelId) is not IMessageChannel channel)
+            {
+                continue;
+            }
+
+            if (await channel.GetMessageAsync(play.MessageId) is not IUserMessage userMessage)
+            {
+                continue;
+            }
+
+            if (userMessage.Content != "ブラックジャックのゲームを開始します。")
+            {
+                continue;
+            }
+
+            var game = new BlackJackGame(play.Bet);
+            _games[play.MessageId] = new GameSession(play, game);
+            await UpdateMessageAsync(userMessage, game, play, false);
+        }
     }
 
     private async Task OnButtonExecuted(SocketMessageComponent component)
@@ -97,7 +102,6 @@ public class BlackJackGameService(DiscordSocketClient client, ILogger<BlackJackG
 
             if (component.User.Id != session.Play.UserId)
             {
-                await component.RespondAsync("このゲームは他のユーザーのものです。", ephemeral: true);
                 return;
             }
 
