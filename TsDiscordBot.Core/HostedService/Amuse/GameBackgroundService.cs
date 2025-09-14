@@ -23,7 +23,7 @@ public class GameBackgroundService : BackgroundService
         _amuseBackgroundLogics =
         [
             new BlackJackBackgroundLogic(databaseService,logger,client),
-            new DiceBackgroundLogic(databaseService,logger,client)
+            new DiceBackgroundLogic(databaseService,client)
         ];
     }
 

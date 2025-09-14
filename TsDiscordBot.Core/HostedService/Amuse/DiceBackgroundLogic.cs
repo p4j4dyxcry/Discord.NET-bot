@@ -12,14 +12,12 @@ namespace TsDiscordBot.Core.HostedService.Amuse
     {
         private readonly ConcurrentDictionary<ulong, DiceSession> _diceGames = new();
         private readonly DatabaseService _databaseService;
-        private readonly ILogger _logger;
         private readonly DiscordSocketClient _client;
         private record DiceSession(AmusePlay Play, DiceGame Game, int Step, DateTime LastUpdate);
 
-        public DiceBackgroundLogic(DatabaseService databaseService, ILogger logger, DiscordSocketClient client)
+        public DiceBackgroundLogic(DatabaseService databaseService, DiscordSocketClient client)
         {
             _databaseService = databaseService;
-            _logger = logger;
             _client = client;
         }
 
