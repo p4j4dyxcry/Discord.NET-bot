@@ -9,6 +9,7 @@ using TsDiscordBot.Core.Framework;
 using TsDiscordBot.Core.HostedService;
 using TsDiscordBot.Core.Services;
 using TsDiscordBot.Core.Amuse;
+using TsDiscordBot.Core.HostedService.Amuse;
 
 // logging
 Envs.LogEnvironmentVariables();
