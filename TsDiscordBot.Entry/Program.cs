@@ -67,6 +67,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<AutoDeleteService>();
         services.AddHostedService<BeRealService>();
         services.AddHostedService<AmuseMessageService>();
+        services.AddHostedService<BlackJackGameService>();
         services.AddHostedService<InviteTrackingService>();
     })
     .Build();
