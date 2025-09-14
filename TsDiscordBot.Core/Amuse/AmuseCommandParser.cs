@@ -38,6 +38,11 @@ public class AmuseCommandParser : IAmuseCommandParser
             {
                 return new ShowCashService(_databaseService);
             }
+
+            if (parts[1].Equals("daily", StringComparison.OrdinalIgnoreCase))
+            {
+                return new DailyBonusService(_databaseService);
+            }
         }
 
         return null;
