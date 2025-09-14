@@ -64,6 +64,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<ImageReviseService>();
         services.AddHostedService<AutoDeleteService>();
         services.AddHostedService<BeRealService>();
+        services.AddHostedService<InviteTrackingService>();
     })
     .Build();
 
