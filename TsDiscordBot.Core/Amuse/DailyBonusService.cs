@@ -54,7 +54,7 @@ public class DailyBonusService : IAmuseService
             _databaseService.Update(AmuseCash.TableName, cash);
         }
 
-        return message.ReplyMessageAsync($"{message.AuthorMention}さんにデイリーボーナス{BonusAmount}GALを付与したよ！");
+        return message.ReplyMessageAsync($"{message.AuthorMention}さん、今日もきてくれてありがとう！はい{BonusAmount}GAL円だよ～！");
     }
 }
 
