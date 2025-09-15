@@ -127,7 +127,7 @@ namespace TsDiscordBot.Core.HostedService.Amuse
             }
         }
 
-        private static async Task UpdateMessageAsync(IUserMessage message, BlackJackGame game, AmusePlay play, bool revealDealer)
+        private async Task UpdateMessageAsync(IUserMessage message, BlackJackGame game, AmusePlay play, bool revealDealer)
         {
             var dealerCards = revealDealer
                 ? string.Join(" ", game.DealerCards.Select(FormatCard))
@@ -168,7 +168,13 @@ namespace TsDiscordBot.Core.HostedService.Amuse
                 components.WithButton("スタンド", $"empty_bj_stand:{play.MessageId}", ButtonStyle.Secondary);
                 if (!game.DoubleDowned && game.PlayerCards.Count == 2)
                 {
-                    components.WithButton("ダブルダウン", $"empty_bj_double:{play.MessageId}", ButtonStyle.Danger);
+                    var cash = _databaseService
+                        .FindAll<AmuseCash>(AmuseCash.TableName)
+                        .FirstOrDefault(x => x.UserId == play.UserId);
+                    if (cash is not null && cash.Cash >= play.Bet)
+                    {
+                        components.WithButton("ダブルダウン", $"empty_bj_double:{play.MessageId}", ButtonStyle.Danger);
+                    }
                 }
             }
 
