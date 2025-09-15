@@ -53,7 +53,6 @@ public abstract class PlayGameServiceBase(int bet, DatabaseService databaseServi
         if (currentCash <= 0)
         {
             bet = 100;
-            currentCash -= bet;
         }
         else
         {
@@ -69,39 +68,24 @@ public abstract class PlayGameServiceBase(int bet, DatabaseService databaseServi
             {
                 bet = (int)currentCash;
             }
-
-            currentCash -= bet;
         }
 
-        cash.Cash = currentCash;
-        cash.LastUpdatedAtUtc = DateTime.UtcNow;
-        DatabaseService.Update(AmuseCash.TableName, cash);
-
-        var play = new AmusePlay
-        {
-            UserId = message.AuthorId,
-            CreatedAtUtc = DateTime.UtcNow,
-            GameKind = GameKind,
-            ChannelId = message.ChannelId,
-            Bet = bet,
-            Started = false
-        };
-        DatabaseService.Insert(AmusePlay.TableName, play);
 
         var reply = await message.ReplyMessageAsync(StartMessage);
 
         if (reply is not null)
         {
-            play.MessageId = reply.Id;
-            DatabaseService.Update(AmusePlay.TableName, play);
-        }
-        else
-        {
-            // If the start message could not be sent, refund the bet and remove the play
-            cash.Cash += bet;
-            cash.LastUpdatedAtUtc = DateTime.UtcNow;
-            DatabaseService.Update(AmuseCash.TableName, cash);
-            DatabaseService.Delete(AmusePlay.TableName, play.Id);
+            var play = new AmusePlay
+            {
+                UserId = message.AuthorId,
+                CreatedAtUtc = DateTime.UtcNow,
+                GameKind = GameKind,
+                ChannelId = message.ChannelId,
+                Bet = bet,
+                MessageId = reply.Id,
+                Started = false
+            };
+            DatabaseService.Insert(AmusePlay.TableName, play);
         }
     }
 }

@@ -80,20 +80,21 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
                 {
                     if (result.MaxReached)
                     {
-                        await ShowResultAsync(userMessage, session.Play, previous, result.DrawnCard, true, false, session.Game.Streak, session.Game.CalculatePayout());
+                        await ShowResultAsync(userMessage, session.Play, previous, result.DrawnCard, true, false, session.Game.Streak, true, session.Game.CalculatePayout(), session.Game.CalculateNextStreakPayout());
                         FinalizeWin(session);
                     }
                     else
                     {
-                        await ShowResultAsync(userMessage, session.Play, previous, result.DrawnCard, true, true, session.Game.Streak);
+                        await ShowResultAsync(userMessage, session.Play, previous, result.DrawnCard, true, true, session.Game.Streak, false, session.Game.CalculatePayout(), session.Game.CalculateNextStreakPayout());
                         _sessions[messageId] = session with { State = SessionState.Decision };
                     }
                 }
                 else
                 {
-                    await ShowResultAsync(userMessage, session.Play, previous, result.DrawnCard, false, false, session.Game.Streak);
+                    await ShowResultAsync(userMessage, session.Play, previous, result.DrawnCard, false, false, session.Game.Streak, false, session.Game.CalculatePayout(), session.Game.CalculateNextStreakPayout());
                     FinalizeLoss(session);
                 }
+
                 break;
             case "empty_hl_continue":
                 if (session.State != SessionState.Decision)
@@ -145,6 +146,15 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
             _sessions[play.MessageId] = new HighLowSession(play, game, SessionState.Guess);
             play.Started = true;
             _databaseService.Update(AmusePlay.TableName, play);
+
+            var cash = _databaseService
+                .FindAll<AmuseCash>(AmuseCash.TableName)
+                .First(x => x.UserId == play.UserId);
+
+            cash.Cash -= play.Bet;
+            cash.LastUpdatedAtUtc = DateTime.UtcNow;
+            _databaseService.Update(AmuseCash.TableName, cash);
+
             await ShowGuessAsync(userMessage, play, game);
         }
     }
@@ -153,7 +163,7 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
     {
         var builder = new System.Text.StringBuilder();
         builder.AppendLine($"<@{play.UserId}> さん、");
-        builder.AppendLine($"{play.Bet}GAL円 賭けて勝負だよ！！");
+        builder.AppendLine($"{game.CalculateNextStreakPayout()}GAL円 賭けて勝負だよ！！");
         builder.AppendLine($"現在のカード: {FormatCard(game.CurrentCard)}");
         builder.AppendLine($"現在の連勝数: {game.Streak}");
         builder.AppendLine("次のカードはハイ？ロー？");
@@ -169,11 +179,10 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
         });
     }
 
-    private async Task ShowResultAsync(IUserMessage message, AmusePlay play, Card previous, Card drawn, bool correct, bool allowContinue, int streak, int? payout = null)
+    private async Task ShowResultAsync(IUserMessage message, AmusePlay play, Card previous, Card drawn, bool correct, bool allowContinue, int streak, bool isPayout, int currentPayout, int nextPayout)
     {
         var builder = new System.Text.StringBuilder();
         builder.AppendLine($"<@{play.UserId}> さん、");
-        builder.AppendLine($"{play.Bet}GAL円 賭けて勝負だよ！！");
         builder.AppendLine($"前のカード: {FormatCard(previous)}");
         builder.AppendLine($"引いたカード: {FormatCard(drawn)}");
 
@@ -181,9 +190,9 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
         {
             builder.AppendLine("正解！");
             builder.AppendLine($"現在の連勝数: {streak}");
-            if (payout.HasValue)
+            if (isPayout)
             {
-                builder.AppendLine($"{payout.Value}GAL円ゲット！");
+                builder.AppendLine($"{currentPayout}GAL円ゲット！");
             }
         }
         else
@@ -195,8 +204,10 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
         if (correct && allowContinue)
         {
             builder.AppendLine("続ける？それともやめる？");
+            builder.AppendLine($"次のゲーム勝てば{nextPayout}GAL円貰えるよ！");
+            builder.AppendLine($"ここでやめたら{currentPayout}GAL円になるよ！");
             components.WithButton("続ける", $"empty_hl_continue:{play.MessageId}", ButtonStyle.Success)
-                      .WithButton("やめる", $"empty_hl_stop:{play.MessageId}", ButtonStyle.Danger);
+                .WithButton("やめる", $"empty_hl_stop:{play.MessageId}", ButtonStyle.Danger);
         }
 
         await message.ModifyAsync(msg =>
@@ -211,8 +222,6 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
         var payout = game.CalculatePayout();
         var builder = new System.Text.StringBuilder();
         builder.AppendLine($"<@{play.UserId}> さん、");
-        builder.AppendLine($"{play.Bet}GAL円 賭けて勝負だよ！！");
-        builder.AppendLine($"現在のカード: {FormatCard(game.CurrentCard)}");
         builder.AppendLine($"連勝数: {game.Streak}で終了しました。");
         builder.AppendLine($"{payout}GAL円ゲット！");
 
@@ -295,4 +304,3 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
         return rank + suit;
     }
 }
-

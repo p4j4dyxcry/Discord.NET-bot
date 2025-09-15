@@ -48,6 +48,22 @@ public class HighLowGame
         return new GuessResult(false, next, false);
     }
 
-    public int CalculatePayout() => Bet * Streak;
+
+    public int CalculatePayout()
+    {
+        return CalculatePayout(Streak);
+    }
+
+    public int CalculateNextStreakPayout()
+    {
+        return CalculatePayout(Streak+1);
+    }
+
+    public int CalculatePayout(int streak)
+    {
+        int[] table = [0, 1, 2, 4, 7, 10, 15, 20, 30, 50, 100];
+
+        return Bet * table[streak];
+    }
 }
 

@@ -214,6 +214,15 @@ namespace TsDiscordBot.Core.HostedService.Amuse
                 _games[play.MessageId] = new GameSession(play, game);
                 play.Started = true;
                 _databaseService.Update(AmusePlay.TableName, play);
+
+                var cash = _databaseService
+                    .FindAll<AmuseCash>(AmuseCash.TableName)
+                    .First(x => x.UserId == play.UserId);
+
+                cash.Cash -= play.Bet;
+                cash.LastUpdatedAtUtc = DateTime.UtcNow;
+                _databaseService.Update(AmuseCash.TableName, cash);
+
                 await UpdateMessageAsync(userMessage, game, play, false);
             }
         }
