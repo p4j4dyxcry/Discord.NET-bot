@@ -120,6 +120,12 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
     {
         foreach (var play in amusePlays.Where(x => x.GameKind == "HL" && !x.Started))
         {
+            if (play.MessageId == 0)
+            {
+                _databaseService.Delete(AmusePlay.TableName, play.Id);
+                continue;
+            }
+
             if (_sessions.ContainsKey(play.MessageId))
             {
                 continue;

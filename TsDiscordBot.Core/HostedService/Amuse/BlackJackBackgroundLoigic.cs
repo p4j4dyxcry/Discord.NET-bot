@@ -183,6 +183,12 @@ namespace TsDiscordBot.Core.HostedService.Amuse
         {
             foreach (var play in amusePlays.Where(x => x.GameKind == "BJ" && !x.Started))
             {
+                if (play.MessageId == 0)
+                {
+                    _databaseService.Delete(AmusePlay.TableName, play.Id);
+                    continue;
+                }
+
                 if (_games.ContainsKey(play.MessageId))
                 {
                     continue;
