@@ -125,10 +125,40 @@ namespace TsDiscordBot.Core.HostedService.Amuse
                         _databaseService.Update(AmuseCash.TableName, cash);
                     }
 
+                    UpdateGameRecord(session.Play.UserId, session.Play.GameKind,
+                        result.Outcome == DiceOutcome.PlayerWin);
+
                     _databaseService.Delete(AmusePlay.TableName, session.Play.Id);
                     _diceGames.TryRemove(session.Play.MessageId, out _);
                 }
             }
+        }
+
+        private void UpdateGameRecord(ulong userId, string gameKind, bool win)
+        {
+            var record = _databaseService
+                .FindAll<AmuseGameRecord>(AmuseGameRecord.TableName)
+                .FirstOrDefault(x => x.UserId == userId && x.GameKind == gameKind);
+
+            if (record is null)
+            {
+                record = new AmuseGameRecord
+                {
+                    UserId = userId,
+                    GameKind = gameKind,
+                    TotalPlays = 0,
+                    WinCount = 0
+                };
+                _databaseService.Insert(AmuseGameRecord.TableName, record);
+            }
+
+            record.TotalPlays++;
+            if (win)
+            {
+                record.WinCount++;
+            }
+
+            _databaseService.Update(AmuseGameRecord.TableName, record);
         }
     }
 }
