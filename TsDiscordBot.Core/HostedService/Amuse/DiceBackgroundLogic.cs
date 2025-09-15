@@ -1,7 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Discord;
 using Discord.WebSocket;
-using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Amuse;
 using TsDiscordBot.Core.Game.Dice;
 using TsDiscordBot.Core.Services;
@@ -93,6 +92,15 @@ namespace TsDiscordBot.Core.HostedService.Amuse
                     _diceGames[play.MessageId] = session;
                     play.Started = true;
                     _databaseService.Update(AmusePlay.TableName, play);
+
+                    var cash = _databaseService
+                        .FindAll<AmuseCash>(AmuseCash.TableName)
+                        .First(x => x.UserId == play.UserId);
+
+                    cash.Cash -= play.Bet;
+                    cash.LastUpdatedAtUtc = DateTime.UtcNow;
+                    _databaseService.Update(AmuseCash.TableName, cash);
+
                     continue;
                 }
 
