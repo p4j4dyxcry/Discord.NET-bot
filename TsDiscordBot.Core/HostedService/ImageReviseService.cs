@@ -26,7 +26,10 @@ namespace TsDiscordBot.Core.HostedService
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _subscription = _client.OnReceivedSubscribe(OnMessageReceivedAsync, nameof(ImageReviseService));
+            _subscription = _client.OnReceivedSubscribe(
+                OnMessageReceivedAsync,
+                MessageConditions.NotFromBot,
+                nameof(ImageReviseService));
             return Task.CompletedTask;
         }
 
@@ -84,110 +87,90 @@ namespace TsDiscordBot.Core.HostedService
             return progressMessageBuilder.ToString();
         }
 
-        private async Task OnMessageReceivedAsync(IMessageData message)
+        private async Task OnMessageReceivedAsync(IMessageData message, CancellationToken token)
         {
-            try
+            if (!message.IsReply)
+                return;
+
+            if (!message.Content.StartsWith("!revise "))
+                return;
+
+            var referenced = message.ReplySource;
+            if (referenced is null)
+                return;
+
+            await referenced.CreateAttachmentSourceIfNotCachedAsync();
+
+            var attachment = referenced.Attachments.FirstOrDefault(a => a.ContentType?.StartsWith("image/") == true);
+            if (attachment is null)
+                return;
+
+            if (!_limitService.TryAdd(message.AuthorId, "image"))
             {
-                if (message.IsBot)
-                    return;
-
-                if (!message.IsReply)
-                    return;
-
-                if (!message.Content.StartsWith("!revise "))
-                    return;
-
-                var referenced = message.ReplySource;
-                if (referenced is null)
-                    return;
-
-                await referenced.CreateAttachmentSourceIfNotCachedAsync();
-
-                var attachment = referenced.Attachments.FirstOrDefault(a => a.ContentType?.StartsWith("image/") == true);
-                if (attachment is null)
-                    return;
-
-                if (!_limitService.TryAdd(message.AuthorId, "image"))
-                {
-                    await message.ReplyMessageAsync(ErrorMessages.CommandLimitExceeded);
-                    return;
-                }
-
-                var prompt = message.Content.Substring("!revise ".Length);
-
-                Stopwatch stopWatch = Stopwatch.StartNew();
-                var progressContent = GetProgressMessage(prompt);
-                var progressMessage = await message.ReplyMessageAsync(progressContent);
-
-                if (progressMessage is null)
-                {
-                    return;
-                }
-
-                using var cts = new CancellationTokenSource();
-                var progressTask = RunProgressAsync(progressMessage, progressContent, stopWatch, cts.Token);
-
-                try
-                {
-                    await using var stream = new MemoryStream(attachment.Bytes);
-
-                    var results = await _imageService.EditAsync(stream, prompt, 1024, cts.Token);
-                    if (results.Count == 0)
-                    {
-                        await cts.CancelAsync();
-                        await progressTask;
-                        await progressMessage.ModifyMessageAsync(msg => GetFailedMessage(prompt, stopWatch.Elapsed.Seconds));
-                        return;
-                    }
-
-                    var dir = Path.GetDirectoryName(Envs.LITEDB_PATH);
-                    if (string.IsNullOrWhiteSpace(dir))
-                    {
-                        dir = ".";
-                    }
-                    Directory.CreateDirectory(dir);
-
-                    var result = results[0];
-                    byte[] imageBytes;
-                    if (result.HasUri)
-                    {
-                        imageBytes = await HttpClientStatic.Default.GetByteArrayAsync(result.Uri, cts.Token);
-                    }
-                    else if (result.HasBytes)
-                    {
-                        imageBytes = result.Bytes!.Value.ToArray();
-                    }
-                    else
-                    {
-                        await cts.CancelAsync();
-                        await progressTask;
-                        await progressMessage.ModifyMessageAsync(msg => GetFailedMessage(prompt, stopWatch.Elapsed.Seconds));
-                        return;
-                    }
-
-                    var filePath = Path.Combine(dir, $"revise_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.png");
-                    await File.WriteAllBytesAsync(filePath, imageBytes, cts.Token);
-
-                    cts.Cancel();
-                    await progressTask;
-                    await progressMessage.ModifyMessageAsync(msg => GetSucceedMessage(prompt, stopWatch.Elapsed.Seconds));
-
-                    await message.ReplyMessageAsync($"画像を修正したよ！\n\"{prompt}\"", filePath);
-
-                    await progressMessage.DeleteAsync();
-                }
-                catch (Exception ex)
-                {
-                    cts.Cancel();
-                    await progressTask;
-                    _logger.LogError(ex, "Failed to revise image");
-                    await progressMessage.ModifyMessageAsync(msg => GetFailedMessage(prompt, stopWatch.Elapsed.Seconds));
-                }
+                await message.ReplyMessageAsync(ErrorMessages.CommandLimitExceeded);
+                return;
             }
-            catch (Exception ex)
+
+            var prompt = message.Content.Substring("!revise ".Length);
+
+            Stopwatch stopWatch = Stopwatch.StartNew();
+            var progressContent = GetProgressMessage(prompt);
+            var progressMessage = await message.ReplyMessageAsync(progressContent);
+
+            if (progressMessage is null)
             {
-                _logger.LogError(ex, "Failed to revise image");
+                return;
             }
+
+            using var cts = new CancellationTokenSource();
+            var progressTask = RunProgressAsync(progressMessage, progressContent, stopWatch, cts.Token);
+
+            await using var stream = new MemoryStream(attachment.Bytes);
+
+            var results = await _imageService.EditAsync(stream, prompt, 1024, cts.Token);
+            if (results.Count == 0)
+            {
+                await cts.CancelAsync();
+                await progressTask;
+                await progressMessage.ModifyMessageAsync(msg => GetFailedMessage(prompt, stopWatch.Elapsed.Seconds));
+                return;
+            }
+
+            var dir = Path.GetDirectoryName(Envs.LITEDB_PATH);
+            if (string.IsNullOrWhiteSpace(dir))
+            {
+                dir = ".";
+            }
+            Directory.CreateDirectory(dir);
+
+            var result = results[0];
+            byte[] imageBytes;
+            if (result.HasUri)
+            {
+                imageBytes = await HttpClientStatic.Default.GetByteArrayAsync(result.Uri, cts.Token);
+            }
+            else if (result.HasBytes)
+            {
+                imageBytes = result.Bytes!.Value.ToArray();
+            }
+            else
+            {
+                await cts.CancelAsync();
+                await progressTask;
+                await progressMessage.ModifyMessageAsync(msg => GetFailedMessage(prompt, stopWatch.Elapsed.Seconds));
+                return;
+            }
+
+            var filePath = Path.Combine(dir, $"revise_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.png");
+            await File.WriteAllBytesAsync(filePath, imageBytes, cts.Token);
+
+            cts.Cancel();
+            await progressTask;
+            await progressMessage.ModifyMessageAsync(msg => GetSucceedMessage(prompt, stopWatch.Elapsed.Seconds));
+
+            await message.ReplyMessageAsync($"画像を修正したよ！\n\"{prompt}\"", filePath);
+
+            await progressMessage.DeleteAsync();
         }
     }
 }

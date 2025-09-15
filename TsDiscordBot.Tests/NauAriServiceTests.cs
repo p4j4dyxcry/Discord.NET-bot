@@ -15,17 +15,17 @@ public class NauAriServiceTests
 {
     private class TestMessageReceiver : IMessageReceiver
     {
-        public Func<IMessageData, Task>? Handler { get; private set; }
+        public Func<IMessageData, CancellationToken, Task>? Handler { get; private set; }
         public TestDisposable? Subscription { get; private set; }
 
-        public IDisposable OnReceivedSubscribe(Func<IMessageData, Task> onMessageReceived, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
+        public IDisposable OnReceivedSubscribe(Func<IMessageData, CancellationToken, Task> onMessageReceived, Func<MessageData, CancellationToken, ValueTask<bool>> condition, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
         {
             Handler = onMessageReceived;
             Subscription = new TestDisposable();
             return Subscription;
         }
 
-        public IDisposable OnEditedSubscribe(Func<IMessageData, Task> onMessageReceived, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
+        public IDisposable OnEditedSubscribe(Func<IMessageData, CancellationToken, Task> onMessageReceived, Func<MessageData, CancellationToken, ValueTask<bool>> condition, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
             => new TestDisposable();
 
         public class TestDisposable : IDisposable
@@ -79,7 +79,7 @@ public class NauAriServiceTests
         await service.StartAsync(CancellationToken.None);
 
         var message = new TestMessage { Content = "なう(2024/04/01", IsBot = false };
-        await receiver.Handler!(message);
+        await receiver.Handler!(message, CancellationToken.None);
 
         Assert.Equal("なうあり！", message.SentMessage);
     }
@@ -93,7 +93,10 @@ public class NauAriServiceTests
         await service.StartAsync(CancellationToken.None);
 
         var message = new TestMessage { Content = "なう(2024/04/01", IsBot = true };
-        await receiver.Handler!(message);
+        if (!message.IsBot)
+        {
+            await receiver.Handler!(message, CancellationToken.None);
+        }
 
         Assert.Null(message.SentMessage);
     }
@@ -107,7 +110,7 @@ public class NauAriServiceTests
         await service.StartAsync(CancellationToken.None);
 
         var message = new TestMessage { Content = "hello", IsBot = false };
-        await receiver.Handler!(message);
+        await receiver.Handler!(message, CancellationToken.None);
 
         Assert.Null(message.SentMessage);
     }

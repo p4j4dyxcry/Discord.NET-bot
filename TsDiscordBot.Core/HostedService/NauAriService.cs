@@ -4,7 +4,7 @@ using TsDiscordBot.Core.Framework;
 
 namespace TsDiscordBot.Core.HostedService
 {
-    public class NauAriService: IHostedService
+    public class NauAriService : IHostedService
     {
         private readonly IMessageReceiver _client;
         private readonly ILogger<NauAriService> _logger;
@@ -17,7 +17,11 @@ namespace TsDiscordBot.Core.HostedService
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _subscription = _client.OnReceivedSubscribe(OnMessageReceived, nameof(NauAriService), ServicePriority.Low);
+            _subscription = _client.OnReceivedSubscribe(
+                OnMessageReceived,
+                MessageConditions.NotFromBot,
+                nameof(NauAriService),
+                ServicePriority.Low);
             return Task.CompletedTask;
         }
         public Task StopAsync(CancellationToken cancellationToken)
@@ -26,23 +30,11 @@ namespace TsDiscordBot.Core.HostedService
             return Task.CompletedTask;
         }
 
-        private async Task OnMessageReceived(IMessageData message)
+        private async Task OnMessageReceived(IMessageData message, CancellationToken token)
         {
-            try
+            if (message.Content.StartsWith("なう(20"))
             {
-                if (message.IsBot)
-                {
-                    return;
-                }
-
-                if (message.Content.StartsWith("なう(20"))
-                {
-                    await message.SendMessageAsyncOnChannel("なうあり！");
-                }
-            }
-            catch(Exception e)
-            {
-                _logger.LogError(e,"Failed to Nauari");
+                await message.SendMessageAsyncOnChannel("なうあり！");
             }
         }
     }
