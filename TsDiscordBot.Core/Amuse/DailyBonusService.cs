@@ -8,7 +8,7 @@ namespace TsDiscordBot.Core.Amuse;
 public class DailyBonusService : IAmuseService
 {
     private readonly DatabaseService _databaseService;
-    private const long BonusAmount = 1000;
+    private const long DefaultBonusAmount = 1000;
 
     public DailyBonusService(DatabaseService databaseService)
     {
@@ -19,6 +19,8 @@ public class DailyBonusService : IAmuseService
     {
         var utcNow = DateTime.UtcNow;
         var jstNow = utcNow.AddHours(9);
+
+        var (bonusAmount, replyMessage) = GetBonus(jstNow, message.AuthorMention);
 
         var cash = _databaseService
             .FindAll<AmuseCash>(AmuseCash.TableName)
@@ -40,7 +42,7 @@ public class DailyBonusService : IAmuseService
             cash = new AmuseCash
             {
                 UserId = message.AuthorId,
-                Cash = BonusAmount,
+                Cash = bonusAmount,
                 LastEarnedAtUtc = utcNow,
                 LastUpdatedAtUtc = utcNow
             };
@@ -48,13 +50,48 @@ public class DailyBonusService : IAmuseService
         }
         else
         {
-            cash.Cash += BonusAmount;
+            cash.Cash += bonusAmount;
             cash.LastEarnedAtUtc = utcNow;
             cash.LastUpdatedAtUtc = utcNow;
             _databaseService.Update(AmuseCash.TableName, cash);
         }
 
-        return message.ReplyMessageAsync($"{message.AuthorMention}さん、今日もきてくれてありがとう！はい{BonusAmount}GAL円だよ～！");
+        return message.ReplyMessageAsync(replyMessage);
+    }
+
+    private static (long Amount, string Message) GetBonus(DateTime jstNow, string mention)
+    {
+        if (jstNow.Month == 2 && jstNow.Day == 14)
+        {
+            const long amount = 5000;
+            return (amount, $"{mention}さん、今日はバレンタインね！チョコ代わりにどうぞ！{amount}GAL円だよ～！");
+        }
+
+        if (jstNow.Month == 12 && (jstNow.Day == 24 || jstNow.Day == 25))
+        {
+            const long amount = 5000;
+            return (amount, $"{mention}さん、メリークリスマス！プレゼントに{amount}GAL円どうぞ！");
+        }
+
+        if (jstNow.Month == 12 && jstNow.Day == 31)
+        {
+            const long amount = 3000;
+            return (amount, $"{mention}さん、今日は大晦日ね！特別{amount}GAL円だよ～！");
+        }
+
+        if (jstNow.Month == 1 && jstNow.Day == 1)
+        {
+            const long amount = 3000;
+            return (amount, $"{mention}さん、あけましておめでとう！お年玉として{amount}GAL円だよ～！");
+        }
+
+        if (jstNow.Day == 7 || jstNow.Day == 17 || jstNow.Day == 27)
+        {
+            const long amount = 3000;
+            return (amount, $"{mention}さん、今日は7のつく日だから特別{amount}GAL円ね！");
+        }
+
+        return (DefaultBonusAmount, $"{mention}さん、今日もきてくれてありがとう！はい{DefaultBonusAmount}GAL円だよ～！");
     }
 }
 
