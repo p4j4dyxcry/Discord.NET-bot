@@ -48,12 +48,30 @@ public class AmuseCommandParser : IAmuseCommandParser
 
             if (parts[1].Equals("top", StringComparison.OrdinalIgnoreCase))
             {
+                if (parts.Length >= 3)
+                {
+                    if (parts[2].Equals("bj", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return new ShowTopWinRateService("BJ", "ブラックジャック", _databaseService);
+                    }
+
+                    if (parts[2].Equals("dice", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return new ShowTopWinRateService("DI", "サイコロゲーム", _databaseService);
+                    }
+                }
+
                 return new ShowTopCashService(_databaseService);
             }
 
             if (parts[1].Equals("rank", StringComparison.OrdinalIgnoreCase))
             {
                 return new ShowRankService(_databaseService);
+            }
+
+            if (parts[1].Equals("winrate", StringComparison.OrdinalIgnoreCase))
+            {
+                return new ShowWinRateService(_databaseService);
             }
         }
 
