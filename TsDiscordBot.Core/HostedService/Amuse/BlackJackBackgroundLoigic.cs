@@ -108,6 +108,9 @@ namespace TsDiscordBot.Core.HostedService.Amuse
                         _databaseService.Update(AmuseCash.TableName, cash);
                     }
 
+                    UpdateGameRecord(session.Play.UserId, session.Play.GameKind,
+                        result.Outcome == GameOutcome.PlayerWin);
+
                     await UpdateMessageAsync(userMessage, game, session.Play, true);
 
                     _databaseService.Delete(AmusePlay.TableName, session.Play.Id);
@@ -124,57 +127,57 @@ namespace TsDiscordBot.Core.HostedService.Amuse
             }
         }
 
-    private static async Task UpdateMessageAsync(IUserMessage message, BlackJackGame game, AmusePlay play, bool revealDealer)
-    {
-        var dealerCards = revealDealer
-            ? string.Join(" ", game.DealerCards.Select(FormatCard))
-            : $"{FormatCard(game.DealerVisibleCard)} ??";
-        var dealerScore = revealDealer
-            ? BlackJackGame.CalculateScore(game.DealerCards).ToString()
-            : BlackJackGame.CalculateScore([game.DealerCards[0]]).ToString();
-
-        var playerCards = string.Join(" ", game.PlayerCards.Select(FormatCard));
-        var playerScore = BlackJackGame.CalculateScore(game.PlayerCards);
-
-        var builder = new System.Text.StringBuilder();
-        builder.AppendLine($"<@{play.UserId}> さん、");
-        builder.AppendLine($"{play.Bet}GAL円 賭けて勝負だよ！！");
-        builder.AppendLine($"- つむぎ [{dealerScore}]: {dealerCards}");
-        builder.AppendLine($"- あなた [{playerScore}]: {playerCards}");
-
-        if (game.IsFinished && game.Result is not null)
+        private static async Task UpdateMessageAsync(IUserMessage message, BlackJackGame game, AmusePlay play, bool revealDealer)
         {
-            var outcome = game.Result.Outcome switch
-            {
-                GameOutcome.PlayerWin => "勝利",
-                GameOutcome.DealerWin => "敗北",
-                _ => "引き分け"
-            };
-            builder.AppendLine($"結果: {outcome}！");
+            var dealerCards = revealDealer
+                ? string.Join(" ", game.DealerCards.Select(FormatCard))
+                : $"{FormatCard(game.DealerVisibleCard)} ??";
+            var dealerScore = revealDealer
+                ? BlackJackGame.CalculateScore(game.DealerCards).ToString()
+                : BlackJackGame.CalculateScore([game.DealerCards[0]]).ToString();
 
-            if (game.Result.Outcome == GameOutcome.PlayerWin)
+            var playerCards = string.Join(" ", game.PlayerCards.Select(FormatCard));
+            var playerScore = BlackJackGame.CalculateScore(game.PlayerCards);
+
+            var builder = new System.Text.StringBuilder();
+            builder.AppendLine($"<@{play.UserId}> さん、");
+            builder.AppendLine($"{play.Bet}GAL円 賭けて勝負だよ！！");
+            builder.AppendLine($"- つむぎ [{dealerScore}]: {dealerCards}");
+            builder.AppendLine($"- あなた [{playerScore}]: {playerCards}");
+
+            if (game.IsFinished && game.Result is not null)
             {
-                builder.AppendLine($"{game.Result.Payout}GAL円ゲット！");
+                var outcome = game.Result.Outcome switch
+                {
+                    GameOutcome.PlayerWin => "勝利",
+                    GameOutcome.DealerWin => "敗北",
+                    _ => "引き分け"
+                };
+                builder.AppendLine($"結果: {outcome}！");
+
+                if (game.Result.Outcome == GameOutcome.PlayerWin)
+                {
+                    builder.AppendLine($"{game.Result.Payout}GAL円ゲット！");
+                }
             }
-        }
 
-        var components = new ComponentBuilder();
-        if (!game.IsFinished)
-        {
-            components.WithButton("ヒット", $"empty_bj_hit:{play.MessageId}", ButtonStyle.Primary);
-            components.WithButton("スタンド", $"empty_bj_stand:{play.MessageId}", ButtonStyle.Secondary);
-            if (!game.DoubleDowned && game.PlayerCards.Count == 2)
+            var components = new ComponentBuilder();
+            if (!game.IsFinished)
             {
-                components.WithButton("ダブルダウン", $"empty_bj_double:{play.MessageId}", ButtonStyle.Danger);
+                components.WithButton("ヒット", $"empty_bj_hit:{play.MessageId}", ButtonStyle.Primary);
+                components.WithButton("スタンド", $"empty_bj_stand:{play.MessageId}", ButtonStyle.Secondary);
+                if (!game.DoubleDowned && game.PlayerCards.Count == 2)
+                {
+                    components.WithButton("ダブルダウン", $"empty_bj_double:{play.MessageId}", ButtonStyle.Danger);
+                }
             }
-        }
 
-        await message.ModifyAsync(msg =>
-        {
-            msg.Content = builder.ToString();
-            msg.Components = components.Build();
-        });
-    }
+            await message.ModifyAsync(msg =>
+            {
+                msg.Content = builder.ToString();
+                msg.Components = components.Build();
+            });
+        }
 
         public async Task ProcessAsync(AmusePlay[] amusePlays)
         {
@@ -201,6 +204,33 @@ namespace TsDiscordBot.Core.HostedService.Amuse
                 _databaseService.Update(AmusePlay.TableName, play);
                 await UpdateMessageAsync(userMessage, game, play, false);
             }
+        }
+
+        private void UpdateGameRecord(ulong userId, string gameKind, bool win)
+        {
+            var record = _databaseService
+                .FindAll<AmuseGameRecord>(AmuseGameRecord.TableName)
+                .FirstOrDefault(x => x.UserId == userId && x.GameKind == gameKind);
+
+            if (record is null)
+            {
+                record = new AmuseGameRecord
+                {
+                    UserId = userId,
+                    GameKind = gameKind,
+                    TotalPlays = 0,
+                    WinCount = 0
+                };
+                _databaseService.Insert(AmuseGameRecord.TableName, record);
+            }
+
+            record.TotalPlays++;
+            if (win)
+            {
+                record.WinCount++;
+            }
+
+            _databaseService.Update(AmuseGameRecord.TableName, record);
         }
 
         private static string FormatCard(Card c)
