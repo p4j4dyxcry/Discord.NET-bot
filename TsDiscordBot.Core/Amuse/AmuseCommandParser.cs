@@ -35,6 +35,12 @@ public class AmuseCommandParser : IAmuseCommandParser
                 return new PlayDiceService(bet, _databaseService);
             }
 
+            if (parts[1].Equals("lw", StringComparison.OrdinalIgnoreCase))
+            {
+                var bet = ParseBet(parts);
+                return new PlayHighLowService(bet, _databaseService);
+            }
+
             if (parts[1].Equals("cash", StringComparison.OrdinalIgnoreCase) ||
                 parts[1].Equals("money", StringComparison.OrdinalIgnoreCase))
             {

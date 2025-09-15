@@ -22,8 +22,9 @@ public class GameBackgroundService : BackgroundService
 
         _amuseBackgroundLogics =
         [
-            new BlackJackBackgroundLogic(databaseService,logger,client),
-            new DiceBackgroundLogic(databaseService,client)
+            new BlackJackBackgroundLogic(databaseService, logger, client),
+            new DiceBackgroundLogic(databaseService, client),
+            new HighLowBackgroundLogic(databaseService, client)
         ];
     }
 
@@ -46,7 +47,7 @@ public class GameBackgroundService : BackgroundService
                     {
                         await logic.ProcessAsync(plays);
                     }
-                    catch(Exception e)
+                    catch (Exception e)
                     {
                         _logger.LogError(e, $"Failed to {logic.GetType()}.ProcessAsync");
                     }
@@ -73,7 +74,7 @@ public class GameBackgroundService : BackgroundService
             {
                 await logic.OnButtonExecutedAsync(component);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 _logger.LogError(e, $"Failed to {logic.GetType()}.OnButtonExecutedAsync");
             }
