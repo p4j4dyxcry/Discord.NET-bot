@@ -28,7 +28,7 @@ public class BeRealService : IHostedService
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _subscription = _messageReceiver.OnReceivedSubscribe(OnMessageReceivedAsync,nameof(BeRealService));
+        _subscription = _messageReceiver.OnReceivedSubscribe(OnMessageReceivedAsync, nameof(BeRealService));
         _cts = new CancellationTokenSource();
         _ = Task.Run(() => TimerLoopAsync(_cts.Token));
         return Task.CompletedTask;
@@ -78,7 +78,8 @@ public class BeRealService : IHostedService
             }
 
             var guild = _client.GetGuild(message.GuildId);
-            var user = _client.GetGuild(message.GuildId)?.GetUser(message.AuthorId);
+            var user = _client.GetGuild(message.GuildId)
+                ?.GetUser(message.AuthorId);
 
             var role = guild.GetRole(config.RoleId);
             if (role is not null && user is not null)
@@ -116,44 +117,98 @@ public class BeRealService : IHostedService
     {
         while (!token.IsCancellationRequested)
         {
+            var nowUtc = DateTime.UtcNow;
             try
             {
+                // 期限切れのみを取れるならこの段階で絞る（推奨）
+                var cutoffUtc = DateTime.UtcNow - TimeSpan.FromHours(24);
+
                 var participants = _databaseService
                     .FindAll<BeRealParticipant>(BeRealParticipant.TableName)
+                    .Where(x => x.LastPostedAtUtc <= cutoffUtc)
                     .ToArray();
 
-                foreach (var participant in participants)
+                if (participants.Length == 0)
                 {
-                    if (DateTime.UtcNow - participant.LastPostedAtUtc >= TimeSpan.FromHours(24))
+                    _logger.LogInformation("BeReal: no expired participants at {Now}", nowUtc);
+                }
+
+                // ギルドごとにまとめる
+                var byGuild = participants.GroupBy(p => p.GuildId).ToArray();
+
+                // ギルド設定をキャッシュ化
+                var guildIds = byGuild.Select(g => g.Key)
+                    .ToArray();
+                var allConfigs = _databaseService
+                    .FindAll<BeRealConfig>(BeRealConfig.TableName)
+                    .Where(c => guildIds.Contains(c.GuildId))
+                    .ToDictionary(c => c.GuildId);
+
+                foreach (var group in byGuild)
+                {
+                    var guildId = group.Key;
+                    var guild = _client.GetGuild(guildId);
+                    if (guild is null)
                     {
-                        var guild = _client.GetGuild(participant.GuildId);
-                        var config = _databaseService
-                            .FindAll<BeRealConfig>(BeRealConfig.TableName)
-                            .FirstOrDefault(x => x.GuildId == participant.GuildId);
-                        if (guild != null && config != null)
+                        _logger.LogWarning("BeReal: guild not found: {GuildId}", guildId);
+                        continue;
+                    }
+
+                    if (!allConfigs.TryGetValue(guildId, out var config))
+                    {
+                        _logger.LogWarning("BeReal: config not found for guild {GuildId}", guildId);
+                        continue;
+                    }
+
+                    var role = guild.GetRole(config.RoleId);
+                    if (role is null)
+                    {
+                        _logger.LogWarning("BeReal: role {RoleId} not found in guild {GuildId}", config.RoleId, guildId);
+                        continue;
+                    }
+
+                    foreach (var participant in group)
+                    {
+                        // 追加ガード（FindAllで絞れていない場合に備える）
+                        if (nowUtc - participant.LastPostedAtUtc < TimeSpan.FromHours(24))
+                            continue;
+
+                        try
                         {
                             var user = guild.GetUser(participant.UserId);
-                            var role = guild.GetRole(config.RoleId);
-                            if (user != null && role != null)
+                            if (user is null)
                             {
-                                try
-                                {
-                                    await user.RemoveRoleAsync(role);
-                                    _databaseService.Delete(BeRealParticipant.TableName, participant.Id);
-                                }
-                                catch(Exception e)
-                                {
-                                    _logger.LogError(e, "Failed to remove role");
-                                }
-
+                                _logger.LogInformation("BeReal: user not found in cache: {UserId} (guild {GuildId})", participant.UserId, guildId);
+                                // 必要なら REST: await guild.GetUserAsync(participant.UserId);
+                                // 見つからない場合はDBから消すかは運用方針次第
+                                continue;
                             }
+
+                            await user.RemoveRoleAsync(role);
+                            _databaseService.Delete(BeRealParticipant.TableName, participant.Id);
+
+                            _logger.LogInformation("BeReal: removed role {RoleId} from {UserId} in guild {GuildId}",
+                                role.Id,
+                                user.Id,
+                                guildId);
+
+                            // 軽いスロットリング（429回避）
+                            await Task.Delay(TimeSpan.FromMilliseconds(1000), token);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex,
+                                "BeReal: failed to remove role {RoleId} from {UserId} in guild {GuildId}",
+                                role.Id,
+                                participant.UserId,
+                                guildId);
                         }
                     }
                 }
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Failed to revoke be-real roles");
+                _logger.LogError(e, "BeReal: sweep failed at {Now}", nowUtc);
             }
 
             try
@@ -162,6 +217,7 @@ public class BeRealService : IHostedService
             }
             catch (TaskCanceledException)
             {
+                /* ignore */
             }
         }
     }
