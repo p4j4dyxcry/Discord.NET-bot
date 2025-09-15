@@ -61,9 +61,16 @@ public class HighLowGame
 
     public int CalculatePayout(int streak)
     {
+        // インデックス = 連勝数 に対応
         int[] table = [0, 1, 2, 4, 7, 10, 15, 20, 30, 50, 100];
 
-        return Bet * table[streak];
+        if (streak <= 0)
+            return 0; // 0以下は無効
+
+        // テーブル外に出たら最後の要素を使う
+        int index = streak < table.Length ? streak : table.Length - 1;
+
+        return Bet * table[index];
     }
 }
 
