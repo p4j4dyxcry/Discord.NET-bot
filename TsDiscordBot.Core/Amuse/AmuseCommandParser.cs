@@ -25,21 +25,13 @@ public class AmuseCommandParser : IAmuseCommandParser
         {
             if (parts[1].Equals("bj", StringComparison.OrdinalIgnoreCase))
             {
-                int bet = 0;
-                if (parts.Length >= 3 && int.TryParse(parts[2], out var parsed))
-                {
-                    bet = parsed;
-                }
+                var bet = ParseBet(parts);
                 return new PlayBlackJackService(bet, _databaseService);
             }
 
             if (parts[1].Equals("dice", StringComparison.OrdinalIgnoreCase))
             {
-                int bet = 0;
-                if (parts.Length >= 3 && int.TryParse(parts[2], out var parsed))
-                {
-                    bet = parsed;
-                }
+                var bet = ParseBet(parts);
                 return new PlayDiceService(bet, _databaseService);
             }
 
@@ -66,5 +58,23 @@ public class AmuseCommandParser : IAmuseCommandParser
         }
 
         return null;
+    }
+
+    private static int ParseBet(string[] parts)
+    {
+        if (parts.Length >= 3)
+        {
+            if (parts[2].Equals("all", StringComparison.OrdinalIgnoreCase))
+            {
+                return int.MaxValue;
+            }
+
+            if (int.TryParse(parts[2], out var parsed))
+            {
+                return parsed;
+            }
+        }
+
+        return 0;
     }
 }
