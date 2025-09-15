@@ -57,7 +57,11 @@ public abstract class PlayGameServiceBase(int bet, DatabaseService databaseServi
         }
         else
         {
-            if (bet <= 0)
+            if (bet == int.MaxValue)
+            {
+                bet = currentCash > int.MaxValue ? int.MaxValue : (int)currentCash;
+            }
+            else if (bet <= 0)
             {
                 bet = currentCash < 100 ? (int)currentCash : 100;
             }
