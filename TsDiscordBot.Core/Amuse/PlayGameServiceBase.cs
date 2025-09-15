@@ -95,6 +95,14 @@ public abstract class PlayGameServiceBase(int bet, DatabaseService databaseServi
             play.MessageId = reply.Id;
             DatabaseService.Update(AmusePlay.TableName, play);
         }
+        else
+        {
+            // If the start message could not be sent, refund the bet and remove the play
+            cash.Cash += bet;
+            cash.LastUpdatedAtUtc = DateTime.UtcNow;
+            DatabaseService.Update(AmuseCash.TableName, cash);
+            DatabaseService.Delete(AmusePlay.TableName, play.Id);
+        }
     }
 }
 
