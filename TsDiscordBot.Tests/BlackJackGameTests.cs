@@ -34,8 +34,8 @@ public class BlackJackGameTests
             new Card(Rank.Seven, Suit.Clubs),
             new Card(Rank.Six, Suit.Hearts),
             new Card(Rank.Ten, Suit.Diamonds),
-            new Card(Rank.Five, Suit.Clubs),
-            new Card(Rank.Four, Suit.Diamonds)
+            new Card(Rank.Four, Suit.Diamonds),
+            new Card(Rank.Five, Suit.Clubs)
         });
         var game = new BlackJackGame(10, deck);
         game.Hit();
