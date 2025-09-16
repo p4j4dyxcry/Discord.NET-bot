@@ -104,7 +104,7 @@ public class BlackJackGame
 
     private void PlayDealerTurn()
     {
-        while (CalculateScore(_dealerHand) <= 17)
+        while (CalculateScore(_dealerHand) < 17)
         {
             _dealerHand.Add(_deck.Draw());
         }
