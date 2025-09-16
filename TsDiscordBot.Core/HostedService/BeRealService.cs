@@ -28,7 +28,10 @@ public class BeRealService : IHostedService
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _subscription = _messageReceiver.OnReceivedSubscribe(OnMessageReceivedAsync, nameof(BeRealService));
+        _subscription = _messageReceiver.OnReceivedSubscribe(
+            OnMessageReceivedAsync,
+            MessageConditions.NotFromBot.And(MessageConditions.NotDeleted),
+            nameof(BeRealService));
         _cts = new CancellationTokenSource();
         _ = Task.Run(() => TimerLoopAsync(_cts.Token));
         return Task.CompletedTask;
@@ -41,75 +44,63 @@ public class BeRealService : IHostedService
         return Task.CompletedTask;
     }
 
-    private async Task OnMessageReceivedAsync(IMessageData message)
+    private async Task OnMessageReceivedAsync(IMessageData message, CancellationToken token)
     {
-        try
+        var config = _databaseService
+            .FindAll<BeRealConfig>(BeRealConfig.TableName)
+            .FirstOrDefault(x => x.PostChannelId == message.ChannelId);
+
+        if (config is null)
         {
-            if (message.IsBot || message.IsDeleted)
-            {
-                return;
-            }
-
-            var config = _databaseService
-                .FindAll<BeRealConfig>(BeRealConfig.TableName)
-                .FirstOrDefault(x => x.PostChannelId == message.ChannelId);
-
-            if (config is null)
-            {
-                return;
-            }
-
-            await message.CreateAttachmentSourceIfNotCachedAsync();
-
-            if (!message.Attachments.Any(a => a.Width.HasValue))
-            {
-                return;
-            }
-
-            var webhookClient = await _webHookService.GetOrCreateWebhookClientAsync(config.FeedChannelId, "be-real-relay");
-            var feedMessageId = await webhookClient.RelayMessageAsync(message, message.Content);
-
-            await message.DeleteAsync();
-
-            if (feedMessageId is { } id)
-            {
-                var link = $"https://discord.com/channels/{message.GuildId}/{config.FeedChannelId}/{id}";
-                await message.SendMessageAsyncOnChannel($"{message.AuthorName}さんがBeRealに画像を投稿したよ！{link}");
-            }
-
-            var guild = _client.GetGuild(message.GuildId);
-            var user = _client.GetGuild(message.GuildId)
-                ?.GetUser(message.AuthorId);
-
-            var role = guild.GetRole(config.RoleId);
-            if (role is not null && user is not null)
-            {
-                await user.AddRoleAsync(role);
-            }
-
-            var existing = _databaseService
-                .FindAll<BeRealParticipant>(BeRealParticipant.TableName)
-                .FirstOrDefault(x => x.GuildId == guild.Id && x.UserId == message.AuthorId);
-
-            if (existing is null)
-            {
-                existing = new BeRealParticipant
-                {
-                    GuildId = guild.Id,
-                    UserId = message.AuthorId,
-                    LastPostedAtUtc = DateTime.UtcNow
-                };
-                _databaseService.Insert(BeRealParticipant.TableName, existing);
-            }
-            else
-            {
-                existing.LastPostedAtUtc = DateTime.UtcNow;
-                _databaseService.Update(BeRealParticipant.TableName, existing);
-            }
+            return;
         }
-        catch (Exception e)
+
+        await message.CreateAttachmentSourceIfNotCachedAsync();
+
+        if (!message.Attachments.Any(a => a.Width.HasValue))
         {
-            _logger.LogError(e, "Failed to process be-real post");
+            return;
+        }
+
+        var webhookClient = await _webHookService.GetOrCreateWebhookClientAsync(config.FeedChannelId, "be-real-relay");
+        var feedMessageId = await webhookClient.RelayMessageAsync(message, message.Content);
+
+        await message.DeleteAsync();
+
+        if (feedMessageId is { } id)
+        {
+            var link = $"https://discord.com/channels/{message.GuildId}/{config.FeedChannelId}/{id}";
+            await message.SendMessageAsyncOnChannel($"{message.AuthorName}さんがBeRealに画像を投稿したよ！{link}");
+        }
+
+        var guild = _client.GetGuild(message.GuildId);
+        var user = _client.GetGuild(message.GuildId)
+            ?.GetUser(message.AuthorId);
+
+        var role = guild.GetRole(config.RoleId);
+        if (role is not null && user is not null)
+        {
+            await user.AddRoleAsync(role);
+        }
+
+        var existing = _databaseService
+            .FindAll<BeRealParticipant>(BeRealParticipant.TableName)
+            .FirstOrDefault(x => x.GuildId == guild.Id && x.UserId == message.AuthorId);
+
+        if (existing is null)
+        {
+            existing = new BeRealParticipant
+            {
+                GuildId = guild.Id,
+                UserId = message.AuthorId,
+                LastPostedAtUtc = DateTime.UtcNow
+            };
+            _databaseService.Insert(BeRealParticipant.TableName, existing);
+        }
+        else
+        {
+            existing.LastPostedAtUtc = DateTime.UtcNow;
+            _databaseService.Update(BeRealParticipant.TableName, existing);
         }
     }
 
