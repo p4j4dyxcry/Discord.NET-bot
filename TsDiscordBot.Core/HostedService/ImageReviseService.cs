@@ -28,7 +28,7 @@ namespace TsDiscordBot.Core.HostedService
         {
             _subscription = _client.OnReceivedSubscribe(
                 OnMessageReceivedAsync,
-                MessageConditions.NotFromBot,
+                MessageConditions.NotFromBot.And(MessageConditions.NotDeleted),
                 nameof(ImageReviseService));
             return Task.CompletedTask;
         }
