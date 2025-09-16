@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text;
+using Discord;
 using TsDiscordBot.Core.Framework;
 using TsDiscordBot.Core.Services;
 
@@ -34,6 +35,12 @@ public class ShowTopCashService : IAmuseService
             sb.AppendLine($"{rank}. <@{topUsers[i].UserId}>　{topUsers[i].Cash}GAL円");
         }
 
-        return message.ReplyMessageAsync(sb.ToString().TrimEnd());
+        var embed = new EmbedBuilder()
+            .WithTitle("💰 所持金ランキング TOP10")
+            .WithDescription(sb.ToString().TrimEnd())
+            .WithColor(Color.Gold)
+            .Build();
+
+        return message.ReplyMessageAsync(embed, AllowedMentions.None);
     }
 }

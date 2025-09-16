@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
+using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -156,7 +157,13 @@ public class BannedMessageCheckerServiceTests
             SendMessageCalled = true;
             return Task.FromResult<IMessageData?>(null);
         }
+        public Task<IMessageData?> SendMessageAsyncOnChannel(Embed embed, AllowedMentions? allowedMentions = null)
+        {
+            SendMessageCalled = true;
+            return Task.FromResult<IMessageData?>(null);
+        }
         public Task<IMessageData?> ReplyMessageAsync(string content, string? filePath = null) => Task.FromResult<IMessageData?>(null);
+        public Task<IMessageData?> ReplyMessageAsync(Embed embed, AllowedMentions? allowedMentions = null) => Task.FromResult<IMessageData?>(null);
         public Task<IMessageData?> ModifyMessageAsync(Func<string, string> modify) => Task.FromResult<IMessageData?>(this);
         public Task<bool> DeleteAsync()
         {

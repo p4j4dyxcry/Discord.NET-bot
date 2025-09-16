@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using Discord;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using TsDiscordBot.Core.Data;
@@ -96,7 +97,9 @@ public class AnonymousRelayServiceTests
 
         public Task<bool> TryAddReactionAsync(string reaction) => Task.FromResult(true);
         public Task<IMessageData?> SendMessageAsyncOnChannel(string content, string? filePath = null) => Task.FromResult<IMessageData?>(null);
+        public Task<IMessageData?> SendMessageAsyncOnChannel(Embed embed, AllowedMentions? allowedMentions = null) => Task.FromResult<IMessageData?>(null);
         public Task<IMessageData?> ReplyMessageAsync(string content, string? filePath = null) => Task.FromResult<IMessageData?>(null);
+        public Task<IMessageData?> ReplyMessageAsync(Embed embed, AllowedMentions? allowedMentions = null) => Task.FromResult<IMessageData?>(null);
         public Task<IMessageData?> ModifyMessageAsync(Func<string, string> modify) => Task.FromResult<IMessageData?>(null);
         public Task<bool> DeleteAsync()
         {
