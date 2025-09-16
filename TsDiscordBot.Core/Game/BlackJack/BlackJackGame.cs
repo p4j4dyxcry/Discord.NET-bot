@@ -51,6 +51,7 @@ public class BlackJackGame
         _playerHand.Add(_deck.Draw());
         if (CalculateScore(_playerHand) > 21)
         {
+            PlayDealerTurn();
             IsFinished = true;
             Result = BuildResult(GameOutcome.DealerWin);
         }
@@ -79,6 +80,7 @@ public class BlackJackGame
         _playerHand.Add(_deck.Draw());
         if (CalculateScore(_playerHand) > 21)
         {
+            PlayDealerTurn();
             IsFinished = true;
             Result = BuildResult(GameOutcome.DealerWin);
             return;
@@ -102,7 +104,7 @@ public class BlackJackGame
 
     private void PlayDealerTurn()
     {
-        while (CalculateScore(_dealerHand) < 17)
+        while (CalculateScore(_dealerHand) <= 17)
         {
             _dealerHand.Add(_deck.Draw());
         }
