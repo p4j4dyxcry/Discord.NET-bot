@@ -206,7 +206,7 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
             builder.Clear();
             builder.AppendLine($"<@{play.UserId}> さん、");
             builder.AppendLine($"現在の連勝数: {streak}");
-            builder.AppendLine("続ける？それともやめる？");
+            builder.AppendLine($"続ける？それともやめる？: 次のカード{FormatCard(drawn)}");
             builder.AppendLine($"次のゲーム勝てば{nextPayout}GAL円貰えるよ！");
             builder.AppendLine($"ここでやめたら{currentPayout}GAL円になるよ！");
             components.WithButton("続ける", $"empty_hl_continue:{play.MessageId}", ButtonStyle.Success)
