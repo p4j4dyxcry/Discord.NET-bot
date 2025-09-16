@@ -121,12 +121,27 @@ public class MessageData : IMessageData
             return Task.FromResult<IMessageData?>(null);
         }
 
-        return SendMessageInternalAsync(message, Id, filePath);
+        return SendMessageInternalAsync(message, Id, filePath: filePath);
     }
 
-    public Task<IMessageData?> SendMessageAsyncOnChannel(string message,string? filePath = null)
+    public Task<IMessageData?> ReplyMessageAsync(Embed embed, AllowedMentions? allowedMentions = null)
     {
-        return SendMessageInternalAsync(message, null,filePath);
+        if (IsDeleted)
+        {
+            return Task.FromResult<IMessageData?>(null);
+        }
+
+        return SendMessageInternalAsync(null, Id, embed: embed, allowedMentions: allowedMentions);
+    }
+
+    public Task<IMessageData?> SendMessageAsyncOnChannel(string message, string? filePath = null)
+    {
+        return SendMessageInternalAsync(message, null, filePath: filePath);
+    }
+
+    public Task<IMessageData?> SendMessageAsyncOnChannel(Embed embed, AllowedMentions? allowedMentions = null)
+    {
+        return SendMessageInternalAsync(null, null, embed: embed, allowedMentions: allowedMentions);
     }
 
     public async Task<IMessageData?> ModifyMessageAsync(Func<string,string> modify)
@@ -158,7 +173,12 @@ public class MessageData : IMessageData
         return this;
     }
 
-    private async Task<IMessageData?> SendMessageInternalAsync(string content, ulong? referenceMessageId, string? filePath = null)
+    private async Task<IMessageData?> SendMessageInternalAsync(
+        string? content,
+        ulong? referenceMessageId,
+        string? filePath = null,
+        Embed? embed = null,
+        AllowedMentions? allowedMentions = null)
     {
         if (OriginalSocketMessage is null)
         {
@@ -178,11 +198,20 @@ public class MessageData : IMessageData
 
             if (filePath is not null)
             {
-                result = await OriginalSocketMessage.Channel.SendFileAsync(filePath,content, messageReference:reference);
+                result = await OriginalSocketMessage.Channel.SendFileAsync(
+                    filePath,
+                    content ?? string.Empty,
+                    embed: embed,
+                    allowedMentions: allowedMentions,
+                    messageReference: reference);
             }
             else
             {
-                result = await OriginalSocketMessage.Channel.SendMessageAsync(content, messageReference:reference);
+                result = await OriginalSocketMessage.Channel.SendMessageAsync(
+                    content,
+                    embed: embed,
+                    allowedMentions: allowedMentions,
+                    messageReference: reference);
             }
 
             return await FromIMessageAsync(result);

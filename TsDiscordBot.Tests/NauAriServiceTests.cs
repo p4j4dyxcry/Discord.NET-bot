@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Discord;
 using Microsoft.Extensions.Logging.Abstractions;
 using TsDiscordBot.Core.Framework;
 using TsDiscordBot.Core.HostedService;
@@ -64,7 +65,11 @@ public class NauAriServiceTests
             SentMessage = content;
             return Task.FromResult<IMessageData?>(null);
         }
+        public Task<IMessageData?> SendMessageAsyncOnChannel(Embed embed, AllowedMentions? allowedMentions = null)
+            => Task.FromResult<IMessageData?>(null);
         public Task<IMessageData?> ReplyMessageAsync(string content, string? filePath = null) => Task.FromResult<IMessageData?>(null);
+        public Task<IMessageData?> ReplyMessageAsync(Embed embed, AllowedMentions? allowedMentions = null)
+            => Task.FromResult<IMessageData?>(null);
         public Task<IMessageData?> ModifyMessageAsync(Func<string, string> modify) => Task.FromResult<IMessageData?>(null);
         public Task<bool> DeleteAsync() => Task.FromResult(false);
         public Task CreateAttachmentSourceIfNotCachedAsync() => Task.CompletedTask;

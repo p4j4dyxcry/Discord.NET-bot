@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text;
+using Discord;
 using TsDiscordBot.Core.Framework;
 using TsDiscordBot.Core.Services;
 
@@ -58,6 +59,12 @@ public class ShowRankService : IAmuseService
             sb.AppendLine($"{rank + 1}. <@{below.UserId}>　{below.Cash}GAL円");
         }
 
-        return message.ReplyMessageAsync(sb.ToString().TrimEnd());
+        var embed = new EmbedBuilder()
+            .WithTitle("🏆 現在のランキング")
+            .WithDescription(sb.ToString().TrimEnd())
+            .WithColor(Color.Gold)
+            .Build();
+
+        return message.ReplyMessageAsync(embed, AllowedMentions.None);
     }
 }
