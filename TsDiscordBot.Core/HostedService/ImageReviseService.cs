@@ -125,52 +125,70 @@ namespace TsDiscordBot.Core.HostedService
             using var cts = new CancellationTokenSource();
             var progressTask = RunProgressAsync(progressMessage, progressContent, stopWatch, cts.Token);
 
-            await using var stream = new MemoryStream(attachment.Bytes);
-
-            var results = await _imageService.EditAsync(stream, prompt, 1024, cts.Token);
-            if (results.Count == 0)
+            bool progressStopped = false;
+            async Task StopProgressAsync()
             {
+                if (progressStopped)
+                {
+                    return;
+                }
+
+                progressStopped = true;
+
                 await cts.CancelAsync();
                 await progressTask;
-                await progressMessage.ModifyMessageAsync(msg => GetFailedMessage(prompt, stopWatch.Elapsed.Seconds));
-                return;
             }
 
-            var dir = Path.GetDirectoryName(Envs.LITEDB_PATH);
-            if (string.IsNullOrWhiteSpace(dir))
+            try
             {
-                dir = ".";
-            }
-            Directory.CreateDirectory(dir);
+                await using var stream = new MemoryStream(attachment.Bytes);
 
-            var result = results[0];
-            byte[] imageBytes;
-            if (result.HasUri)
+                var results = await _imageService.EditAsync(stream, prompt, 1024, cts.Token);
+                if (results.Count == 0)
+                {
+                    await StopProgressAsync();
+                    await progressMessage.ModifyMessageAsync(msg => GetFailedMessage(prompt, stopWatch.Elapsed.Seconds));
+                    return;
+                }
+
+                var dir = Path.GetDirectoryName(Envs.LITEDB_PATH);
+                if (string.IsNullOrWhiteSpace(dir))
+                {
+                    dir = ".";
+                }
+                Directory.CreateDirectory(dir);
+
+                var result = results[0];
+                byte[] imageBytes;
+                if (result.HasUri)
+                {
+                    imageBytes = await HttpClientStatic.Default.GetByteArrayAsync(result.Uri, cts.Token);
+                }
+                else if (result.HasBytes)
+                {
+                    imageBytes = result.Bytes!.Value.ToArray();
+                }
+                else
+                {
+                    await StopProgressAsync();
+                    await progressMessage.ModifyMessageAsync(msg => GetFailedMessage(prompt, stopWatch.Elapsed.Seconds));
+                    return;
+                }
+
+                var filePath = Path.Combine(dir, $"revise_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.png");
+                await File.WriteAllBytesAsync(filePath, imageBytes, cts.Token);
+
+                await StopProgressAsync();
+                await progressMessage.ModifyMessageAsync(msg => GetSucceedMessage(prompt, stopWatch.Elapsed.Seconds));
+
+                await message.ReplyMessageAsync($"画像を修正したよ！\n\"{prompt}\"", filePath);
+
+                await progressMessage.DeleteAsync();
+            }
+            finally
             {
-                imageBytes = await HttpClientStatic.Default.GetByteArrayAsync(result.Uri, cts.Token);
+                await StopProgressAsync();
             }
-            else if (result.HasBytes)
-            {
-                imageBytes = result.Bytes!.Value.ToArray();
-            }
-            else
-            {
-                await cts.CancelAsync();
-                await progressTask;
-                await progressMessage.ModifyMessageAsync(msg => GetFailedMessage(prompt, stopWatch.Elapsed.Seconds));
-                return;
-            }
-
-            var filePath = Path.Combine(dir, $"revise_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}.png");
-            await File.WriteAllBytesAsync(filePath, imageBytes, cts.Token);
-
-            cts.Cancel();
-            await progressTask;
-            await progressMessage.ModifyMessageAsync(msg => GetSucceedMessage(prompt, stopWatch.Elapsed.Seconds));
-
-            await message.ReplyMessageAsync($"画像を修正したよ！\n\"{prompt}\"", filePath);
-
-            await progressMessage.DeleteAsync();
         }
     }
 }
