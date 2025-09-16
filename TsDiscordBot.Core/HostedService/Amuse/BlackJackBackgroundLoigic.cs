@@ -95,36 +95,42 @@ namespace TsDiscordBot.Core.HostedService.Amuse
                     return;
                 }
 
-                if (game.IsFinished)
-                {
-                    var result = game.Result!;
-                    var cash = _databaseService
-                        .FindAll<AmuseCash>(AmuseCash.TableName)
-                        .FirstOrDefault(x => x.UserId == session.Play.UserId);
-                    if (cash is not null)
-                    {
-                        cash.Cash += result.Payout;
-                        cash.LastUpdatedAtUtc = DateTime.UtcNow;
-                        _databaseService.Update(AmuseCash.TableName, cash);
-                    }
-
-                    UpdateGameRecord(session.Play.UserId, session.Play.GameKind,
-                        result.Outcome == GameOutcome.PlayerWin);
-
-                    await UpdateMessageAsync(userMessage, game, session.Play, true);
-
-                    _databaseService.Delete(AmusePlay.TableName, session.Play.Id);
-                    _games.TryRemove(messageId, out _);
-                }
-                else
-                {
-                    await UpdateMessageAsync(userMessage, game, session.Play, false);
-                }
+                await HandleGameStateAsync(session, userMessage);
             }
             catch (Exception e)
             {
                 _logger.LogError(e, "Failed to handle blackjack interaction");
             }
+        }
+
+        private async Task HandleGameStateAsync(GameSession session, IUserMessage userMessage)
+        {
+            var game = session.Game;
+
+            if (game.IsFinished && game.Result is not null)
+            {
+                var result = game.Result;
+                var cash = _databaseService
+                    .FindAll<AmuseCash>(AmuseCash.TableName)
+                    .FirstOrDefault(x => x.UserId == session.Play.UserId);
+                if (cash is not null)
+                {
+                    cash.Cash += result.Payout;
+                    cash.LastUpdatedAtUtc = DateTime.UtcNow;
+                    _databaseService.Update(AmuseCash.TableName, cash);
+                }
+
+                UpdateGameRecord(session.Play.UserId, session.Play.GameKind,
+                    result.Outcome == GameOutcome.PlayerWin);
+
+                await UpdateMessageAsync(userMessage, game, session.Play, true);
+
+                _databaseService.Delete(AmusePlay.TableName, session.Play.Id);
+                _games.TryRemove(session.Play.MessageId, out _);
+                return;
+            }
+
+            await UpdateMessageAsync(userMessage, game, session.Play, false);
         }
 
         private async Task UpdateMessageAsync(IUserMessage message, BlackJackGame game, AmusePlay play, bool revealDealer)
@@ -164,16 +170,23 @@ namespace TsDiscordBot.Core.HostedService.Amuse
             var components = new ComponentBuilder();
             if (!game.IsFinished)
             {
-                components.WithButton("ヒット", $"empty_bj_hit:{play.MessageId}", ButtonStyle.Primary);
-                components.WithButton("スタンド", $"empty_bj_stand:{play.MessageId}", ButtonStyle.Secondary);
-                if (!game.DoubleDowned && game.PlayerCards.Count == 2)
+                if (playerScore == 21)
                 {
-                    var cash = _databaseService
-                        .FindAll<AmuseCash>(AmuseCash.TableName)
-                        .FirstOrDefault(x => x.UserId == play.UserId);
-                    if (cash is not null && cash.Cash >= play.Bet)
+                    components.WithButton("スタンド", $"empty_bj_stand:{play.MessageId}", ButtonStyle.Secondary);
+                }
+                else
+                {
+                    components.WithButton("ヒット", $"empty_bj_hit:{play.MessageId}", ButtonStyle.Primary);
+                    components.WithButton("スタンド", $"empty_bj_stand:{play.MessageId}", ButtonStyle.Secondary);
+                    if (!game.DoubleDowned && game.PlayerCards.Count == 2)
                     {
-                        components.WithButton("ダブルダウン", $"empty_bj_double:{play.MessageId}", ButtonStyle.Danger);
+                        var cash = _databaseService
+                            .FindAll<AmuseCash>(AmuseCash.TableName)
+                            .FirstOrDefault(x => x.UserId == play.UserId);
+                        if (cash is not null && cash.Cash >= play.Bet)
+                        {
+                            components.WithButton("ダブルダウン", $"empty_bj_double:{play.MessageId}", ButtonStyle.Danger);
+                        }
                     }
                 }
             }
@@ -211,7 +224,8 @@ namespace TsDiscordBot.Core.HostedService.Amuse
                 }
 
                 var game = new BlackJackGame(play.Bet);
-                _games[play.MessageId] = new GameSession(play, game);
+                var session = new GameSession(play, game);
+                _games[play.MessageId] = session;
                 play.Started = true;
                 _databaseService.Update(AmusePlay.TableName, play);
 
@@ -223,7 +237,7 @@ namespace TsDiscordBot.Core.HostedService.Amuse
                 cash.LastUpdatedAtUtc = DateTime.UtcNow;
                 _databaseService.Update(AmuseCash.TableName, cash);
 
-                await UpdateMessageAsync(userMessage, game, play, false);
+                await HandleGameStateAsync(session, userMessage);
             }
         }
 
