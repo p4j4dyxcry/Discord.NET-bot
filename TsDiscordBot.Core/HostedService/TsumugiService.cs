@@ -30,7 +30,10 @@ namespace TsDiscordBot.Core.HostedService
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _subscription = _client.OnReceivedSubscribe(OnMessageReceivedAsync, nameof(TsumugiService));
+            _subscription = _client.OnReceivedSubscribe(
+                OnMessageReceivedAsync,
+                MessageConditions.NotFromBot.And(MessageConditions.NotDeleted),
+                nameof(TsumugiService));
             return Task.CompletedTask;
         }
 
@@ -40,7 +43,7 @@ namespace TsDiscordBot.Core.HostedService
             return Task.CompletedTask;
         }
 
-        private Task RunProgressAsync(IMessageData? progressMessage,string original, CancellationToken token)
+        private Task RunProgressAsync(IMessageData? progressMessage, string original, CancellationToken token)
         {
             if (progressMessage is null)
             {
@@ -74,49 +77,58 @@ namespace TsDiscordBot.Core.HostedService
             }, token);
         }
 
-        private async Task OnMessageReceivedAsync(IMessageData message)
+        private async Task OnMessageReceivedAsync(IMessageData message, CancellationToken token)
         {
-            if (message.IsDeleted || message.IsBot)
-            {
-                return;
-            }
-
             if (message.Content.StartsWith("!revise"))
             {
                 return;
             }
 
             using CancellationTokenSource cts = new();
-            try
-            {
-                var channel = await _discordSocketClient.GetChannelAsync(message.ChannelId) as ISocketMessageChannel;
 
-                if (channel is null)
+            var channel = await _discordSocketClient.GetChannelAsync(message.ChannelId) as ISocketMessageChannel;
+
+            if (channel is null)
+            {
+                return;
+            }
+
+            if (!_firstHistory.TryGetValue(message.ChannelId, out var cache))
+            {
+                var firstMessages = await channel.GetMessagesAsync()
+                    .FlattenAsync();
+                var convertedFirst = new List<ConvertedMessage>();
+                foreach (var m in firstMessages)
                 {
-                    return;
+                    var c = await MessageData.FromIMessageAsync(m, _logger);
+                    convertedFirst.Add(ConvertMessageAsync(c));
                 }
 
-                if (!_firstHistory.TryGetValue(message.ChannelId, out var cache))
+                _firstHistory[message.ChannelId] = convertedFirst.ToArray();
+            }
+
+            if (message.MentionTsumugi || message.Content.StartsWith("!つむぎ"))
+            {
+                string progressContent = "つむぎが入力中";
+                var progressMessage = await message.ReplyMessageAsync(progressContent);
+                var progressTask = RunProgressAsync(progressMessage, progressContent, cts.Token);
+
+                bool progressStopped = false;
+                async Task StopProgressAsync()
                 {
-                    var firstMessages = await channel.GetMessagesAsync()
-                        .FlattenAsync();
-                    var convertedFirst = new List<ConvertedMessage>();
-                    foreach (var m in firstMessages)
+                    if (progressStopped)
                     {
-                        var c = await MessageData.FromIMessageAsync(m, _logger);
-                        convertedFirst.Add(ConvertMessageAsync(c));
+                        return;
                     }
 
-                    _firstHistory[message.ChannelId] = convertedFirst.ToArray();
+                    progressStopped = true;
+
+                    await cts.CancelAsync();
+                    await progressTask;
                 }
 
-                if (message.MentionTsumugi || message.Content.StartsWith("!つむぎ"))
+                try
                 {
-                    string progressContent = "つむぎが入力中";
-                    var progressMessage = await message.ReplyMessageAsync(progressContent);
-                    var progressTask = RunProgressAsync(progressMessage, progressContent, cts.Token);
-
-
                     var previousMessagesTasks = channel.GetCachedMessages(100)
                         .Where(m => m.Id != message.Id)
                         .Select(async x => await MessageData.FromIMessageAsync(x))
@@ -136,26 +148,15 @@ namespace TsDiscordBot.Core.HostedService
                     string result = await _openAiService.GetResponse(message.GuildId, null, previousMessages);
 
                     var sendMessageTask = message.ReplyMessageAsync(result);
-                    try
-                    {
-                        await cts.CancelAsync();
-                        await progressTask;
-                    }
-                    catch(Exception e)
-                    {
-                        _logger.LogWarning(e,"Failed");
-                    }
+
+                    await StopProgressAsync();
 
                     await sendMessageTask;
                 }
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "Failed to TsumugiService");
-            }
-            finally
-            {
-                await cts.CancelAsync();
+                finally
+                {
+                    await StopProgressAsync();
+                }
             }
         }
 

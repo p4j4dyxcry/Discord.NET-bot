@@ -25,7 +25,10 @@ public class AmuseMessageService : IHostedService
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _subscription = _client.OnReceivedSubscribe(OnMessageReceivedAsync, nameof(AmuseMessageService));
+        _subscription = _client.OnReceivedSubscribe(
+            OnMessageReceivedAsync,
+            MessageConditions.NotFromBot.And(MessageConditions.NotDeleted),
+            nameof(AmuseMessageService));
         return Task.CompletedTask;
     }
 
@@ -35,35 +38,23 @@ public class AmuseMessageService : IHostedService
         return Task.CompletedTask;
     }
 
-    private async Task OnMessageReceivedAsync(IMessageData message)
+    private async Task OnMessageReceivedAsync(IMessageData message, CancellationToken token)
     {
-        if (message.IsDeleted || message.IsBot)
+        var enabled = _databaseService
+            .FindAll<AmuseChannel>(AmuseChannel.TableName)
+            .Any(x => x.GuildId == message.GuildId && x.ChannelId == message.ChannelId);
+
+        if (!enabled)
         {
             return;
         }
 
-        try
+        var service = _parser.Parse(message.Content);
+        if (service is null)
         {
-            var enabled = _databaseService
-                .FindAll<AmuseChannel>(AmuseChannel.TableName)
-                .Any(x => x.GuildId == message.GuildId && x.ChannelId == message.ChannelId);
-
-            if (!enabled)
-            {
-                return;
-            }
-
-            var service = _parser.Parse(message.Content);
-            if (service is null)
-            {
-                return;
-            }
-
-            await service.ExecuteAsync(message);
+            return;
         }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Failed to handle amuse command.");
-        }
+
+        await service.ExecuteAsync(message);
     }
 }

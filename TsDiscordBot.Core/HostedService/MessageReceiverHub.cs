@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Reactive.Disposables;
 using Discord;
 using Discord.WebSocket;
@@ -23,25 +24,35 @@ public class MessageReceiverHub : IHostedService, IMessageReceiver
         _logger = logger;
     }
 
-    private record ServiceRegistration(Func<MessageData, Task> Event, string ServiceName, string EventName)
+    private record ServiceRegistration(
+        Func<MessageData, CancellationToken, Task> Event,
+        Func<MessageData, CancellationToken, ValueTask<bool>> Condition,
+        string ServiceName,
+        string EventName)
     {
         public Guid Id { get; } = Guid.NewGuid();
-        public string ServiceName { get; } = ServiceName;
-        public string EventName { get; } = EventName;
-        public Func<MessageData, Task> Event { get; } = Event;
     }
 
     private readonly ConcurrentDictionary<ServicePriority, List<ServiceRegistration>> ReceivedServiceList = new();
     private readonly ConcurrentDictionary<ServicePriority, List<ServiceRegistration>> EditedServiceList = new();
 
     /// <inheritdoc />
-    public IDisposable OnReceivedSubscribe(Func<IMessageData, Task> onMessageReceived, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
+    public IDisposable OnReceivedSubscribe(
+        Func<IMessageData, CancellationToken, Task> onMessageReceived,
+        Func<MessageData, CancellationToken, ValueTask<bool>> condition,
+        string serviceName = "",
+        ServicePriority priority = ServicePriority.Normal)
     {
+        if (condition is null) throw new ArgumentNullException(nameof(condition));
         if (!ReceivedServiceList.ContainsKey(priority))
         {
             ReceivedServiceList[priority] = [];
         }
-        ServiceRegistration registration = new ServiceRegistration(onMessageReceived,serviceName,"MessageReceived");
+        ServiceRegistration registration = new(
+            (m, ct) => onMessageReceived(m, ct),
+            condition,
+            serviceName,
+            "MessageReceived");
         ReceivedServiceList[priority].Add(registration);
 
         return Disposable.Create(() =>
@@ -51,13 +62,22 @@ public class MessageReceiverHub : IHostedService, IMessageReceiver
     }
 
     /// <inheritdoc />
-    public IDisposable OnEditedSubscribe(Func<IMessageData, Task> onMessageReceived, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
+    public IDisposable OnEditedSubscribe(
+        Func<IMessageData, CancellationToken, Task> onMessageReceived,
+        Func<MessageData, CancellationToken, ValueTask<bool>> condition,
+        string serviceName = "",
+        ServicePriority priority = ServicePriority.Normal)
     {
+        if (condition is null) throw new ArgumentNullException(nameof(condition));
         if (!EditedServiceList.ContainsKey(priority))
         {
             EditedServiceList[priority] = [];
         }
-        ServiceRegistration registration = new ServiceRegistration(onMessageReceived,serviceName,"MessageUpdated");
+        ServiceRegistration registration = new(
+            (m, ct) => onMessageReceived(m, ct),
+            condition,
+            serviceName,
+            "MessageUpdated");
         EditedServiceList[priority].Add(registration);
 
         return Disposable.Create(() =>
@@ -87,27 +107,82 @@ public class MessageReceiverHub : IHostedService, IMessageReceiver
             {
                 MessageData data = await MessageData.FromIMessageAsync(arg);
 
-                List<ServiceRegistration>[] priorityGroup = ReceivedServiceList.OrderBy(x => x.Key)
+                var priorityGroup = ReceivedServiceList
+                    .OrderBy(x => x.Key)
                     .Select(x => x.Value)
                     .ToArray();
 
                 foreach (var priority in priorityGroup)
                 {
-                    foreach (var subscription in priority)
+                    foreach (var subscription in priority.ToArray())
                     {
+                        var token = CancellationToken.None;
+                        bool shouldRun;
                         try
                         {
-                            await subscription.Event(data);
+                            shouldRun = await subscription.Condition(data, token);
                         }
-                        catch(Exception e)
+                        catch (OperationCanceledException ex)
                         {
-                            _logger.LogError(e, $"An exception occured while processing message in {subscription.ServiceName}");
+                            _logger.LogWarning(ex, "Condition cancelled for {Service}", subscription.ServiceName);
+                            continue;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Condition error for {Service}", subscription.ServiceName);
+                            continue;
+                        }
+
+                        if (!shouldRun)
+                        {
+                            continue;
+                        }
+
+                        var sw = Stopwatch.StartNew();
+                        try
+                        {
+                            await subscription.Event(data, token);
+                            sw.Stop();
+                            _logger.LogInformation(
+                                "Executed {Service}/{Event} for {Guild}/{Channel}/{Message} in {Elapsed}ms result=Success",
+                                subscription.ServiceName,
+                                subscription.EventName,
+                                data.GuildId,
+                                data.ChannelId,
+                                data.Id,
+                                sw.ElapsedMilliseconds);
+                        }
+                        catch (OperationCanceledException ex)
+                        {
+                            sw.Stop();
+                            _logger.LogWarning(
+                                ex,
+                                "Executed {Service}/{Event} cancelled for {Guild}/{Channel}/{Message} after {Elapsed}ms",
+                                subscription.ServiceName,
+                                subscription.EventName,
+                                data.GuildId,
+                                data.ChannelId,
+                                data.Id,
+                                sw.ElapsedMilliseconds);
+                        }
+                        catch (Exception ex)
+                        {
+                            sw.Stop();
+                            _logger.LogError(
+                                ex,
+                                "Executed {Service}/{Event} failed for {Guild}/{Channel}/{Message} after {Elapsed}ms",
+                                subscription.ServiceName,
+                                subscription.EventName,
+                                data.GuildId,
+                                data.ChannelId,
+                                data.Id,
+                                sw.ElapsedMilliseconds);
                         }
                     }
                 }
             });
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             _logger.LogError(e, "An exception occurred while processing a message");
         }
@@ -121,28 +196,83 @@ public class MessageReceiverHub : IHostedService, IMessageReceiver
             {
                 MessageData data = await MessageData.FromIMessageAsync(arg2);
 
-                List<ServiceRegistration>[] priorityGroup = EditedServiceList.OrderBy(x => x.Key)
+                var priorityGroup = EditedServiceList
+                    .OrderBy(x => x.Key)
                     .Select(x => x.Value)
                     .ToArray();
 
                 foreach (var priority in priorityGroup)
                 {
-                    foreach (var subscription in priority)
+                    foreach (var subscription in priority.ToArray())
                     {
+                        var token = CancellationToken.None;
+                        bool shouldRun;
                         try
                         {
-                            await subscription.Event(data);
+                            shouldRun = await subscription.Condition(data, token);
                         }
-                        catch(Exception e)
+                        catch (OperationCanceledException ex)
                         {
-                            _logger.LogError(e, $"An exception occured while processing message in {subscription.ServiceName}");
+                            _logger.LogWarning(ex, "Condition cancelled for {Service}", subscription.ServiceName);
+                            continue;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Condition error for {Service}", subscription.ServiceName);
+                            continue;
+                        }
+
+                        if (!shouldRun)
+                        {
+                            continue;
+                        }
+
+                        var sw = Stopwatch.StartNew();
+                        try
+                        {
+                            await subscription.Event(data, token);
+                            sw.Stop();
+                            _logger.LogInformation(
+                                "Executed {Service}/{Event} for {Guild}/{Channel}/{Message} in {Elapsed}ms result=Success",
+                                subscription.ServiceName,
+                                subscription.EventName,
+                                data.GuildId,
+                                data.ChannelId,
+                                data.Id,
+                                sw.ElapsedMilliseconds);
+                        }
+                        catch (OperationCanceledException ex)
+                        {
+                            sw.Stop();
+                            _logger.LogWarning(
+                                ex,
+                                "Executed {Service}/{Event} cancelled for {Guild}/{Channel}/{Message} after {Elapsed}ms",
+                                subscription.ServiceName,
+                                subscription.EventName,
+                                data.GuildId,
+                                data.ChannelId,
+                                data.Id,
+                                sw.ElapsedMilliseconds);
+                        }
+                        catch (Exception ex)
+                        {
+                            sw.Stop();
+                            _logger.LogError(
+                                ex,
+                                "Executed {Service}/{Event} failed for {Guild}/{Channel}/{Message} after {Elapsed}ms",
+                                subscription.ServiceName,
+                                subscription.EventName,
+                                data.GuildId,
+                                data.ChannelId,
+                                data.Id,
+                                sw.ElapsedMilliseconds);
                         }
 
                     }
                 }
             });
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             _logger.LogError(e, "An exception occurred while processing a message");
         }
