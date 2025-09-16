@@ -25,6 +25,27 @@ public class BlackJackGameTests
     }
 
     [Fact]
+    public void Hit_Busts_DealerContinuesToDraw()
+    {
+        var deck = new Deck(new[]
+        {
+            new Card(Rank.Ten, Suit.Hearts),
+            new Card(Rank.Six, Suit.Spades),
+            new Card(Rank.Seven, Suit.Clubs),
+            new Card(Rank.Six, Suit.Hearts),
+            new Card(Rank.Ten, Suit.Diamonds),
+            new Card(Rank.Four, Suit.Diamonds),
+            new Card(Rank.Five, Suit.Clubs)
+        });
+        var game = new BlackJackGame(10, deck);
+        game.Hit();
+
+        Assert.True(game.IsFinished);
+        Assert.Equal(4, game.DealerCards.Count);
+        Assert.Equal(21, BlackJackGame.CalculateScore(game.DealerCards));
+    }
+
+    [Fact]
     public void Stand_PlayerHigherScore_Wins()
     {
         var deck = new Deck(new[]
