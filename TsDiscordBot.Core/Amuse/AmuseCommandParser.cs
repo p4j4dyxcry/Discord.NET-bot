@@ -65,6 +65,13 @@ public class AmuseCommandParser : IAmuseCommandParser
                     {
                         return new ShowTopWinRateService("DI", "サイコロゲーム", _databaseService);
                     }
+
+                    if (parts[2].Equals("hl", StringComparison.OrdinalIgnoreCase) ||
+                        parts[2].Equals("highlow", StringComparison.OrdinalIgnoreCase) ||
+                        parts[2].Equals("highandlow", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return new ShowTopWinRateService("HL", "ハイ＆ロー", _databaseService);
+                    }
                 }
 
                 return new ShowTopCashService(_databaseService);

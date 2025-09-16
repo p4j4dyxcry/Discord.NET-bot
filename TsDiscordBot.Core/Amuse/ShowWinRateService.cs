@@ -36,6 +36,7 @@ public class ShowWinRateService : IAmuseService
             {
                 "BJ" => "ブラックジャック",
                 "DI" => "サイコロゲーム",
+                "HL" => "ハイ＆ロー",
                 _ => record.GameKind
             };
             sb.AppendLine($"{gameName}: {rate:0.##}% ({record.WinCount}/{record.TotalPlays})");
