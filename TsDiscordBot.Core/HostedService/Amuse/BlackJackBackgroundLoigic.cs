@@ -394,18 +394,9 @@ namespace TsDiscordBot.Core.HostedService.Amuse
 
         private async Task CancelReplayAsync(IUserMessage message, ReplayRequest replay, bool dueToTimeout, string? additionalLine = null)
         {
-            var builder = new System.Text.StringBuilder(replay.OriginalContent);
-            if (builder.Length > 0 && builder[^1] != '\n')
-            {
-                builder.AppendLine();
-            }
-
-            var line = additionalLine ?? (dueToTimeout ? "1分間操作がなかったため終了しました。" : "また遊ぼうね！");
-            builder.AppendLine(line);
-
             await message.ModifyAsync(msg =>
             {
-                msg.Content = builder.ToString();
+                msg.Content = "また遊ぼうね！";
                 msg.Components = new ComponentBuilder().Build();
             });
         }

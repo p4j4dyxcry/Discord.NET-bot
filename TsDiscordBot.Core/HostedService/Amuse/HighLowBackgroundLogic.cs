@@ -302,7 +302,7 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
         _databaseService.Delete(AmusePlay.TableName, session.Play.Id);
         _sessions.TryRemove(session.Play.MessageId, out _);
 
-        await ShowReplayPromptAsync(message, session.Play, session.Game.Bet, payout);
+        await ShowReplayPromptAsync(message, session.Play, session.Game.Bet, payout, false);
     }
 
     private async Task FinalizeLossAsync(IUserMessage message, HighLowSession session)
@@ -311,13 +311,18 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
         _databaseService.Delete(AmusePlay.TableName, session.Play.Id);
         _sessions.TryRemove(session.Play.MessageId, out _);
 
-        await ShowReplayPromptAsync(message, session.Play, session.Game.Bet,0);
+        await ShowReplayPromptAsync(message, session.Play, session.Game.Bet,0,true);
     }
 
-    private async Task ShowReplayPromptAsync(IUserMessage message, AmusePlay play, int previousBet,int lastPayout)
+    private async Task ShowReplayPromptAsync(IUserMessage message, AmusePlay play, int previousBet,int lastPayout,bool combinePreviousContent)
     {
-        var latest = await message.Channel.GetMessageAsync(message.Id) as IUserMessage;
-        var originalContent = latest?.Content ?? message.Content ?? string.Empty;
+        string originalContent = string.Empty;
+
+        if (combinePreviousContent)
+        {
+            var latest = await message.Channel.GetMessageAsync(message.Id) as IUserMessage;
+            originalContent = latest?.Content ?? message.Content ?? string.Empty;
+        }
 
         var bet = DetermineReplayBet(play.UserId, previousBet);
 
@@ -326,7 +331,7 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
             existing.TimeoutToken.Cancel();
         }
 
-        var builder = new System.Text.StringBuilder();
+        var builder = new System.Text.StringBuilder(originalContent);
         if (lastPayout > 0)
         {
             builder.AppendLine($"はい、{lastPayout}GAL円だよ！");
