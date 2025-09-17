@@ -7,11 +7,19 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using TsDiscordBot.Core.Services;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace TsDiscordBot.Tests;
 
 public class DatabaseServiceTests
 {
+    private readonly ITestOutputHelper _testOutputHelper;
+
+    public DatabaseServiceTests(ITestOutputHelper testOutputHelper)
+    {
+        _testOutputHelper = testOutputHelper;
+    }
+
     private const string Table = "test";
 
     private class TestRecord
@@ -23,14 +31,9 @@ public class DatabaseServiceTests
     [Fact]
     public void Insert_FindAll_Update_Delete_Work()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.db");
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new[] { new KeyValuePair<string, string>("database_path", path) })
-            .Build();
-
         try
         {
-            using var service = new DatabaseService(NullLogger<DatabaseService>.Instance, config);
+            using var service = TestDB.Crate(null,_testOutputHelper);
 
             var item = new TestRecord { Name = "foo" };
             service.Insert(Table, item);
@@ -51,22 +54,18 @@ public class DatabaseServiceTests
         }
         finally
         {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
+
         }
     }
 
     [Fact]
     public void Methods_Handle_Null_LiteDb()
     {
-        var dir = Path.GetTempPath();
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new[] { new KeyValuePair<string, string>("database_path", dir) })
+            .AddInMemoryCollection(new[] { new KeyValuePair<string, string>("database_path", "TEMP_ABC:\\") })
             .Build();
 
-        using var service = new DatabaseService(NullLogger<DatabaseService>.Instance, config);
+        using var service = new DatabaseService(new TestLogger<DatabaseService>(_testOutputHelper), config);
 
         var field = typeof(DatabaseService).GetField("_litedb", BindingFlags.NonPublic | BindingFlags.Instance);
         Assert.Null(field!.GetValue(service));

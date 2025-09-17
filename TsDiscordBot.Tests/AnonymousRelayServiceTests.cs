@@ -12,6 +12,7 @@ using TsDiscordBot.Core.HostedService;
 using TsDiscordBot.Core.Services;
 using TsDiscordBot.Core.Utility;
 using Xunit;
+using Xunit.Abstractions;
 
 #nullable enable
 
@@ -19,6 +20,13 @@ namespace TsDiscordBot.Tests;
 
 public class AnonymousRelayServiceTests
 {
+    private readonly ITestOutputHelper _testOutputHelper;
+
+    public AnonymousRelayServiceTests(ITestOutputHelper testOutputHelper)
+    {
+        _testOutputHelper = testOutputHelper;
+    }
+
     private class FakeMessageReceiver : IMessageReceiver
     {
         private Func<IMessageData, CancellationToken, Task>? _onReceived;
@@ -109,23 +117,21 @@ public class AnonymousRelayServiceTests
         }
         public Task CreateAttachmentSourceIfNotCachedAsync() => Task.CompletedTask;
     }
-
-    private static DatabaseService CreateDatabase(params AnonymousGuildUserSetting[] settings)
-    {
-        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".db");
-        Environment.SetEnvironmentVariable("LITEDB_PATH", path);
-        var db = new DatabaseService(NullLogger<DatabaseService>.Instance, new ConfigurationBuilder().Build());
-        foreach (var s in settings)
-        {
-            db.Insert(AnonymousGuildUserSetting.TableName, s);
-        }
-        return db;
-    }
-
     [Fact]
     public async Task Relays_Message_When_User_Is_Anonymous()
     {
-        using var db = CreateDatabase(new AnonymousGuildUserSetting { GuildId = 1, UserId = 2, IsAnonymous = true });
+        using var db = TestDB.Crate(testOutputHelper: _testOutputHelper,
+            setup: db =>
+            {
+                var data = new AnonymousGuildUserSetting
+                {
+                    GuildId = 1,
+                    UserId = 2,
+                    IsAnonymous = true
+                };
+                db.Insert(AnonymousGuildUserSetting.TableName,data);
+            }
+        );
         var receiver = new FakeMessageReceiver();
         var webhooks = new FakeWebHookService();
         var service = new AnonymousRelayService(receiver, webhooks, NullLogger<AnonymousRelayService>.Instance, db);
@@ -147,7 +153,7 @@ public class AnonymousRelayServiceTests
     [Fact]
     public async Task Does_Not_Relay_When_User_Not_Anonymous()
     {
-        using var db = CreateDatabase();
+        using var db = TestDB.Crate(testOutputHelper: _testOutputHelper);
         var receiver = new FakeMessageReceiver();
         var webhooks = new FakeWebHookService();
         var service = new AnonymousRelayService(receiver, webhooks, NullLogger<AnonymousRelayService>.Instance, db);

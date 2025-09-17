@@ -13,12 +13,20 @@ using TsDiscordBot.Core.Framework;
 using TsDiscordBot.Core.HostedService;
 using TsDiscordBot.Core.Services;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace TsDiscordBot.Tests;
 
 public class BannedMessageCheckerServiceTests
 {
-    private static BannedMessageCheckerService CreateService(DatabaseService db, FakeWebHookService webhook)
+    private readonly ITestOutputHelper _logger;
+
+    public BannedMessageCheckerServiceTests(ITestOutputHelper logger)
+    {
+        _logger = logger;
+    }
+
+    private BannedMessageCheckerService CreateService(DatabaseService db, FakeWebHookService webhook)
     {
         var discordClient = new DiscordSocketClient();
         var receiver = new DummyMessageReceiver();
@@ -26,23 +34,12 @@ public class BannedMessageCheckerServiceTests
         return new BannedMessageCheckerService(discordClient, receiver, webhook, logger, db);
     }
 
-    private static DatabaseService CreateDatabase(Action<DatabaseService> setup)
-    {
-        var dbPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".db");
-        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
-        {
-            ["database_path"] = dbPath
-        }).Build();
-        var db = new DatabaseService(NullLogger<DatabaseService>.Instance, config);
-        setup(db);
-        return db;
-    }
-
     [Fact]
     public async Task CheckMessageAsync_BannedWord_DeletesAndRelaysSanitizedMessage()
     {
         using var webhook = new FakeWebHookService();
-        using var db = CreateDatabase(database =>
+        using var db = TestDB.Crate(null,_logger,
+            database =>
         {
             database.Insert(BannedTriggerWord.TableName, new BannedTriggerWord
             {
@@ -72,7 +69,8 @@ public class BannedMessageCheckerServiceTests
     public async Task CheckMessageAsync_ExcludedWord_DoesNotDelete()
     {
         using var webhook = new FakeWebHookService();
-        using var db = CreateDatabase(database =>
+        using var db = TestDB.Crate(null,_logger,
+            database =>
         {
             database.Insert(BannedTriggerWord.TableName, new BannedTriggerWord
             {

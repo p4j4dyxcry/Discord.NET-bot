@@ -23,6 +23,9 @@ public class DatabaseService : IDisposable
 
         _databasePath = databasePath;
 
+        _logger.LogInformation($"LITEDB_PATH: {Envs.LITEDB_PATH}");
+        _logger.LogInformation($"Database path: {_databasePath}");
+
         try
         {
             _litedb = new LiteDatabase(_databasePath);

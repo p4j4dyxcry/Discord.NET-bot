@@ -78,7 +78,7 @@ namespace TsDiscordBot.Core.HostedService.Amuse
                     {
                         if (_replayRequests.TryRemove(messageId, out replay))
                         {
-                            replay.TimeoutToken.Cancel();
+                            await replay.TimeoutToken.CancelAsync();
                             await StartReplayAsync(replayMessage, replay);
                         }
                     }
@@ -86,7 +86,7 @@ namespace TsDiscordBot.Core.HostedService.Amuse
                     {
                         if (_replayRequests.TryRemove(messageId, out replay))
                         {
-                            replay.TimeoutToken.Cancel();
+                            await replay.TimeoutToken.CancelAsync();
                             await CancelReplayAsync(replayMessage, replay, false);
                         }
                     }
