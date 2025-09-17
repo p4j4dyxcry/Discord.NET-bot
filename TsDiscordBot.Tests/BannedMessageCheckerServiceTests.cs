@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging.Abstractions;
+using TsDiscordBot.Core.Messaging;
 using TsDiscordBot.Discord.Data;
 using TsDiscordBot.Discord.Framework;
 using TsDiscordBot.Discord.HostedService;
@@ -154,13 +155,13 @@ public class BannedMessageCheckerServiceTests
             SendMessageCalled = true;
             return Task.FromResult<IMessageData?>(null);
         }
-        public Task<IMessageData?> SendMessageAsyncOnChannel(Embed embed, AllowedMentions? allowedMentions = null)
+        public Task<IMessageData?> SendMessageAsyncOnChannel(MessageSendOptions options)
         {
             SendMessageCalled = true;
             return Task.FromResult<IMessageData?>(null);
         }
         public Task<IMessageData?> ReplyMessageAsync(string content, string? filePath = null) => Task.FromResult<IMessageData?>(null);
-        public Task<IMessageData?> ReplyMessageAsync(Embed embed, AllowedMentions? allowedMentions = null) => Task.FromResult<IMessageData?>(null);
+        public Task<IMessageData?> ReplyMessageAsync(MessageSendOptions options) => Task.FromResult<IMessageData?>(null);
         public Task<IMessageData?> ModifyMessageAsync(Func<string, string> modify) => Task.FromResult<IMessageData?>(this);
         public Task<bool> DeleteAsync()
         {

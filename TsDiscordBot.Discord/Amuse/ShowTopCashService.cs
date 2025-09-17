@@ -1,5 +1,5 @@
 using System.Text;
-using Discord;
+using TsDiscordBot.Core.Messaging;
 using TsDiscordBot.Discord.Framework;
 using TsDiscordBot.Discord.Services;
 
@@ -34,12 +34,17 @@ public class ShowTopCashService : IAmuseService
             sb.AppendLine($"{rank}. <@{topUsers[i].UserId}>　{topUsers[i].Cash}GAL円");
         }
 
-        var embed = new EmbedBuilder()
-            .WithTitle("💰 所持金ランキング TOP10")
-            .WithDescription(sb.ToString().TrimEnd())
-            .WithColor(Color.Gold)
-            .Build();
+        var options = new MessageSendOptions
+        {
+            Embed = new MessageEmbed
+            {
+                Title = "💰 所持金ランキング TOP10",
+                Description = sb.ToString().TrimEnd(),
+                Color = MessageColor.FromHex(0xFFD700),
+            },
+            MentionHandling = MentionHandling.SuppressAll,
+        };
 
-        return message.ReplyMessageAsync(embed, AllowedMentions.None);
+        return message.ReplyMessageAsync(options);
     }
 }
