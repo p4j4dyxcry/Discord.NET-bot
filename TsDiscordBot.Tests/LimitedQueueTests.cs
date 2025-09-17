@@ -15,7 +15,7 @@ public class LimitedQueueTests
         queue.Enqueue(3);
         queue.Enqueue(4);
 
-        Assert.Equal(new[] { 2, 3, 4 }, queue.ToArray());
+        Assert.Equal([2, 3, 4], queue.ToArray());
     }
 
     [Fact]

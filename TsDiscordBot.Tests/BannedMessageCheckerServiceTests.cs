@@ -57,7 +57,7 @@ public class BannedMessageCheckerServiceTests
         };
 
         var method = typeof(BannedMessageCheckerService).GetMethod("CheckMessageAsync", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        await (Task)method.Invoke(service, new object?[] { message, CancellationToken.None })!;
+        await (Task)method.Invoke(service, [message, CancellationToken.None])!;
 
         Assert.True(message.DeleteCalled);
         Assert.Equal("This is ＊＊＊", webhook.Client.LastContent);
@@ -93,7 +93,7 @@ public class BannedMessageCheckerServiceTests
         };
 
         var method = typeof(BannedMessageCheckerService).GetMethod("CheckMessageAsync", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        await (Task)method.Invoke(service, new object?[] { message, CancellationToken.None })!;
+        await (Task)method.Invoke(service, [message, CancellationToken.None])!;
 
         Assert.False(message.DeleteCalled);
         Assert.Null(webhook.Client.LastContent);
@@ -145,7 +145,7 @@ public class BannedMessageCheckerServiceTests
         public IMessageData? ReplySource => null;
         public bool IsDeleted => DeleteCalled;
         public DateTimeOffset Timestamp => DateTimeOffset.Now;
-        public List<AttachmentData> Attachments { get; } = new();
+        public List<AttachmentData> Attachments { get; } = [];
         public bool DeleteCalled { get; private set; }
         public bool SendMessageCalled { get; private set; }
         public Task<bool> TryAddReactionAsync(string reaction) => Task.FromResult(true);
