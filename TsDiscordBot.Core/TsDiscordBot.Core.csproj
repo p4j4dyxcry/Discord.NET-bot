@@ -7,8 +7,4 @@
         <WarningsAsErrors>true</WarningsAsErrors>
      </PropertyGroup>
 
-    <ItemGroup>
-      <Folder Include="Framework\" />
-    </ItemGroup>
-
 </Project>

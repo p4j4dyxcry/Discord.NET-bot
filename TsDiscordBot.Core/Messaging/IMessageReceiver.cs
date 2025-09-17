@@ -1,4 +1,4 @@
-namespace TsDiscordBot.Discord.Framework;
+namespace TsDiscordBot.Core.Messaging;
 
 public enum ServicePriority
 {
@@ -23,7 +23,7 @@ public interface IMessageReceiver
     /// <returns>An <see cref="IDisposable"/> used to cancel the subscription.</returns>
     IDisposable OnReceivedSubscribe(
         Func<IMessageData, CancellationToken, Task> onMessageReceived,
-        Func<MessageData, CancellationToken, ValueTask<bool>> condition,
+        Func<IMessageData, CancellationToken, ValueTask<bool>> condition,
         string serviceName = "",
         ServicePriority priority = ServicePriority.Normal);
 
@@ -37,7 +37,7 @@ public interface IMessageReceiver
     /// <returns>An <see cref="IDisposable"/> used to cancel the subscription.</returns>
     IDisposable OnEditedSubscribe(
         Func<IMessageData, CancellationToken, Task> onMessageReceived,
-        Func<MessageData, CancellationToken, ValueTask<bool>> condition,
+        Func<IMessageData, CancellationToken, ValueTask<bool>> condition,
         string serviceName = "",
         ServicePriority priority = ServicePriority.Normal);
 }

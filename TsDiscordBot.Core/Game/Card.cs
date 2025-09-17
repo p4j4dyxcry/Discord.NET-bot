@@ -1,4 +1,4 @@
-namespace TsDiscordBot.Core.Game.BlackJack;
+namespace TsDiscordBot.Core.Game;
 
 public enum Suit
 {

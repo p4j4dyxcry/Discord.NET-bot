@@ -14,7 +14,7 @@ public class GameBackgroundService : BackgroundService
 
     private readonly IAmuseBackgroundLogic[] _amuseBackgroundLogics;
 
-    public GameBackgroundService(DiscordSocketClient client, ILogger<GameBackgroundService> logger, DatabaseService databaseService)
+    public GameBackgroundService(DiscordSocketClient client, ILogger<GameBackgroundService> logger, DatabaseService databaseService,EmoteDatabase emoteDatabase)
     {
         _client = client;
         _logger = logger;
@@ -22,9 +22,9 @@ public class GameBackgroundService : BackgroundService
 
         _amuseBackgroundLogics =
         [
-            new BlackJackBackgroundLogic(databaseService, logger, client),
+            new BlackJackBackgroundLogic(databaseService, logger, client,emoteDatabase),
             new DiceBackgroundLogic(databaseService, client),
-            new HighLowBackgroundLogic(databaseService, client)
+            new HighLowBackgroundLogic(databaseService, client,emoteDatabase)
         ];
     }
 

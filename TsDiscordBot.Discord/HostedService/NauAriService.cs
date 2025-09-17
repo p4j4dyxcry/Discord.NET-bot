@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using TsDiscordBot.Core.Messaging;
 using TsDiscordBot.Discord.Framework;
 
 namespace TsDiscordBot.Discord.HostedService

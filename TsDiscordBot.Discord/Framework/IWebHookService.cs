@@ -1,4 +1,6 @@
-﻿namespace TsDiscordBot.Discord.Framework
+﻿using TsDiscordBot.Core.Messaging;
+
+namespace TsDiscordBot.Discord.Framework
 {
     public interface IWebHookService
     {

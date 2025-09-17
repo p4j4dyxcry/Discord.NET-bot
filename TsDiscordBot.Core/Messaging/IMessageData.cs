@@ -1,6 +1,4 @@
-﻿using TsDiscordBot.Core.Messaging;
-
-namespace TsDiscordBot.Discord.Framework;
+﻿namespace TsDiscordBot.Core.Messaging;
 public record AttachmentData(string FileName, string ContentType, byte[] Bytes ,int? Width, int? Height);
 
 /// <summary>

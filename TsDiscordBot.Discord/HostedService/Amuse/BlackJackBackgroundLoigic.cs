@@ -2,6 +2,7 @@
 using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
+using TsDiscordBot.Core.Game;
 using TsDiscordBot.Core.Game.BlackJack;
 using TsDiscordBot.Discord.Amuse;
 using TsDiscordBot.Discord.Services;
@@ -18,12 +19,14 @@ namespace TsDiscordBot.Discord.HostedService.Amuse
         private readonly DatabaseService _databaseService;
         private readonly ILogger _logger;
         private readonly DiscordSocketClient _client;
+        private readonly EmoteDatabase _emoteDatabase;
 
-        public BlackJackBackgroundLogic(DatabaseService databaseService, ILogger logger, DiscordSocketClient client)
+        public BlackJackBackgroundLogic(DatabaseService databaseService, ILogger logger, DiscordSocketClient client, EmoteDatabase emoteDatabase)
         {
             _databaseService = databaseService;
             _logger = logger;
             _client = client;
+            _emoteDatabase = emoteDatabase;
         }
 
         public async Task OnButtonExecutedAsync(SocketMessageComponent component)
@@ -187,7 +190,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse
         {
             var dealerCards = revealDealer
                 ? string.Join(" ", game.DealerCards.Select(FormatCard))
-                : $"{FormatCard(game.DealerVisibleCard)} ??";
+                : $"{FormatCard(game.DealerVisibleCard)} {GetBackgroundCard()}";
             var dealerScore = revealDealer
                 ? BlackJackGame.CalculateScore(game.DealerCards).ToString()
                 : BlackJackGame.CalculateScore([game.DealerCards[0]]).ToString();
@@ -476,8 +479,27 @@ namespace TsDiscordBot.Discord.HostedService.Amuse
             _databaseService.Update(AmuseGameRecord.TableName, record);
         }
 
-        private static string FormatCard(Card c)
+        private string GetBackgroundCard()
         {
+            var result = _emoteDatabase.GetBackgroundCardEmote();
+
+            if (!string.IsNullOrWhiteSpace(result))
+            {
+                return result;
+            }
+
+            return "??";
+        }
+
+        private string FormatCard(Card c)
+        {
+            var result = _emoteDatabase.GetEmote(c);
+
+            if (!string.IsNullOrWhiteSpace(result))
+            {
+                return result;
+            }
+
             var rank = c.Rank switch
             {
                 Rank.Ace => "A",
