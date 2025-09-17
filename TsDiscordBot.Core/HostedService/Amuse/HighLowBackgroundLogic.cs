@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Threading;
 using Discord;
 using Discord.WebSocket;
 using TsDiscordBot.Core.Amuse;
@@ -18,8 +19,10 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
     }
 
     private record HighLowSession(AmusePlay Play, HighLowGame Game, SessionState State);
+    private record ReplaySession(ulong UserId, ulong ChannelId, ulong MessageId, int Bet, string OriginalContent, CancellationTokenSource TimeoutToken);
 
     private readonly ConcurrentDictionary<ulong, HighLowSession> _sessions = new();
+    private readonly ConcurrentDictionary<ulong, ReplaySession> _replaySessions = new();
     private readonly DatabaseService _databaseService = databaseService;
     private readonly DiscordSocketClient _client = client;
 
@@ -38,6 +41,53 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
 
         if (!ulong.TryParse(parts[1], out var messageId))
         {
+            return;
+        }
+
+        var action = parts[0];
+
+        if (action is "empty_hl_replay" or "empty_hl_quit")
+        {
+            if (!_replaySessions.TryGetValue(messageId, out var replay))
+            {
+                await component.RespondAsync("再戦の情報が見つかりません。", ephemeral: true);
+                return;
+            }
+
+            if (component.User.Id != replay.UserId)
+            {
+                return;
+            }
+
+            await component.DeferAsync();
+
+            if (_client.GetChannel(replay.ChannelId) is not IMessageChannel replayChannel)
+            {
+                return;
+            }
+
+            if (await replayChannel.GetMessageAsync(replay.MessageId) is not IUserMessage replayMessage)
+            {
+                return;
+            }
+
+            if (action == "empty_hl_replay")
+            {
+                if (_replaySessions.TryRemove(messageId, out replay))
+                {
+                    replay.TimeoutToken.Cancel();
+                    await StartReplayAsync(replayMessage, replay);
+                }
+            }
+            else
+            {
+                if (_replaySessions.TryRemove(messageId, out replay))
+                {
+                    replay.TimeoutToken.Cancel();
+                    await CancelReplayAsync(replayMessage, replay, false);
+                }
+            }
+
             return;
         }
 
@@ -64,7 +114,7 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
             return;
         }
 
-        switch (parts[0])
+        switch (action)
         {
             case "empty_hl_high":
             case "empty_hl_low":
@@ -81,7 +131,7 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
                     if (result.MaxReached)
                     {
                         await ShowResultAsync(userMessage, session.Play, previous, result.DrawnCard, true, false, session.Game.Streak, true, session.Game.CalculatePayout(), session.Game.CalculateNextStreakPayout());
-                        FinalizeWin(session);
+                        await FinalizeWinAsync(userMessage, session);
                     }
                     else
                     {
@@ -92,7 +142,7 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
                 else
                 {
                     await ShowResultAsync(userMessage, session.Play, previous, result.DrawnCard, false, false, session.Game.Streak, false, session.Game.CalculatePayout(), session.Game.CalculateNextStreakPayout());
-                    FinalizeLoss(session);
+                    await FinalizeLossAsync(userMessage, session);
                 }
 
                 break;
@@ -112,7 +162,7 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
                 }
 
                 await ShowStopAsync(userMessage, session.Play, session.Game);
-                FinalizeWin(session);
+                await FinalizeWinAsync(userMessage, session);
                 break;
         }
     }
@@ -235,7 +285,7 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
         });
     }
 
-    private void FinalizeWin(HighLowSession session)
+    private async Task FinalizeWinAsync(IUserMessage message, HighLowSession session)
     {
         var payout = session.Game.CalculatePayout();
         var cash = _databaseService
@@ -251,13 +301,183 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
         UpdateGameRecord(session.Play.UserId, session.Play.GameKind, session.Game.Streak > 0);
         _databaseService.Delete(AmusePlay.TableName, session.Play.Id);
         _sessions.TryRemove(session.Play.MessageId, out _);
+
+        await ShowReplayPromptAsync(message, session.Play, session.Game.Bet);
     }
 
-    private void FinalizeLoss(HighLowSession session)
+    private async Task FinalizeLossAsync(IUserMessage message, HighLowSession session)
     {
         UpdateGameRecord(session.Play.UserId, session.Play.GameKind, false);
         _databaseService.Delete(AmusePlay.TableName, session.Play.Id);
         _sessions.TryRemove(session.Play.MessageId, out _);
+
+        await ShowReplayPromptAsync(message, session.Play, session.Game.Bet);
+    }
+
+    private async Task ShowReplayPromptAsync(IUserMessage message, AmusePlay play, int previousBet)
+    {
+        var latest = await message.Channel.GetMessageAsync(message.Id) as IUserMessage;
+        var originalContent = latest?.Content ?? message.Content ?? string.Empty;
+
+        var bet = DetermineReplayBet(play.UserId, previousBet);
+
+        if (_replaySessions.TryRemove(play.MessageId, out var existing))
+        {
+            existing.TimeoutToken.Cancel();
+        }
+
+        var builder = new System.Text.StringBuilder(originalContent);
+        if (builder.Length > 0)
+        {
+            builder.AppendLine();
+        }
+
+        builder.AppendLine($"もう一度{bet}GAL円をベットして始めますか？");
+
+        var components = new ComponentBuilder()
+            .WithButton("もう一度遊ぶ", $"empty_hl_replay:{play.MessageId}", ButtonStyle.Primary)
+            .WithButton("やめる", $"empty_hl_quit:{play.MessageId}", ButtonStyle.Secondary);
+
+        await message.ModifyAsync(msg =>
+        {
+            msg.Content = builder.ToString();
+            msg.Components = components.Build();
+        });
+
+        var tokenSource = new CancellationTokenSource();
+        var replay = new ReplaySession(play.UserId, play.ChannelId, play.MessageId, bet, originalContent, tokenSource);
+        _replaySessions[play.MessageId] = replay;
+        _ = StartReplayTimeoutAsync(replay);
+    }
+
+    private async Task StartReplayAsync(IUserMessage message, ReplaySession replay)
+    {
+        var createdAt = DateTime.UtcNow;
+        var newPlay = new AmusePlay
+        {
+            UserId = replay.UserId,
+            CreatedAtUtc = createdAt,
+            GameKind = "HL",
+            ChannelId = replay.ChannelId,
+            Bet = replay.Bet,
+            MessageId = replay.MessageId,
+            Started = false
+        };
+
+        _databaseService.Insert(AmusePlay.TableName, newPlay);
+
+        var insertedPlay = _databaseService
+            .FindAll<AmusePlay>(AmusePlay.TableName)
+            .Where(x => x.UserId == replay.UserId && x.MessageId == replay.MessageId && x.GameKind == newPlay.GameKind)
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .FirstOrDefault();
+
+        if (insertedPlay is null)
+        {
+            await CancelReplayAsync(message, replay, false, "ゲームの再開に失敗しました。");
+            return;
+        }
+
+        insertedPlay.Started = true;
+        _databaseService.Update(AmusePlay.TableName, insertedPlay);
+
+        var cash = _databaseService
+            .FindAll<AmuseCash>(AmuseCash.TableName)
+            .FirstOrDefault(x => x.UserId == replay.UserId);
+
+        if (cash is null)
+        {
+            var newCash = new AmuseCash
+            {
+                UserId = replay.UserId,
+                Cash = 0,
+                LastUpdatedAtUtc = DateTime.UtcNow
+            };
+            _databaseService.Insert(AmuseCash.TableName, newCash);
+
+            cash = _databaseService
+                .FindAll<AmuseCash>(AmuseCash.TableName)
+                .FirstOrDefault(x => x.UserId == replay.UserId);
+        }
+
+        if (cash is not null)
+        {
+            cash.Cash -= insertedPlay.Bet;
+            cash.LastUpdatedAtUtc = DateTime.UtcNow;
+            _databaseService.Update(AmuseCash.TableName, cash);
+        }
+
+        var game = new HighLowGame(insertedPlay.Bet);
+        _sessions[replay.MessageId] = new HighLowSession(insertedPlay, game, SessionState.Guess);
+
+        await ShowGuessAsync(message, insertedPlay, game);
+    }
+
+    private async Task CancelReplayAsync(IUserMessage message, ReplaySession replay, bool dueToTimeout, string? additionalLine = null)
+    {
+        var builder = new System.Text.StringBuilder(replay.OriginalContent);
+        if (builder.Length > 0 && builder[^1] != '\n')
+        {
+            builder.AppendLine();
+        }
+
+        var line = additionalLine ?? (dueToTimeout ? "1分間操作がなかったため終了しました。" : "また遊ぼうね！");
+        builder.AppendLine(line);
+
+        await message.ModifyAsync(msg =>
+        {
+            msg.Content = builder.ToString();
+            msg.Components = new ComponentBuilder().Build();
+        });
+    }
+
+    private async Task CancelReplayAsync(ReplaySession replay, bool dueToTimeout)
+    {
+        if (_client.GetChannel(replay.ChannelId) is not IMessageChannel channel)
+        {
+            return;
+        }
+
+        if (await channel.GetMessageAsync(replay.MessageId) is not IUserMessage message)
+        {
+            return;
+        }
+
+        await CancelReplayAsync(message, replay, dueToTimeout);
+    }
+
+    private Task StartReplayTimeoutAsync(ReplaySession replay)
+    {
+        return Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromMinutes(1), replay.TimeoutToken.Token);
+            }
+            catch (TaskCanceledException)
+            {
+                return;
+            }
+
+            if (_replaySessions.TryRemove(replay.MessageId, out var removed))
+            {
+                await CancelReplayAsync(removed, true);
+            }
+        });
+    }
+
+    private int DetermineReplayBet(ulong userId, int previousBet)
+    {
+        var cash = _databaseService
+            .FindAll<AmuseCash>(AmuseCash.TableName)
+            .FirstOrDefault(x => x.UserId == userId);
+
+        if (cash is null || cash.Cash < previousBet)
+        {
+            return 100;
+        }
+
+        return previousBet;
     }
 
     private void UpdateGameRecord(ulong userId, string gameKind, bool win)

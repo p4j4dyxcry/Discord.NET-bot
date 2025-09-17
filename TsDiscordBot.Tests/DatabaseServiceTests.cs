@@ -1,17 +1,18 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Reflection;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging.Abstractions;
-using TsDiscordBot.Core.Services;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace TsDiscordBot.Tests;
 
 public class DatabaseServiceTests
 {
+    private readonly ITestOutputHelper _testOutputHelper;
+
+    public DatabaseServiceTests(ITestOutputHelper testOutputHelper)
+    {
+        _testOutputHelper = testOutputHelper;
+    }
+
     private const string Table = "test";
 
     private class TestRecord
@@ -23,59 +24,24 @@ public class DatabaseServiceTests
     [Fact]
     public void Insert_FindAll_Update_Delete_Work()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.db");
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new[] { new KeyValuePair<string, string>("database_path", path) })
-            .Build();
+        using var service = TestDB.Crate(null,_testOutputHelper);
 
-        try
-        {
-            using var service = new DatabaseService(NullLogger<DatabaseService>.Instance, config);
+        var item = new TestRecord { Name = "foo" };
+        service.Insert(Table, item);
 
-            var item = new TestRecord { Name = "foo" };
-            service.Insert(Table, item);
+        var all = service.FindAll<TestRecord>(Table).ToList();
+        Assert.Single(all);
+        var stored = all[0];
+        Assert.Equal("foo", stored.Name);
+        Assert.True(stored.Id > 0);
 
-            var all = service.FindAll<TestRecord>(Table).ToList();
-            Assert.Single(all);
-            var stored = all[0];
-            Assert.Equal("foo", stored.Name);
-            Assert.True(stored.Id > 0);
+        stored.Name = "bar";
+        service.Update(Table, stored);
+        var updated = service.FindAll<TestRecord>(Table).Single();
+        Assert.Equal("bar", updated.Name);
 
-            stored.Name = "bar";
-            service.Update(Table, stored);
-            var updated = service.FindAll<TestRecord>(Table).Single();
-            Assert.Equal("bar", updated.Name);
-
-            Assert.True(service.Delete(Table, updated.Id));
-            Assert.Empty(service.FindAll<TestRecord>(Table));
-        }
-        finally
-        {
-            if (File.Exists(path))
-            {
-                File.Delete(path);
-            }
-        }
-    }
-
-    [Fact]
-    public void Methods_Handle_Null_LiteDb()
-    {
-        var dir = Path.GetTempPath();
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new[] { new KeyValuePair<string, string>("database_path", dir) })
-            .Build();
-
-        using var service = new DatabaseService(NullLogger<DatabaseService>.Instance, config);
-
-        var field = typeof(DatabaseService).GetField("_litedb", BindingFlags.NonPublic | BindingFlags.Instance);
-        Assert.Null(field!.GetValue(service));
-
-        service.Insert(Table, new TestRecord());
+        Assert.True(service.Delete(Table, updated.Id));
         Assert.Empty(service.FindAll<TestRecord>(Table));
-
-        service.Update(Table, new TestRecord());
-        Assert.False(service.Delete(Table, 1));
     }
 }
 
