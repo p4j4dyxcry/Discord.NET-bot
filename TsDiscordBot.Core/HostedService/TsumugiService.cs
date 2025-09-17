@@ -32,7 +32,9 @@ namespace TsDiscordBot.Core.HostedService
         {
             _subscription = _client.OnReceivedSubscribe(
                 OnMessageReceivedAsync,
-                MessageConditions.NotFromBot.And(MessageConditions.NotDeleted),
+                MessageConditions.NotFromBot
+                    .And(MessageConditions.NotDeleted)
+                    .And((msg,_) => ValueTask.FromResult(msg.MentionTsumugi ||msg.Content.StartsWith("!つむぎ"))),
                 nameof(TsumugiService));
             return Task.CompletedTask;
         }
@@ -56,7 +58,6 @@ namespace TsDiscordBot.Core.HostedService
                 "..",
                 "..."
             };
-
             return Task.Run(async () =>
             {
                 int i = 0;
@@ -95,7 +96,7 @@ namespace TsDiscordBot.Core.HostedService
 
             if (!_firstHistory.TryGetValue(message.ChannelId, out var cache))
             {
-                var firstMessages = await channel.GetMessagesAsync()
+                var firstMessages = await channel.GetMessagesAsync(20)
                     .FlattenAsync();
                 var convertedFirst = new List<ConvertedMessage>();
                 foreach (var m in firstMessages)
@@ -107,56 +108,53 @@ namespace TsDiscordBot.Core.HostedService
                 _firstHistory[message.ChannelId] = convertedFirst.ToArray();
             }
 
-            if (message.MentionTsumugi || message.Content.StartsWith("!つむぎ"))
+            string progressContent = "つむぎが入力中";
+            var progressMessage = await message.ReplyMessageAsync(progressContent);
+            var progressTask = RunProgressAsync(progressMessage, progressContent, cts.Token);
+
+            bool progressStopped = false;
+            async Task StopProgressAsync()
             {
-                string progressContent = "つむぎが入力中";
-                var progressMessage = await message.ReplyMessageAsync(progressContent);
-                var progressTask = RunProgressAsync(progressMessage, progressContent, cts.Token);
-
-                bool progressStopped = false;
-                async Task StopProgressAsync()
+                if (progressStopped)
                 {
-                    if (progressStopped)
-                    {
-                        return;
-                    }
-
-                    progressStopped = true;
-
-                    await cts.CancelAsync();
-                    await progressTask;
+                    return;
                 }
 
-                try
-                {
-                    var previousMessagesTasks = channel.GetCachedMessages(100)
-                        .Where(m => m.Id != message.Id)
-                        .Select(async x => await MessageData.FromIMessageAsync(x))
-                        .Select(async x => ConvertMessageAsync(await x));
+                progressStopped = true;
 
-                    var previousMessages = await Task.WhenAll(previousMessagesTasks);
+                await cts.CancelAsync();
+                await progressTask;
+            }
 
-                    var current = ConvertMessageAsync(message);
+            try
+            {
+                var previousMessagesTasks = channel.GetCachedMessages(30)
+                    .Where(m => m.Id != message.Id)
+                    .Select(async x => await MessageData.FromIMessageAsync(x))
+                    .Select(async x => ConvertMessageAsync(await x));
 
-                    previousMessages = _firstHistory[message.ChannelId]
-                        .Concat(previousMessages)
-                        .Concat(new[] { current })
-                        .OrderBy(x => x.Date)
-                        .TakeLast(30)
-                        .ToArray();
+                var previousMessages = await Task.WhenAll(previousMessagesTasks);
 
-                    string result = await _openAiService.GetResponse(message.GuildId, null, previousMessages);
+                var current = ConvertMessageAsync(message);
 
-                    var sendMessageTask = message.ReplyMessageAsync(result);
+                previousMessages = _firstHistory[message.ChannelId]
+                    .Concat(previousMessages)
+                    .Concat(new[] { current })
+                    .OrderBy(x => x.Date)
+                    .TakeLast(30)
+                    .ToArray();
 
-                    await StopProgressAsync();
+                string result = await _openAiService.GetResponse(message.GuildId, null, previousMessages);
 
-                    await sendMessageTask;
-                }
-                finally
-                {
-                    await StopProgressAsync();
-                }
+                var sendMessageTask = message.ReplyMessageAsync(result);
+
+                await StopProgressAsync();
+
+                await sendMessageTask;
+            }
+            finally
+            {
+                await StopProgressAsync();
             }
         }
 

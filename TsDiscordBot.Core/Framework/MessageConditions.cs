@@ -6,18 +6,18 @@ namespace TsDiscordBot.Core.Framework;
 
 public static class MessageConditions
 {
-    public static Func<MessageData, CancellationToken, ValueTask<bool>> True =>
+    public static Func<IMessageData, CancellationToken, ValueTask<bool>> True =>
         (m, ct) => ValueTask.FromResult(true);
 
-    public static Func<MessageData, CancellationToken, ValueTask<bool>> NotFromBot =>
+    public static Func<IMessageData, CancellationToken, ValueTask<bool>> NotFromBot =>
         (m, ct) => ValueTask.FromResult(!m.IsBot);
 
-    public static Func<MessageData, CancellationToken, ValueTask<bool>> NotDeleted =>
+    public static Func<IMessageData, CancellationToken, ValueTask<bool>> NotDeleted =>
         (m, ct) => ValueTask.FromResult(!m.IsDeleted);
 
-    public static Func<MessageData, CancellationToken, ValueTask<bool>> And(
-        this Func<MessageData, CancellationToken, ValueTask<bool>> first,
-        Func<MessageData, CancellationToken, ValueTask<bool>> second)
+    public static Func<IMessageData, CancellationToken, ValueTask<bool>> And(
+        this Func<IMessageData, CancellationToken, ValueTask<bool>> first,
+        Func<IMessageData, CancellationToken, ValueTask<bool>> second)
     {
         if (first is null) throw new ArgumentNullException(nameof(first));
         if (second is null) throw new ArgumentNullException(nameof(second));
