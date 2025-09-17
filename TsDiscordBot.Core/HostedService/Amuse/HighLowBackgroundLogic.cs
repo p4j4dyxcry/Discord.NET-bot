@@ -430,7 +430,7 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
             builder.AppendLine();
         }
 
-        var line = additionalLine ?? (dueToTimeout ? "1分間操作がなかったため終了しました。" : "また遊ぼうね！");
+        var line = additionalLine ?? "また遊ぼうね！";
         builder.AppendLine(line);
 
         await message.ModifyAsync(msg =>
