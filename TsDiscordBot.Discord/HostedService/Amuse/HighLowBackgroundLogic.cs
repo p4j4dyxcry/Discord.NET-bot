@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Discord;
 using Discord.WebSocket;
+using TsDiscordBot.Core.Game;
 using TsDiscordBot.Core.Game.BlackJack;
 using TsDiscordBot.Core.Game.HighLow;
 using TsDiscordBot.Discord.Amuse;
@@ -8,7 +9,7 @@ using TsDiscordBot.Discord.Services;
 
 namespace TsDiscordBot.Discord.HostedService.Amuse;
 
-public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSocketClient client) : IAmuseBackgroundLogic
+public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSocketClient client, EmoteDatabase emoteDatabase) : IAmuseBackgroundLogic
 {
     private enum SessionState
     {
@@ -23,6 +24,8 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
     private readonly ConcurrentDictionary<ulong, ReplaySession> _replaySessions = new();
     private readonly DatabaseService _databaseService = databaseService;
     private readonly DiscordSocketClient _client = client;
+    private readonly EmoteDatabase _emoteDatabase = emoteDatabase;
+
 
     public async Task OnButtonExecutedAsync(SocketMessageComponent component)
     {
@@ -519,8 +522,15 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
         _databaseService.Update(AmuseGameRecord.TableName, record);
     }
 
-    private static string FormatCard(Card c)
+    private string FormatCard(Card c)
     {
+        var result = _emoteDatabase.GetEmote(c);
+
+        if (!string.IsNullOrWhiteSpace(result))
+        {
+            return result;
+        }
+
         var rank = c.Rank switch
         {
             Rank.Ace => "A",

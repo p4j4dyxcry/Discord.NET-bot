@@ -1,4 +1,4 @@
-namespace TsDiscordBot.Discord.Framework;
+namespace TsDiscordBot.Core.Messaging;
 
 public static class MessageConditions
 {

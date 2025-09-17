@@ -103,9 +103,9 @@ public class BannedMessageCheckerServiceTests
     private class DummyMessageReceiver : IMessageReceiver
     {
         private class DummyDisposable : IDisposable { public void Dispose() { } }
-        public IDisposable OnReceivedSubscribe(Func<IMessageData, CancellationToken, Task> onMessageReceived, Func<MessageData, CancellationToken, ValueTask<bool>> condition, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
+        public IDisposable OnReceivedSubscribe(Func<IMessageData, CancellationToken, Task> onMessageReceived, Func<IMessageData, CancellationToken, ValueTask<bool>> condition, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
             => new DummyDisposable();
-        public IDisposable OnEditedSubscribe(Func<IMessageData, CancellationToken, Task> onMessageReceived, Func<MessageData, CancellationToken, ValueTask<bool>> condition, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
+        public IDisposable OnEditedSubscribe(Func<IMessageData, CancellationToken, Task> onMessageReceived, Func<IMessageData, CancellationToken, ValueTask<bool>> condition, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
             => new DummyDisposable();
     }
 

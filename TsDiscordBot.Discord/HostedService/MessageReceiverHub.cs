@@ -5,6 +5,7 @@ using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using TsDiscordBot.Core.Messaging;
 using TsDiscordBot.Discord.Framework;
 
 namespace TsDiscordBot.Discord.HostedService;
@@ -39,7 +40,7 @@ public class MessageReceiverHub : IHostedService, IMessageReceiver
     /// <inheritdoc />
     public IDisposable OnReceivedSubscribe(
         Func<IMessageData, CancellationToken, Task> onMessageReceived,
-        Func<MessageData, CancellationToken, ValueTask<bool>> condition,
+        Func<IMessageData, CancellationToken, ValueTask<bool>> condition,
         string serviceName = "",
         ServicePriority priority = ServicePriority.Normal)
     {
@@ -64,7 +65,7 @@ public class MessageReceiverHub : IHostedService, IMessageReceiver
     /// <inheritdoc />
     public IDisposable OnEditedSubscribe(
         Func<IMessageData, CancellationToken, Task> onMessageReceived,
-        Func<MessageData, CancellationToken, ValueTask<bool>> condition,
+        Func<IMessageData, CancellationToken, ValueTask<bool>> condition,
         string serviceName = "",
         ServicePriority priority = ServicePriority.Normal)
     {

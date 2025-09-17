@@ -3,6 +3,7 @@ using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using TsDiscordBot.Core.Messaging;
 using TsDiscordBot.Discord.Framework;
 using TsDiscordBot.Discord.Services;
 using TsDiscordBot.Discord.Utility;

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TsDiscordBot.Core;
+using TsDiscordBot.Core.Messaging;
 using TsDiscordBot.Discord;
 using TsDiscordBot.Discord.Amuse;
 using TsDiscordBot.Discord.Framework;
@@ -53,6 +54,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddSingleton<IMessageReceiver>(sp => sp.GetRequiredService<MessageReceiverHub>());
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<MessageReceiverHub>());
         services.AddSingleton<IAmuseCommandParser, AmuseCommandParser>();
+        services.AddSingleton<EmoteDatabase>();
         // Add hosted services
         services.AddHostedService<InteractionHandlingService>();
         services.AddHostedService<DiscordStartupService>();

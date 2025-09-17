@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
 using Discord;
+using TsDiscordBot.Core.Messaging;
 using TsDiscordBot.Discord.Framework;
 
 namespace TsDiscordBot.Discord.Utility
