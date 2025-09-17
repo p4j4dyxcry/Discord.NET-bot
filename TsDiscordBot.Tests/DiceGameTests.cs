@@ -1,4 +1,4 @@
-using TsDiscordBot.Core.Game.Dice;
+using TsDiscordBot.Interfaces.Game.Dice;
 using Xunit;
 
 namespace TsDiscordBot.Tests;

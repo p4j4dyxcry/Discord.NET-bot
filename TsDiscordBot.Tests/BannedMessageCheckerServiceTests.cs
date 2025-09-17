@@ -1,12 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Framework;
@@ -144,7 +142,7 @@ public class BannedMessageCheckerServiceTests
         public string? AvatarUrl => null;
         public string AuthorMention { get; set; } = "@user";
         public string ChannelName { get; set; } = string.Empty;
-        public MessageData? ReplySource => null;
+        public IMessageData? ReplySource => null;
         public bool IsDeleted => DeleteCalled;
         public DateTimeOffset Timestamp => DateTimeOffset.Now;
         public List<AttachmentData> Attachments { get; } = new();

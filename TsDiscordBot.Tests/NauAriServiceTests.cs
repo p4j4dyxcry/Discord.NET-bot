@@ -52,7 +52,7 @@ public class NauAriServiceTests
         public string? AvatarUrl { get; set; }
         public string AuthorMention { get; set; } = string.Empty;
         public string ChannelName { get; set; } = string.Empty;
-        public MessageData? ReplySource { get; set; }
+        public IMessageData? ReplySource { get; set; }
         public bool IsDeleted { get; set; }
         public DateTimeOffset Timestamp { get; set; }
         public List<AttachmentData> Attachments { get; set; } = new();

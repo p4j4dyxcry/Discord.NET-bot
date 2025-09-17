@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using TsDiscordBot.Core.Data;
 using TsDiscordBot.Core.Framework;
@@ -96,7 +94,7 @@ public class AnonymousRelayServiceTests
         public string? AvatarUrl { get; set; }
         public string AuthorMention => string.Empty;
         public string ChannelName => string.Empty;
-        public MessageData? ReplySource => null;
+        public IMessageData? ReplySource => null;
         public bool IsDeleted { get; private set; }
         public DateTimeOffset Timestamp => DateTimeOffset.Now;
         public List<AttachmentData> Attachments { get; } = new();
