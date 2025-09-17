@@ -89,33 +89,35 @@ namespace TsDiscordBot.Discord.Services
 
         public string GetBackgroundCardEmote()
         {
-            if (_initialized is false)
-            {
-                BuildCache();
-                _initialized = true;
-            }
-
-            var cards = _databaseService.FindAll<EmoteCache>(EmoteCache.TableName).ToArray();
-
-            return cards.FirstOrDefault(x=>x.Name == "BG")?.Emote ?? string.Empty;
+            return FindEmoteInternal("BG");
 
         }
 
         public string GetEmote(Card card)
         {
-            string id = MakeKey(card.Rank, card.Suit);
-
-            var cards = _databaseService.FindAll<EmoteCache>(EmoteCache.TableName).ToArray();
-
-            if (cards.Length is 0)
-            {
-                BuildCache();
-                cards = _databaseService.FindAll<EmoteCache>(EmoteCache.TableName).ToArray();
-            }
-
-            return cards.FirstOrDefault(x=>x.Name == id)?.Emote ?? string.Empty;
+            return FindEmoteInternal(MakeKey(card.Rank, card.Suit));
         }
 
+        private string FindEmoteInternal(string name)
+        {
+            var guilds = (EmojiGuilds.Length > 0)
+                ? EmojiGuilds.Select(id => _discordSocketClient.GetGuild(id)).Where(g => g != null)!
+                : _discordSocketClient.Guilds;
+
+            foreach (var guild in guilds)
+            {
+                _logger.LogInformation($"Searching for Emotes from {guild.Name}");
+                foreach (var e in guild.Emotes)
+                {
+                    if (e.Name == name)
+                    {
+                        return $"<:{e.Name}:{e.Id}>";
+                    }
+                }
+            }
+
+            return string.Empty;
+        }
 
 
         /// <summary>
