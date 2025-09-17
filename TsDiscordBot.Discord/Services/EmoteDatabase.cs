@@ -70,6 +70,8 @@ namespace TsDiscordBot.Discord.Services
         public static string MakeKey(Rank rank, Suit suit)
             => $"{RankToToken[rank]}{SuitToChar[suit]}".ToUpperInvariant();
 
+        private bool _initialized = false;
+
         private static ulong[] EmojiGuilds { get; } =
         [
             1417849765319802955UL,
@@ -83,19 +85,17 @@ namespace TsDiscordBot.Discord.Services
             _discordSocketClient = discordSocketClient;
             _databaseService = databaseService;
             _logger = logger;
-
-            BuildCache();
         }
 
         public string GetBackgroundCardEmote()
         {
-            var cards = _databaseService.FindAll<EmoteCache>(EmoteCache.TableName).ToArray();
-
-            if (cards.Length is 0)
+            if (_initialized is false)
             {
                 BuildCache();
-                cards = _databaseService.FindAll<EmoteCache>(EmoteCache.TableName).ToArray();
+                _initialized = true;
             }
+
+            var cards = _databaseService.FindAll<EmoteCache>(EmoteCache.TableName).ToArray();
 
             return cards.FirstOrDefault(x=>x.Name == "BG")?.Emote ?? string.Empty;
 
