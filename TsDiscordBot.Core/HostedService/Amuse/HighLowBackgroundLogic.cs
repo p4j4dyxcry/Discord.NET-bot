@@ -255,8 +255,8 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
         {
             builder.Clear();
             builder.AppendLine($"<@{play.UserId}> さん、");
-            builder.AppendLine($"現在の連勝数: {streak}");
-            builder.AppendLine($"続ける？それともやめる？: 次：{FormatCard(drawn)}");
+            builder.AppendLine($"正解！カードは{FormatCard(drawn)}!連勝数: {streak}");
+            builder.AppendLine($"続ける？それともやめる？");
             builder.AppendLine($"次のゲーム勝てば{nextPayout}GAL円貰えるよ！");
             builder.AppendLine($"ここでやめたら{currentPayout}GAL円になるよ！");
             components.WithButton("続ける", $"empty_hl_continue:{play.MessageId}", ButtonStyle.Success)
@@ -302,7 +302,7 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
         _databaseService.Delete(AmusePlay.TableName, session.Play.Id);
         _sessions.TryRemove(session.Play.MessageId, out _);
 
-        await ShowReplayPromptAsync(message, session.Play, session.Game.Bet);
+        await ShowReplayPromptAsync(message, session.Play, session.Game.Bet, payout);
     }
 
     private async Task FinalizeLossAsync(IUserMessage message, HighLowSession session)
@@ -311,10 +311,10 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
         _databaseService.Delete(AmusePlay.TableName, session.Play.Id);
         _sessions.TryRemove(session.Play.MessageId, out _);
 
-        await ShowReplayPromptAsync(message, session.Play, session.Game.Bet);
+        await ShowReplayPromptAsync(message, session.Play, session.Game.Bet,0);
     }
 
-    private async Task ShowReplayPromptAsync(IUserMessage message, AmusePlay play, int previousBet)
+    private async Task ShowReplayPromptAsync(IUserMessage message, AmusePlay play, int previousBet,int lastPayout)
     {
         var latest = await message.Channel.GetMessageAsync(message.Id) as IUserMessage;
         var originalContent = latest?.Content ?? message.Content ?? string.Empty;
@@ -326,16 +326,25 @@ public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSock
             existing.TimeoutToken.Cancel();
         }
 
-        var builder = new System.Text.StringBuilder(originalContent);
+        var builder = new System.Text.StringBuilder();
+        if (lastPayout > 0)
+        {
+            builder.AppendLine($"はい、{lastPayout}GAL円だよ！");
+        }
+        else
+        {
+            builder.AppendLine("残念ながら今までの賞金は没収だよ！");
+        }
+
         if (builder.Length > 0)
         {
             builder.AppendLine();
         }
 
-        builder.AppendLine($"もう一度{bet}GAL円をベットして始めますか？");
+        builder.AppendLine($"もう一度{bet}GAL円をベットして始めちゃう？");
 
         var components = new ComponentBuilder()
-            .WithButton("もう一度遊ぶ", $"empty_hl_replay:{play.MessageId}", ButtonStyle.Primary)
+            .WithButton("もう１回", $"empty_hl_replay:{play.MessageId}", ButtonStyle.Primary)
             .WithButton("やめる", $"empty_hl_quit:{play.MessageId}", ButtonStyle.Secondary);
 
         await message.ModifyAsync(msg =>
