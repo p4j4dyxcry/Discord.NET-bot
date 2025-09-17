@@ -1,11 +1,4 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Reflection;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging.Abstractions;
-using TsDiscordBot.Core.Services;
 using Xunit;
 using Xunit.Abstractions;
 
