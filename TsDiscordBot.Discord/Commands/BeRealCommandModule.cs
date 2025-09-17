@@ -2,10 +2,10 @@ using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
-using TsDiscordBot.Core.Data;
-using TsDiscordBot.Core.Services;
+using TsDiscordBot.Discord.Data;
+using TsDiscordBot.Discord.Services;
 
-namespace TsDiscordBot.Core.Commands;
+namespace TsDiscordBot.Discord.Commands;
 
 public class BeRealCommandModule : InteractionModuleBase<SocketInteractionContext>
 {

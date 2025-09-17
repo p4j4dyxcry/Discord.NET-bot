@@ -1,4 +1,4 @@
-﻿namespace TsDiscordBot.Core
+﻿namespace TsDiscordBot.Discord
 {
     public static class Envs
     {

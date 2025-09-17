@@ -1,7 +1,7 @@
 ﻿using Discord.WebSocket;
-using TsDiscordBot.Core.Amuse;
+using TsDiscordBot.Discord.Amuse;
 
-namespace TsDiscordBot.Core.HostedService.Amuse
+namespace TsDiscordBot.Discord.HostedService.Amuse
 {
     public interface IAmuseBackgroundLogic
     {

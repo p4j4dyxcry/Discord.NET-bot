@@ -1,14 +1,14 @@
+using System.ClientModel;
 using System.Diagnostics;
 using System.Text;
 using Discord;
 using Discord.Interactions;
 using Microsoft.Extensions.Logging;
-using TsDiscordBot.Core.Constants;
-using TsDiscordBot.Core.Services;
-using TsDiscordBot.Core.Utility;
-using System.ClientModel;
+using TsDiscordBot.Discord.Constants;
+using TsDiscordBot.Discord.Services;
+using TsDiscordBot.Discord.Utility;
 
-namespace TsDiscordBot.Core.Commands;
+namespace TsDiscordBot.Discord.Commands;
 
 public class ImageCommandModule : InteractionModuleBase<SocketInteractionContext>
 {

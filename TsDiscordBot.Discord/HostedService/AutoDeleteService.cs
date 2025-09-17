@@ -2,10 +2,10 @@ using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using TsDiscordBot.Core.Data;
-using TsDiscordBot.Core.Services;
+using TsDiscordBot.Discord.Data;
+using TsDiscordBot.Discord.Services;
 
-namespace TsDiscordBot.Core.HostedService;
+namespace TsDiscordBot.Discord.HostedService;
 
 public class AutoDeleteService : BackgroundService
 {

@@ -1,6 +1,6 @@
-using TsDiscordBot.Core.Services;
+using TsDiscordBot.Discord.Services;
 
-namespace TsDiscordBot.Core.Amuse;
+namespace TsDiscordBot.Discord.Amuse;
 
 public class AmuseCommandParser : IAmuseCommandParser
 {

@@ -2,7 +2,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace TsDiscordBot.Core.Services;
+namespace TsDiscordBot.Discord.Services;
 
 public class RandTopicService
 {

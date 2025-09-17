@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 
-namespace TsDiscordBot.Core.Utility;
+namespace TsDiscordBot.Discord.Utility;
 
 public class LimitedQueue<T> : IEnumerable<T>
 {

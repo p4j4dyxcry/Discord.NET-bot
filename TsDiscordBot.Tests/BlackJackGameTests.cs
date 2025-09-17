@@ -49,14 +49,13 @@ public class BlackJackGameTests
     [Fact]
     public void Stand_PlayerHigherScore_Wins()
     {
-        var deck = new Deck(new[]
-        {
+        var deck = new Deck([
             new Card(Rank.Ten, Suit.Hearts),
             new Card(Rank.Nine, Suit.Spades),
             new Card(Rank.Nine, Suit.Clubs),
             new Card(Rank.Six, Suit.Clubs),
             new Card(Rank.Two, Suit.Hearts)
-        });
+        ]);
         var game = new BlackJackGame(10, deck);
         game.Stand();
 

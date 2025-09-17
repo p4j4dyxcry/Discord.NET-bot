@@ -2,7 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using OpenAI.Images;
 
-namespace TsDiscordBot.Core.Services;
+namespace TsDiscordBot.Discord.Services;
 
 public sealed class OpenAIImageOptions
 {

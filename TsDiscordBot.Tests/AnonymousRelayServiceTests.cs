@@ -4,11 +4,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Microsoft.Extensions.Logging.Abstractions;
-using TsDiscordBot.Core.Data;
-using TsDiscordBot.Core.Framework;
-using TsDiscordBot.Core.HostedService;
-using TsDiscordBot.Core.Services;
-using TsDiscordBot.Core.Utility;
+using TsDiscordBot.Discord.Data;
+using TsDiscordBot.Discord.Framework;
+using TsDiscordBot.Discord.HostedService;
+using TsDiscordBot.Discord.Services;
+using TsDiscordBot.Discord.Utility;
 using Xunit;
 using Xunit.Abstractions;
 

@@ -1,9 +1,9 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
-using TsDiscordBot.Core.Utility;
+using TsDiscordBot.Discord.Utility;
 
-namespace TsDiscordBot.Core.Framework
+namespace TsDiscordBot.Discord.Framework
 {
 
 /// <summary>

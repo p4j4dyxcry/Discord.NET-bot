@@ -2,7 +2,7 @@
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 
-namespace TsDiscordBot.Core.Utility
+namespace TsDiscordBot.Discord.Utility
 {
     public class DiscordUtility
     {

@@ -1,7 +1,7 @@
 using System.ClientModel;
 using System.Text.Json;
 
-namespace TsDiscordBot.Core.Utility;
+namespace TsDiscordBot.Discord.Utility;
 
 public static class OpenAIErrorHelper
 {

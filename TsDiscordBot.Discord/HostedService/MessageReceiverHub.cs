@@ -5,9 +5,9 @@ using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using TsDiscordBot.Core.Framework;
+using TsDiscordBot.Discord.Framework;
 
-namespace TsDiscordBot.Core.HostedService;
+namespace TsDiscordBot.Discord.HostedService;
 
 /// <summary>
 /// Acts as a central hub that dispatches Discord message events to subscribed

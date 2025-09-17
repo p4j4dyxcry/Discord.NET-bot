@@ -3,9 +3,9 @@ using Discord;
 using Discord.Webhook;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
-using TsDiscordBot.Core.Framework;
+using TsDiscordBot.Discord.Framework;
 
-namespace TsDiscordBot.Core.Services
+namespace TsDiscordBot.Discord.Services
 {
     public class WebHookService : IWebHookService
     {

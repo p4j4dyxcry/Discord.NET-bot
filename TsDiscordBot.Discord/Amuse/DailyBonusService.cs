@@ -1,7 +1,7 @@
-using TsDiscordBot.Core.Framework;
-using TsDiscordBot.Core.Services;
+using TsDiscordBot.Discord.Framework;
+using TsDiscordBot.Discord.Services;
 
-namespace TsDiscordBot.Core.Amuse;
+namespace TsDiscordBot.Discord.Amuse;
 
 public class DailyBonusService : IAmuseService
 {

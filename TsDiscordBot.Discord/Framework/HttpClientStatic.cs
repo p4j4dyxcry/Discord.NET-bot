@@ -1,4 +1,4 @@
-﻿namespace TsDiscordBot.Core.Framework
+﻿namespace TsDiscordBot.Discord.Framework
 {
     public class HttpClientStatic
     {

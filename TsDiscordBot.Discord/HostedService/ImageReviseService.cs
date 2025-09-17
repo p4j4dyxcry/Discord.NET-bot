@@ -2,11 +2,11 @@ using System.Diagnostics;
 using System.Text;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using TsDiscordBot.Core.Constants;
-using TsDiscordBot.Core.Framework;
-using TsDiscordBot.Core.Services;
+using TsDiscordBot.Discord.Constants;
+using TsDiscordBot.Discord.Framework;
+using TsDiscordBot.Discord.Services;
 
-namespace TsDiscordBot.Core.HostedService
+namespace TsDiscordBot.Discord.HostedService
 {
     public class ImageReviseService : IHostedService
     {

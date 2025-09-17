@@ -1,4 +1,4 @@
-namespace TsDiscordBot.Core.Utility;
+namespace TsDiscordBot.Discord.Utility;
 
 public static class UserNameFixLogic
 {

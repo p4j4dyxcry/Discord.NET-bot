@@ -1,11 +1,11 @@
 ﻿using System.Collections.Concurrent;
 using Discord;
 using Discord.WebSocket;
-using TsDiscordBot.Core.Amuse;
 using TsDiscordBot.Core.Game.Dice;
-using TsDiscordBot.Core.Services;
+using TsDiscordBot.Discord.Amuse;
+using TsDiscordBot.Discord.Services;
 
-namespace TsDiscordBot.Core.HostedService.Amuse
+namespace TsDiscordBot.Discord.HostedService.Amuse
 {
     public class DiceBackgroundLogic : IAmuseBackgroundLogic
     {

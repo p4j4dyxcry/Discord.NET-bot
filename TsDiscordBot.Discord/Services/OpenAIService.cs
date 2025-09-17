@@ -1,13 +1,12 @@
-﻿
+﻿using System.ClientModel;
 using System.Text;
-using System.ClientModel;
 using Microsoft.Extensions.Configuration;
 using OpenAI.Chat;
-using TsDiscordBot.Core.Constants;
-using TsDiscordBot.Core.Data;
-using TsDiscordBot.Core.Utility;
+using TsDiscordBot.Discord.Constants;
+using TsDiscordBot.Discord.Data;
+using TsDiscordBot.Discord.Utility;
 
-namespace TsDiscordBot.Core.Services
+namespace TsDiscordBot.Discord.Services
 {
     public class OpenAIService
     {

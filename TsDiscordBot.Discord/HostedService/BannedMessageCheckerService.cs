@@ -1,14 +1,13 @@
-using TsDiscordBot.Core.Framework;
-
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using Discord.WebSocket;
-using TsDiscordBot.Core.Data;
-using TsDiscordBot.Core.Services;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using TsDiscordBot.Discord.Data;
+using TsDiscordBot.Discord.Framework;
+using TsDiscordBot.Discord.Services;
 
-namespace TsDiscordBot.Core.HostedService
+namespace TsDiscordBot.Discord.HostedService
 {
     public class BannedMessageCheckerService : IHostedService
     {

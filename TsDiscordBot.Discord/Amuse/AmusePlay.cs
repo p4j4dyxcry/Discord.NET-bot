@@ -1,4 +1,4 @@
-namespace TsDiscordBot.Core.Amuse;
+namespace TsDiscordBot.Discord.Amuse;
 
 public class AmusePlay
 {

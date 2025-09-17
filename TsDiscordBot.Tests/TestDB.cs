@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
-using TsDiscordBot.Core.Services;
+using TsDiscordBot.Discord.Services;
 using Xunit.Abstractions;
 
 namespace TsDiscordBot.Tests

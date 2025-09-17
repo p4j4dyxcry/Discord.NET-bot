@@ -1,12 +1,11 @@
-
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using TsDiscordBot.Core.Data;
-using TsDiscordBot.Core.Framework;
-using TsDiscordBot.Core.Services;
-using TsDiscordBot.Core.Utility;
+using TsDiscordBot.Discord.Data;
+using TsDiscordBot.Discord.Framework;
+using TsDiscordBot.Discord.Services;
+using TsDiscordBot.Discord.Utility;
 
-namespace TsDiscordBot.Core.HostedService;
+namespace TsDiscordBot.Discord.HostedService;
 
 public class AnonymousRelayService : IHostedService
 {

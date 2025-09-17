@@ -1,10 +1,10 @@
-using Discord.WebSocket;
 using Discord.Rest;
+using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace TsDiscordBot.Core.HostedService;
+namespace TsDiscordBot.Discord.HostedService;
 
 public class InviteTrackingService : IHostedService
 {

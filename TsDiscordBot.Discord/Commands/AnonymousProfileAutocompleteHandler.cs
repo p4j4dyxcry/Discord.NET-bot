@@ -1,8 +1,8 @@
 using Discord;
 using Discord.Interactions;
-using TsDiscordBot.Core.Services;
+using TsDiscordBot.Discord.Services;
 
-namespace TsDiscordBot.Core.Commands;
+namespace TsDiscordBot.Discord.Commands;
 
 public class AnonymousProfileAutocompleteHandler : AutocompleteHandler
 {

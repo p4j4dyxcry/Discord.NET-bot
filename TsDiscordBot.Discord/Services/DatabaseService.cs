@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace TsDiscordBot.Core.Services;
+namespace TsDiscordBot.Discord.Services;
 
 public class DatabaseService : IDisposable
 {

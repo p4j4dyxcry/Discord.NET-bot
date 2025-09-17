@@ -4,8 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Microsoft.Extensions.Logging.Abstractions;
-using TsDiscordBot.Core.Framework;
-using TsDiscordBot.Core.HostedService;
+using TsDiscordBot.Discord.Framework;
+using TsDiscordBot.Discord.HostedService;
 using Xunit;
 
 namespace TsDiscordBot.Tests;

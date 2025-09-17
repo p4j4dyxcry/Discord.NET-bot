@@ -1,4 +1,4 @@
-﻿namespace TsDiscordBot.Core.Data;
+﻿namespace TsDiscordBot.Discord.Data;
 
 public class TriggerReactionPost
 {

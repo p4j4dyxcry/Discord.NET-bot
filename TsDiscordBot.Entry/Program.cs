@@ -5,11 +5,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TsDiscordBot.Core;
-using TsDiscordBot.Core.Framework;
-using TsDiscordBot.Core.HostedService;
-using TsDiscordBot.Core.Services;
-using TsDiscordBot.Core.Amuse;
-using TsDiscordBot.Core.HostedService.Amuse;
+using TsDiscordBot.Discord;
+using TsDiscordBot.Discord.Amuse;
+using TsDiscordBot.Discord.Framework;
+using TsDiscordBot.Discord.HostedService;
+using TsDiscordBot.Discord.HostedService.Amuse;
+using TsDiscordBot.Discord.Services;
 
 // logging
 Envs.LogEnvironmentVariables();

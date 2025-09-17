@@ -1,9 +1,9 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
 using Discord;
-using TsDiscordBot.Core.Framework;
+using TsDiscordBot.Discord.Framework;
 
-namespace TsDiscordBot.Core.Utility
+namespace TsDiscordBot.Discord.Utility
 {
     public record AttachmentInfo(string Url, string ContentType);
 

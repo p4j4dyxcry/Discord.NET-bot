@@ -2,11 +2,11 @@
 using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
-using TsDiscordBot.Core.Amuse;
 using TsDiscordBot.Core.Game.BlackJack;
-using TsDiscordBot.Core.Services;
+using TsDiscordBot.Discord.Amuse;
+using TsDiscordBot.Discord.Services;
 
-namespace TsDiscordBot.Core.HostedService.Amuse
+namespace TsDiscordBot.Discord.HostedService.Amuse
 {
     public class BlackJackBackgroundLogic : IAmuseBackgroundLogic
     {

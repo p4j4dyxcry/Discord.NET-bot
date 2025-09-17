@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using TsDiscordBot.Core.Services;
+using TsDiscordBot.Discord.Services;
 using Xunit;
 
 namespace TsDiscordBot.Tests;

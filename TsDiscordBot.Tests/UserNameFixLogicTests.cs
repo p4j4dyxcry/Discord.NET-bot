@@ -1,4 +1,4 @@
-using TsDiscordBot.Core.Utility;
+using TsDiscordBot.Discord.Utility;
 using Xunit;
 
 namespace TsDiscordBot.Tests;

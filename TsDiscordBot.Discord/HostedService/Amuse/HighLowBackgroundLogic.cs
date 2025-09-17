@@ -1,12 +1,12 @@
 using System.Collections.Concurrent;
 using Discord;
 using Discord.WebSocket;
-using TsDiscordBot.Core.Amuse;
 using TsDiscordBot.Core.Game.BlackJack;
 using TsDiscordBot.Core.Game.HighLow;
-using TsDiscordBot.Core.Services;
+using TsDiscordBot.Discord.Amuse;
+using TsDiscordBot.Discord.Services;
 
-namespace TsDiscordBot.Core.HostedService.Amuse;
+namespace TsDiscordBot.Discord.HostedService.Amuse;
 
 public class HighLowBackgroundLogic(DatabaseService databaseService, DiscordSocketClient client) : IAmuseBackgroundLogic
 {

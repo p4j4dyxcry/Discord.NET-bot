@@ -1,12 +1,12 @@
-﻿using Discord;
+﻿using System.Text;
+using Discord;
 using Discord.Interactions;
 using Microsoft.Extensions.Logging;
-using System.Text;
-using TsDiscordBot.Core.Constants;
-using TsDiscordBot.Core.Data;
-using TsDiscordBot.Core.Services;
+using TsDiscordBot.Discord.Constants;
+using TsDiscordBot.Discord.Data;
+using TsDiscordBot.Discord.Services;
 
-namespace TsDiscordBot.Core.Commands;
+namespace TsDiscordBot.Discord.Commands;
 
     public class BannedCommandModule : InteractionModuleBase<SocketInteractionContext>
     {

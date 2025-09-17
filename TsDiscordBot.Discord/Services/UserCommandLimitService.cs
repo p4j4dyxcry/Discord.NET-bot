@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
-using TsDiscordBot.Core.Data;
+using TsDiscordBot.Discord.Data;
 
-namespace TsDiscordBot.Core.Services;
+namespace TsDiscordBot.Discord.Services;
 
 public interface IUserCommandLimitService
 {

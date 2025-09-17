@@ -1,4 +1,4 @@
-﻿namespace TsDiscordBot.Core.Framework
+﻿namespace TsDiscordBot.Discord.Framework
 {
     public interface IWebHookService
     {

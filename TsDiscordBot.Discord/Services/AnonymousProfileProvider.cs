@@ -1,6 +1,6 @@
-using TsDiscordBot.Core.Utility;
+using TsDiscordBot.Discord.Utility;
 
-namespace TsDiscordBot.Core.Services;
+namespace TsDiscordBot.Discord.Services;
 
 public record AnonymousProfile(string Name, string? AvatarUrl);
 

@@ -1,7 +1,7 @@
 ﻿using Discord;
 using Microsoft.Extensions.Logging;
 
-namespace TsDiscordBot.Core.Utility;
+namespace TsDiscordBot.Discord.Utility;
 
 public static class LogHelper
 {

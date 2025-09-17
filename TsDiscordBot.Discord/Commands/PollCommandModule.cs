@@ -2,10 +2,10 @@ using System.Text;
 using Discord;
 using Discord.Interactions;
 using Microsoft.Extensions.Logging;
-using TsDiscordBot.Core.Services;
-using Poll = TsDiscordBot.Core.Data.Poll;
+using TsDiscordBot.Discord.Services;
+using Poll = TsDiscordBot.Discord.Data.Poll;
 
-namespace TsDiscordBot.Core.Commands;
+namespace TsDiscordBot.Discord.Commands;
 
 public class PollCommandModule : InteractionModuleBase<SocketInteractionContext>
 {

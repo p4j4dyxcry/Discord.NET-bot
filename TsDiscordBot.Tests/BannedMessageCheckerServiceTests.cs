@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging.Abstractions;
-using TsDiscordBot.Core.Data;
-using TsDiscordBot.Core.Framework;
-using TsDiscordBot.Core.HostedService;
-using TsDiscordBot.Core.Services;
+using TsDiscordBot.Discord.Data;
+using TsDiscordBot.Discord.Framework;
+using TsDiscordBot.Discord.HostedService;
+using TsDiscordBot.Discord.Services;
 using Xunit;
 using Xunit.Abstractions;
 

@@ -1,6 +1,6 @@
-using TsDiscordBot.Core.Framework;
+using TsDiscordBot.Discord.Framework;
 
-namespace TsDiscordBot.Core.Amuse;
+namespace TsDiscordBot.Discord.Amuse;
 
 public interface IAmuseService
 {

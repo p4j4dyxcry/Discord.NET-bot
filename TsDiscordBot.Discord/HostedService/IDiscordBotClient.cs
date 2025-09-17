@@ -1,6 +1,6 @@
 using Discord;
 
-namespace TsDiscordBot.Core.HostedService;
+namespace TsDiscordBot.Discord.HostedService;
 
 public interface IDiscordBotClient
 {

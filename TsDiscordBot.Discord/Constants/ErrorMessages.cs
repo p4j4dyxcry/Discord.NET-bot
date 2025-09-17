@@ -1,4 +1,4 @@
-namespace TsDiscordBot.Core.Constants;
+namespace TsDiscordBot.Discord.Constants;
 
 public static class ErrorMessages
 {
