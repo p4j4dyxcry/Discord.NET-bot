@@ -116,5 +116,37 @@ public class AnonymousCommandModule : InteractionModuleBase<SocketInteractionCon
 
         await RespondAsync("匿名化を解除したよ！", ephemeral: true);
     }
+
+    [SlashCommand("identify", "指定したユーザーの匿名化を解除します。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
+    public async Task Identify(IUser target)
+    {
+        var guildId = (Context.Guild?.Id) ?? 0;
+        var settings = _databaseService.FindAll<AnonymousGuildUserSetting>(AnonymousGuildUserSetting.TableName)
+            .Where(x => x.GuildId == guildId && x.UserId == target.Id)
+            .ToArray();
+
+        if (settings.Length is 0)
+        {
+            _databaseService.Insert(AnonymousGuildUserSetting.TableName, new AnonymousGuildUserSetting
+            {
+                GuildId = guildId,
+                UserId = target.Id,
+                IsAnonymous = false,
+            });
+        }
+        else
+        {
+            foreach (var setting in settings)
+            {
+                setting.IsAnonymous = false;
+                setting.AnonymousName = null;
+                setting.AnonymousAvatarUrl = null;
+                _databaseService.Update(AnonymousGuildUserSetting.TableName, setting);
+            }
+        }
+
+        await RespondAsync($"{target.Mention}の匿名化を解除したよ！", ephemeral: true);
+    }
 }
 
