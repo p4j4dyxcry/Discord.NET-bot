@@ -1,4 +1,5 @@
 ﻿using Discord.WebSocket;
+using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Game;
 
 namespace TsDiscordBot.Discord.Services
@@ -29,6 +30,7 @@ namespace TsDiscordBot.Discord.Services
     {
         private readonly DiscordSocketClient _discordSocketClient;
         private readonly DatabaseService _databaseService;
+        private readonly ILogger<EmoteDatabase> _logger;
         // Rankトークン表記 ↔ Rank の対応
         private static readonly Dictionary<string, Rank> TokenToRank = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -74,10 +76,15 @@ namespace TsDiscordBot.Discord.Services
             1417843672560439338UL
         ];
 
-        public EmoteDatabase(DiscordSocketClient discordSocketClient, DatabaseService databaseService)
+        public EmoteDatabase(DiscordSocketClient discordSocketClient,
+            DatabaseService databaseService,
+            ILogger<EmoteDatabase> logger)
         {
             _discordSocketClient = discordSocketClient;
             _databaseService = databaseService;
+            _logger = logger;
+
+            BuildCache();
         }
 
         public string GetBackgroundCardEmote()
@@ -116,6 +123,7 @@ namespace TsDiscordBot.Discord.Services
         /// </summary>
         public void BuildCache(string? prefix = null)
         {
+            _logger.LogInformation("Build cache for Emote");
             var prefixValue = prefix ?? string.Empty;
 
             // 走査対象ギルドの決定
@@ -128,6 +136,7 @@ namespace TsDiscordBot.Discord.Services
 
             foreach (var guild in guilds)
             {
+                _logger.LogInformation($"Searching for Emotes from {guild.Name}");
                 foreach (var e in guild.Emotes)
                 {
                     if (TryMatchEmoteName(e.Name, out var key, prefixValue))
@@ -150,7 +159,7 @@ namespace TsDiscordBot.Discord.Services
             if (missing.Length > 0)
             {
                 // ログだけでなく、必要なら _db に「欠落」メタを書いたり通知も
-                System.Diagnostics.Debug.WriteLine($"[EmoteCache] missing: {string.Join(",", missing)}");
+                _logger.LogWarning($"[EmoteCache] missing: {string.Join(",", missing)}");
             }
 
             // Upsert
@@ -203,7 +212,7 @@ namespace TsDiscordBot.Discord.Services
             var suit = CharToSuit[suitCh];
             key = MakeKey(rank, suit); // 正規化（大文字）
             return true;
-            }
+        }
 
         /// <summary>必要キー53種（AS..KH + BG）</summary>
         private static IReadOnlyList<string> AllRequiredKeys()
