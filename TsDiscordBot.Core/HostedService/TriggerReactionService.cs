@@ -26,7 +26,11 @@ public class TriggerReactionService : IHostedService
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _subscription = _client.OnReceivedSubscribe(OnMessageReceivedAsync, nameof(TriggerReactionService), ServicePriority.Low);
+        _subscription = _client.OnReceivedSubscribe(
+            OnMessageReceivedAsync,
+            MessageConditions.True,
+            nameof(TriggerReactionService),
+            ServicePriority.Low);
         return Task.CompletedTask;
     }
 
@@ -36,39 +40,32 @@ public class TriggerReactionService : IHostedService
         return Task.CompletedTask;
     }
 
-    private async Task OnMessageReceivedAsync(IMessageData message)
+    private async Task OnMessageReceivedAsync(IMessageData message, CancellationToken token)
     {
-        try
+        TimeSpan timeSpan = DateTime.Now - _lastExecuteDate;
+
+        // Should be reduced calling, because the API is need to access the DB.
+        if (timeSpan > QuerySpan)
         {
-            TimeSpan timeSpan = DateTime.Now - _lastExecuteDate;
+            IEnumerable<TriggerReactionPost> collection = await _databaseService
+                .FindAllAsync<TriggerReactionPost>(TriggerReactionPost.TableName);
 
-            // Should be reduced calling, because the API is need to access the DB.
-            if (timeSpan > QuerySpan)
-            {
-                IEnumerable<TriggerReactionPost> collection = await _databaseService
-                    .FindAllAsync<TriggerReactionPost>(TriggerReactionPost.TableName);
-
-                _cache = collection.ToArray();
-                _lastExecuteDate = DateTime.Now;
-            }
-
-            IEnumerable<TriggerReactionPost> settings = _cache
-                .Where(x => x.GuildId == message.GuildId)
-                .Where(x => !string.IsNullOrWhiteSpace(x.TriggerWord));
-
-            foreach (var config in settings)
-            {
-                if (!message.Content.Contains(config.TriggerWord, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                await message.TryAddReactionAsync(config.Reaction);
-            }
+            _cache = collection.ToArray();
+            _lastExecuteDate = DateTime.Now;
         }
-        catch(Exception e)
+
+        IEnumerable<TriggerReactionPost> settings = _cache
+            .Where(x => x.GuildId == message.GuildId)
+            .Where(x => !string.IsNullOrWhiteSpace(x.TriggerWord));
+
+        foreach (var config in settings)
         {
-            _logger.LogError(e,"Failed to reaction");
+            if (!message.Content.Contains(config.TriggerWord, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            await message.TryAddReactionAsync(config.Reaction);
         }
     }
 }

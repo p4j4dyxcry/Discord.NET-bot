@@ -45,8 +45,16 @@ namespace TsDiscordBot.Core.HostedService
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _subscription1 = _client.OnReceivedSubscribe(CheckMessageAsync,nameof(BannedMessageCheckerService),ServicePriority.Urgent);
-            _subscription2 = _client.OnEditedSubscribe(CheckMessageAsync,nameof(BannedMessageCheckerService),ServicePriority.Urgent);
+            _subscription1 = _client.OnReceivedSubscribe(
+                CheckMessageAsync,
+                MessageConditions.NotFromBot.And(MessageConditions.NotDeleted),
+                nameof(BannedMessageCheckerService),
+                ServicePriority.Urgent);
+            _subscription2 = _client.OnEditedSubscribe(
+                CheckMessageAsync,
+                MessageConditions.NotFromBot.And(MessageConditions.NotDeleted),
+                nameof(BannedMessageCheckerService),
+                ServicePriority.Urgent);
             return Task.CompletedTask;
         }
 
@@ -118,108 +126,96 @@ namespace TsDiscordBot.Core.HostedService
             }
         }
 
-        private async Task CheckMessageAsync(IMessageData message)
+        private async Task CheckMessageAsync(IMessageData message, CancellationToken token)
         {
-            try
+            if (message.ChannelName.Contains("閲覧注意"))
             {
-                if (message.IsBot || message.IsDeleted)
-                {
-                    return;
-                }
-
-                if (message.ChannelName.Contains("閲覧注意"))
-                {
-                    return;
-                }
-
-
-                if ((DateTime.Now - _lastFetchTime) > CacheDuration)
-                {
-                    _cache = _databaseService.FindAll<BannedTriggerWord>(BannedTriggerWord.TableName).ToArray();
-                    _settingsCache = _databaseService.FindAll<BannedTextSetting>(BannedTextSetting.TableName).ToArray();
-                    _timeoutSettingsCache = _databaseService.FindAll<BannedWordTimeoutSetting>(BannedWordTimeoutSetting.TableName).ToArray();
-                    _excludeCache = _databaseService.FindAll<BannedExcludeWord>(BannedExcludeWord.TableName).ToArray();
-                    _lastFetchTime = DateTime.Now;
-                }
-
-                var keywords = _cache
-                    .Where(x => x.GuildId == message.GuildId)
-                    .Where(x => !string.IsNullOrWhiteSpace(x.Word));
-
-                var excludeWords = _excludeCache
-                    .Where(x => x.GuildId == message.GuildId)
-                    .Where(x => !string.IsNullOrWhiteSpace(x.Word))
-                    .Select(x => x.Word)
-                    .ToArray();
-
-                var setting = _settingsCache.FirstOrDefault(x => x.GuildId == message.GuildId);
-                if (setting is not null && !setting.IsEnabled)
-                {
-                    return;
-                }
-
-                var timeoutSetting = _timeoutSettingsCache.FirstOrDefault(x => x.GuildId == message.GuildId);
-
-                var content = message.Content;
-                var placeholders = new Dictionary<string, string>();
-                var idx = 0;
-                foreach (var e in excludeWords)
-                {
-                    var placeholder = $"__ALLOW{idx++}__";
-                    placeholders[placeholder] = e;
-                    content = Regex.Replace(content, Regex.Escape(e), placeholder, RegexOptions.IgnoreCase);
-                }
-
-                foreach (var keyword in keywords)
-                {
-                    if (content.Contains(keyword.Word, StringComparison.OrdinalIgnoreCase))
-                    {
-                        var mode = setting?.Mode ?? BannedTextMode.Hide;
-
-                        if (mode == BannedTextMode.Delete)
-                        {
-                            await message.DeleteAsync();
-                            _logger.LogInformation($"Deleted banned message from {message.AuthorName}: {keyword.Word}");
-
-                            try
-                            {
-                                await message.SendMessageAsyncOnChannel($"🔞 {message.AuthorMention} さん、不適切な発言が検出されたためメッセージを削除しました。");
-                            }
-                            catch (Exception dmEx)
-                            {
-                                _logger.LogWarning(dmEx, "Failed to send DM to user");
-                            }
-                        }
-                        else
-                        {
-                            var sanitized = content;
-                            foreach (var k in keywords)
-                            {
-                                sanitized = Regex.Replace(sanitized, Regex.Escape(k.Word), new string('＊', k.Word.Length), RegexOptions.IgnoreCase);
-                            }
-                            foreach (var kv in placeholders)
-                            {
-                                sanitized = sanitized.Replace(kv.Key, kv.Value);
-                            }
-
-                            await message.DeleteAsync();
-                            var webhookClient = await _webHookService.GetOrCreateWebhookClientAsync(message.ChannelId, "banned-relay");
-                            await webhookClient.RelayMessageAsync(message,sanitized);
-
-                        }
-
-                        if (!message.FromAdmin)
-                        {
-                            await HandleBannedWordAsync(message, timeoutSetting);
-                        }
-
-                        break; // 1件でもヒットしたら処理終了（重複削除防止）
-                    }
-                }
+                return;
             }
-            catch (Exception ex)
+
+
+            if ((DateTime.Now - _lastFetchTime) > CacheDuration)
             {
-                _logger.LogError(ex, "Error in banned message checker");
+                _cache = _databaseService.FindAll<BannedTriggerWord>(BannedTriggerWord.TableName).ToArray();
+                _settingsCache = _databaseService.FindAll<BannedTextSetting>(BannedTextSetting.TableName).ToArray();
+                _timeoutSettingsCache = _databaseService.FindAll<BannedWordTimeoutSetting>(BannedWordTimeoutSetting.TableName).ToArray();
+                _excludeCache = _databaseService.FindAll<BannedExcludeWord>(BannedExcludeWord.TableName).ToArray();
+                _lastFetchTime = DateTime.Now;
+            }
+
+            var keywords = _cache
+                .Where(x => x.GuildId == message.GuildId)
+                .Where(x => !string.IsNullOrWhiteSpace(x.Word));
+
+            var excludeWords = _excludeCache
+                .Where(x => x.GuildId == message.GuildId)
+                .Where(x => !string.IsNullOrWhiteSpace(x.Word))
+                .Select(x => x.Word)
+                .ToArray();
+
+            var setting = _settingsCache.FirstOrDefault(x => x.GuildId == message.GuildId);
+            if (setting is not null && !setting.IsEnabled)
+            {
+                return;
+            }
+
+            var timeoutSetting = _timeoutSettingsCache.FirstOrDefault(x => x.GuildId == message.GuildId);
+
+            var content = message.Content;
+            var placeholders = new Dictionary<string, string>();
+            var idx = 0;
+            foreach (var e in excludeWords)
+            {
+                var placeholder = $"__ALLOW{idx++}__";
+                placeholders[placeholder] = e;
+                content = Regex.Replace(content, Regex.Escape(e), placeholder, RegexOptions.IgnoreCase);
+            }
+
+            foreach (var keyword in keywords)
+            {
+                if (content.Contains(keyword.Word, StringComparison.OrdinalIgnoreCase))
+                {
+                    var mode = setting?.Mode ?? BannedTextMode.Hide;
+
+                    if (mode == BannedTextMode.Delete)
+                    {
+                        await message.DeleteAsync();
+                        _logger.LogInformation($"Deleted banned message from {message.AuthorName}: {keyword.Word}");
+
+                        try
+                        {
+                            await message.SendMessageAsyncOnChannel($"🔞 {message.AuthorMention} さん、不適切な発言が検出されたためメッセージを削除しました。");
+                        }
+                        catch (Exception dmEx)
+                        {
+                            _logger.LogWarning(dmEx, "Failed to send DM to user");
+                        }
+                    }
+                    else
+                    {
+                        var sanitized = content;
+                        foreach (var k in keywords)
+                        {
+                            sanitized = Regex.Replace(sanitized, Regex.Escape(k.Word), new string('＊', k.Word.Length), RegexOptions.IgnoreCase);
+                        }
+                        foreach (var kv in placeholders)
+                        {
+                            sanitized = sanitized.Replace(kv.Key, kv.Value);
+                        }
+
+                        await message.DeleteAsync();
+                        var webhookClient = await _webHookService.GetOrCreateWebhookClientAsync(message.ChannelId, "banned-relay");
+                        await webhookClient.RelayMessageAsync(message, sanitized);
+
+                    }
+
+                    if (!message.FromAdmin)
+                    {
+                        await HandleBannedWordAsync(message, timeoutSetting);
+                    }
+
+                    break; // 1件でもヒットしたら処理終了（重複削除防止）
+                }
             }
         }
     }

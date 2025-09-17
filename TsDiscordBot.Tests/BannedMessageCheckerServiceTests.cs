@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Discord.WebSocket;
@@ -61,7 +62,7 @@ public class BannedMessageCheckerServiceTests
         };
 
         var method = typeof(BannedMessageCheckerService).GetMethod("CheckMessageAsync", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        await (Task)method.Invoke(service, new object?[] { message })!;
+        await (Task)method.Invoke(service, new object?[] { message, CancellationToken.None })!;
 
         Assert.True(message.DeleteCalled);
         Assert.Equal("This is ＊＊＊", webhook.Client.LastContent);
@@ -96,7 +97,7 @@ public class BannedMessageCheckerServiceTests
         };
 
         var method = typeof(BannedMessageCheckerService).GetMethod("CheckMessageAsync", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        await (Task)method.Invoke(service, new object?[] { message })!;
+        await (Task)method.Invoke(service, new object?[] { message, CancellationToken.None })!;
 
         Assert.False(message.DeleteCalled);
         Assert.Null(webhook.Client.LastContent);
@@ -105,9 +106,9 @@ public class BannedMessageCheckerServiceTests
     private class DummyMessageReceiver : IMessageReceiver
     {
         private class DummyDisposable : IDisposable { public void Dispose() { } }
-        public IDisposable OnReceivedSubscribe(Func<IMessageData, Task> onMessageReceived, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
+        public IDisposable OnReceivedSubscribe(Func<IMessageData, CancellationToken, Task> onMessageReceived, Func<MessageData, CancellationToken, ValueTask<bool>> condition, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
             => new DummyDisposable();
-        public IDisposable OnEditedSubscribe(Func<IMessageData, Task> onMessageReceived, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
+        public IDisposable OnEditedSubscribe(Func<IMessageData, CancellationToken, Task> onMessageReceived, Func<MessageData, CancellationToken, ValueTask<bool>> condition, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
             => new DummyDisposable();
     }
 

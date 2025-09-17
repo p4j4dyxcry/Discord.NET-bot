@@ -21,22 +21,22 @@ public class AnonymousRelayServiceTests
 {
     private class FakeMessageReceiver : IMessageReceiver
     {
-        private Func<IMessageData, Task>? _onReceived;
+        private Func<IMessageData, CancellationToken, Task>? _onReceived;
 
-        public IDisposable OnReceivedSubscribe(Func<IMessageData, Task> onMessageReceived, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
+        public IDisposable OnReceivedSubscribe(Func<IMessageData, CancellationToken, Task> onMessageReceived, Func<MessageData, CancellationToken, ValueTask<bool>> condition, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
         {
             _onReceived = onMessageReceived;
             return new DummyDisposable();
         }
 
-        public IDisposable OnEditedSubscribe(Func<IMessageData, Task> onMessageReceived, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
+        public IDisposable OnEditedSubscribe(Func<IMessageData, CancellationToken, Task> onMessageReceived, Func<MessageData, CancellationToken, ValueTask<bool>> condition, string serviceName = "", ServicePriority priority = ServicePriority.Normal)
         {
             return new DummyDisposable();
         }
 
         public Task PublishAsync(IMessageData message)
         {
-            return _onReceived?.Invoke(message) ?? Task.CompletedTask;
+            return _onReceived?.Invoke(message, CancellationToken.None) ?? Task.CompletedTask;
         }
 
         private class DummyDisposable : IDisposable
