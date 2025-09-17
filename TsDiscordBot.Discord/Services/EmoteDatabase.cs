@@ -70,8 +70,6 @@ namespace TsDiscordBot.Discord.Services
         public static string MakeKey(Rank rank, Suit suit)
             => $"{RankToToken[rank]}{SuitToChar[suit]}".ToUpperInvariant();
 
-        private bool _initialized = false;
-
         private static ulong[] EmojiGuilds { get; } =
         [
             1417849765319802955UL,
