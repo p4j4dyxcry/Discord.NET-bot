@@ -1,5 +1,5 @@
 using System.Text;
-using Discord;
+using TsDiscordBot.Core.Messaging;
 using TsDiscordBot.Discord.Framework;
 using TsDiscordBot.Discord.Services;
 
@@ -42,13 +42,18 @@ public class ShowTopWinRateService : IAmuseService
             sb.AppendLine($"{rank}. <@{r.UserId}>　{rate:0.##}% ({r.WinCount}/{r.TotalPlays})");
         }
 
-        var embed = new EmbedBuilder()
-            .WithTitle($"🎮 {_gameName} 勝率 TOP10")
-            .WithDescription(sb.ToString().TrimEnd())
-            .WithColor(Color.Blue)
-            .Build();
+        var options = new MessageSendOptions
+        {
+            Embed = new MessageEmbed
+            {
+                Title = $"🎮 {_gameName} 勝率 TOP10",
+                Description = sb.ToString().TrimEnd(),
+                Color = MessageColor.FromHex(0x0000FF),
+            },
+            MentionHandling = MentionHandling.SuppressAll,
+        };
 
-        return message.ReplyMessageAsync(embed, AllowedMentions.None);
+        return message.ReplyMessageAsync(options);
     }
 }
 

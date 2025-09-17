@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
+using TsDiscordBot.Core.Messaging;
 using TsDiscordBot.Discord.Utility;
 
 namespace TsDiscordBot.Discord.Framework
@@ -121,27 +122,39 @@ public class MessageData : IMessageData
             return Task.FromResult<IMessageData?>(null);
         }
 
-        return SendMessageInternalAsync(message, Id, filePath: filePath);
+        var options = new MessageSendOptions
+        {
+            Content = message,
+            FilePath = filePath,
+        };
+
+        return SendMessageInternalAsync(Id, options);
     }
 
-    public Task<IMessageData?> ReplyMessageAsync(Embed embed, AllowedMentions? allowedMentions = null)
+    public Task<IMessageData?> ReplyMessageAsync(MessageSendOptions options)
     {
         if (IsDeleted)
         {
             return Task.FromResult<IMessageData?>(null);
         }
 
-        return SendMessageInternalAsync(null, Id, embed: embed, allowedMentions: allowedMentions);
+        return SendMessageInternalAsync(Id, options);
     }
 
     public Task<IMessageData?> SendMessageAsyncOnChannel(string message, string? filePath = null)
     {
-        return SendMessageInternalAsync(message, null, filePath: filePath);
+        var options = new MessageSendOptions
+        {
+            Content = message,
+            FilePath = filePath,
+        };
+
+        return SendMessageInternalAsync(null, options);
     }
 
-    public Task<IMessageData?> SendMessageAsyncOnChannel(Embed embed, AllowedMentions? allowedMentions = null)
+    public Task<IMessageData?> SendMessageAsyncOnChannel(MessageSendOptions options)
     {
-        return SendMessageInternalAsync(null, null, embed: embed, allowedMentions: allowedMentions);
+        return SendMessageInternalAsync(null, options);
     }
 
     public async Task<IMessageData?> ModifyMessageAsync(Func<string,string> modify)
@@ -174,12 +187,11 @@ public class MessageData : IMessageData
     }
 
     private async Task<IMessageData?> SendMessageInternalAsync(
-        string? content,
         ulong? referenceMessageId,
-        string? filePath = null,
-        Embed? embed = null,
-        AllowedMentions? allowedMentions = null)
+        MessageSendOptions options)
     {
+        ArgumentNullException.ThrowIfNull(options);
+
         if (OriginalSocketMessage is null)
         {
             return null;
@@ -196,11 +208,14 @@ public class MessageData : IMessageData
 
             IUserMessage? result = null;
 
-            if (filePath is not null)
+            var allowedMentions = CreateAllowedMentions(options);
+            var embed = BuildEmbed(options);
+
+            if (!string.IsNullOrEmpty(options.FilePath))
             {
                 result = await OriginalSocketMessage.Channel.SendFileAsync(
-                    filePath,
-                    content ?? string.Empty,
+                    options.FilePath,
+                    options.Content ?? string.Empty,
                     embed: embed,
                     allowedMentions: allowedMentions,
                     messageReference: reference);
@@ -208,7 +223,7 @@ public class MessageData : IMessageData
             else
             {
                 result = await OriginalSocketMessage.Channel.SendMessageAsync(
-                    content,
+                    options.Content,
                     embed: embed,
                     allowedMentions: allowedMentions,
                     messageReference: reference);
@@ -222,6 +237,56 @@ public class MessageData : IMessageData
         }
 
         return null;
+    }
+
+    private static AllowedMentions? CreateAllowedMentions(MessageSendOptions options)
+    {
+        return options.MentionHandling switch
+        {
+            MentionHandling.SuppressAll => AllowedMentions.None,
+            _ => null,
+        };
+    }
+
+    private static Embed? BuildEmbed(MessageSendOptions options)
+    {
+        var embedOptions = options.Embed;
+        if (embedOptions is null)
+        {
+            return null;
+        }
+
+        var builder = new EmbedBuilder();
+
+        if (!string.IsNullOrWhiteSpace(embedOptions.Title))
+        {
+            builder.WithTitle(embedOptions.Title);
+        }
+
+        if (!string.IsNullOrWhiteSpace(embedOptions.Description))
+        {
+            builder.WithDescription(embedOptions.Description);
+        }
+
+        if (embedOptions.Color is MessageColor color)
+        {
+            builder.WithColor(new Color(color.R, color.G, color.B));
+        }
+
+        if (!string.IsNullOrWhiteSpace(embedOptions.ImageUrl))
+        {
+            builder.WithImageUrl(embedOptions.ImageUrl);
+        }
+
+        if (embedOptions.Fields.Count > 0)
+        {
+            foreach (var field in embedOptions.Fields)
+            {
+                builder.AddField(field.Name, field.Value, field.Inline);
+            }
+        }
+
+        return builder.Build();
     }
 
     public async Task<bool> DeleteAsync()

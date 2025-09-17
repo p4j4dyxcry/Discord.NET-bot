@@ -1,4 +1,4 @@
-﻿using Discord;
+﻿using TsDiscordBot.Core.Messaging;
 
 namespace TsDiscordBot.Discord.Framework;
 public record AttachmentData(string FileName, string ContentType, byte[] Bytes ,int? Width, int? Height);
@@ -32,9 +32,9 @@ public interface IMessageData
 
     public Task<bool> TryAddReactionAsync(string reaction);
     public Task<IMessageData?> SendMessageAsyncOnChannel(string content, string? filePath = null);
-    public Task<IMessageData?> SendMessageAsyncOnChannel(Embed embed, AllowedMentions? allowedMentions = null);
+    public Task<IMessageData?> SendMessageAsyncOnChannel(MessageSendOptions options);
     public Task<IMessageData?> ReplyMessageAsync(string content, string? filePath = null);
-    public Task<IMessageData?> ReplyMessageAsync(Embed embed, AllowedMentions? allowedMentions = null);
+    public Task<IMessageData?> ReplyMessageAsync(MessageSendOptions options);
     public Task<IMessageData?> ModifyMessageAsync(Func<string, string> modify);
     public Task<bool> DeleteAsync();
 
