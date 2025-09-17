@@ -1,5 +1,5 @@
 using System;
-using TsDiscordBot.Core.Services;
+using TsDiscordBot.Discord.Services;
 using Xunit;
 
 namespace TsDiscordBot.Tests;

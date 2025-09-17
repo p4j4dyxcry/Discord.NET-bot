@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging.Abstractions;
-using TsDiscordBot.Core.Services;
+using TsDiscordBot.Discord.Services;
 using Xunit.Abstractions;
 
 namespace TsDiscordBot.Tests
 {
     public class TestDB
     {
-        public static DatabaseService Crate(string connectionString = null, ITestOutputHelper? testOutputHelper = null, Action<DatabaseService> setup = null)
+        public static DatabaseService Crate(string? connectionString = null, ITestOutputHelper? testOutputHelper = null, Action<DatabaseService>? setup = null)
         {
-            var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
+            var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["database_path"] = connectionString ?? ":memory:"
             }).Build();

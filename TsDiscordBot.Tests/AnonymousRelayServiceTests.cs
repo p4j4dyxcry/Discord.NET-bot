@@ -1,20 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Discord;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
-using TsDiscordBot.Core.Data;
-using TsDiscordBot.Core.Framework;
-using TsDiscordBot.Core.HostedService;
-using TsDiscordBot.Core.Services;
-using TsDiscordBot.Core.Utility;
+using TsDiscordBot.Discord.Data;
+using TsDiscordBot.Discord.Framework;
+using TsDiscordBot.Discord.HostedService;
+using TsDiscordBot.Discord.Services;
+using TsDiscordBot.Discord.Utility;
 using Xunit;
 using Xunit.Abstractions;
-
-#nullable enable
 
 namespace TsDiscordBot.Tests;
 
@@ -96,7 +92,7 @@ public class AnonymousRelayServiceTests
         public string? AvatarUrl { get; set; }
         public string AuthorMention => string.Empty;
         public string ChannelName => string.Empty;
-        public MessageData? ReplySource => null;
+        public IMessageData? ReplySource => null;
         public bool IsDeleted { get; private set; }
         public DateTimeOffset Timestamp => DateTimeOffset.Now;
         public List<AttachmentData> Attachments { get; } = new();

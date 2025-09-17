@@ -4,11 +4,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Discord;
 using Microsoft.Extensions.Logging.Abstractions;
-using TsDiscordBot.Core.Framework;
-using TsDiscordBot.Core.HostedService;
+using TsDiscordBot.Discord.Framework;
+using TsDiscordBot.Discord.HostedService;
 using Xunit;
-
-#nullable enable
 
 namespace TsDiscordBot.Tests;
 
@@ -52,7 +50,7 @@ public class NauAriServiceTests
         public string? AvatarUrl { get; set; }
         public string AuthorMention { get; set; } = string.Empty;
         public string ChannelName { get; set; } = string.Empty;
-        public MessageData? ReplySource { get; set; }
+        public IMessageData? ReplySource { get; set; }
         public bool IsDeleted { get; set; }
         public DateTimeOffset Timestamp { get; set; }
         public List<AttachmentData> Attachments { get; set; } = new();

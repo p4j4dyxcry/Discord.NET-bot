@@ -4,10 +4,8 @@ using System.Threading.Tasks;
 using Discord;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
-using TsDiscordBot.Core.HostedService;
+using TsDiscordBot.Discord.HostedService;
 using Xunit;
-
-#nullable enable
 
 namespace TsDiscordBot.Tests;
 
@@ -32,18 +30,21 @@ public class DiscordStartupServiceTests
         public Task StartAsync()
         {
             Started = true;
+            Log?.Invoke(new LogMessage(LogSeverity.Info, "TestDiscordClient", "Started"));
             return Task.CompletedTask;
         }
 
         public Task LogoutAsync()
         {
             LoggedOut = true;
+            Log?.Invoke(new LogMessage(LogSeverity.Info, "Test", "Discord bot logged out."));
             return Task.CompletedTask;
         }
 
         public Task StopAsync()
         {
             Stopped = true;
+            Log?.Invoke(new LogMessage(LogSeverity.Info, "Test", "Discord bot is stopped"));
             return Task.CompletedTask;
         }
     }

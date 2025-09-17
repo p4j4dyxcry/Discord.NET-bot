@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace TsDiscordBot.Core.Game.BlackJack;
 
 public enum GameOutcome
@@ -34,11 +32,6 @@ public class BlackJackGame
         _dealerHand.Add(_deck.Draw());
         _playerHand.Add(_deck.Draw());
         _dealerHand.Add(_deck.Draw());
-
-        if (CalculateScore(_playerHand) == 21)
-        {
-            Stand();
-        }
     }
 
     public void Hit()

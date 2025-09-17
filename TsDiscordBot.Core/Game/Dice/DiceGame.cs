@@ -1,5 +1,3 @@
-using System;
-
 namespace TsDiscordBot.Core.Game.Dice;
 
 public enum DiceOutcome
