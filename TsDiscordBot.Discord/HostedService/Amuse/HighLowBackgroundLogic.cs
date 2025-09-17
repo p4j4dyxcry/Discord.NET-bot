@@ -2,9 +2,9 @@ using System.Collections.Concurrent;
 using Discord;
 using Discord.WebSocket;
 using TsDiscordBot.Core.Amuse;
+using TsDiscordBot.Core.Game.BlackJack;
+using TsDiscordBot.Core.Game.HighLow;
 using TsDiscordBot.Core.Services;
-using TsDiscordBot.Interfaces.Game.BlackJack;
-using TsDiscordBot.Interfaces.Game.HighLow;
 
 namespace TsDiscordBot.Core.HostedService.Amuse;
 

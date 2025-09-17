@@ -8,8 +8,6 @@ using TsDiscordBot.Core.Framework;
 using TsDiscordBot.Core.HostedService;
 using Xunit;
 
-#nullable enable
-
 namespace TsDiscordBot.Tests;
 
 public class NauAriServiceTests

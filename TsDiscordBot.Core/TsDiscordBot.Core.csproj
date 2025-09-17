@@ -4,8 +4,8 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <RootNamespace>TsDiscordBot.Interfaces</RootNamespace>
-    </PropertyGroup>
+        <WarningsAsErrors>true</WarningsAsErrors>
+     </PropertyGroup>
 
     <ItemGroup>
       <Folder Include="Framework\" />

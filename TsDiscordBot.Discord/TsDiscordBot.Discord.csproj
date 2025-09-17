@@ -6,7 +6,6 @@
         <Nullable>enable</Nullable>
         <LangVersion>12</LangVersion>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-        <RootNamespace>TsDiscordBot.Core</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

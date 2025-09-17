@@ -1,4 +1,4 @@
-namespace TsDiscordBot.Interfaces.Game.BlackJack;
+namespace TsDiscordBot.Core.Game.BlackJack;
 
 public enum GameOutcome
 {

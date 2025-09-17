@@ -1,4 +1,6 @@
-namespace TsDiscordBot.Interfaces.Game.BlackJack;
+using TsDiscordBot.Core.Game.BlackJack;
+
+namespace TsDiscordBot.Core.Game;
 
 public class Deck
 {

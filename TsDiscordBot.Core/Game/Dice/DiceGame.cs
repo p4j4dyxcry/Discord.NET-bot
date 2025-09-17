@@ -1,4 +1,4 @@
-namespace TsDiscordBot.Interfaces.Game.Dice;
+namespace TsDiscordBot.Core.Game.Dice;
 
 public enum DiceOutcome
 {

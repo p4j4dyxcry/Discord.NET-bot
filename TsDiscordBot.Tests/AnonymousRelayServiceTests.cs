@@ -12,8 +12,6 @@ using TsDiscordBot.Core.Utility;
 using Xunit;
 using Xunit.Abstractions;
 
-#nullable enable
-
 namespace TsDiscordBot.Tests;
 
 public class AnonymousRelayServiceTests

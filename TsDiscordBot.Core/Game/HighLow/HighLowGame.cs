@@ -1,6 +1,6 @@
-using TsDiscordBot.Interfaces.Game.BlackJack;
+using TsDiscordBot.Core.Game.BlackJack;
 
-namespace TsDiscordBot.Interfaces.Game.HighLow;
+namespace TsDiscordBot.Core.Game.HighLow;
 
 public enum GuessPrediction
 {

@@ -1,5 +1,6 @@
-using TsDiscordBot.Interfaces.Game.BlackJack;
-using TsDiscordBot.Interfaces.Game.HighLow;
+using TsDiscordBot.Core.Game;
+using TsDiscordBot.Core.Game.BlackJack;
+using TsDiscordBot.Core.Game.HighLow;
 using Xunit;
 
 namespace TsDiscordBot.Tests;

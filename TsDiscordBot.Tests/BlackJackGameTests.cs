@@ -1,4 +1,5 @@
-using TsDiscordBot.Interfaces.Game.BlackJack;
+using TsDiscordBot.Core.Game;
+using TsDiscordBot.Core.Game.BlackJack;
 using Xunit;
 
 namespace TsDiscordBot.Tests;

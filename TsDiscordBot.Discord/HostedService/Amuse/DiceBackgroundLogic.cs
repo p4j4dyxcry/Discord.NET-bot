@@ -2,8 +2,8 @@
 using Discord;
 using Discord.WebSocket;
 using TsDiscordBot.Core.Amuse;
+using TsDiscordBot.Core.Game.Dice;
 using TsDiscordBot.Core.Services;
-using TsDiscordBot.Interfaces.Game.Dice;
 
 namespace TsDiscordBot.Core.HostedService.Amuse
 {
