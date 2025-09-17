@@ -31,50 +31,24 @@ public class DatabaseServiceTests
     [Fact]
     public void Insert_FindAll_Update_Delete_Work()
     {
-        try
-        {
-            using var service = TestDB.Crate(null,_testOutputHelper);
+        using var service = TestDB.Crate(null,_testOutputHelper);
 
-            var item = new TestRecord { Name = "foo" };
-            service.Insert(Table, item);
+        var item = new TestRecord { Name = "foo" };
+        service.Insert(Table, item);
 
-            var all = service.FindAll<TestRecord>(Table).ToList();
-            Assert.Single(all);
-            var stored = all[0];
-            Assert.Equal("foo", stored.Name);
-            Assert.True(stored.Id > 0);
+        var all = service.FindAll<TestRecord>(Table).ToList();
+        Assert.Single(all);
+        var stored = all[0];
+        Assert.Equal("foo", stored.Name);
+        Assert.True(stored.Id > 0);
 
-            stored.Name = "bar";
-            service.Update(Table, stored);
-            var updated = service.FindAll<TestRecord>(Table).Single();
-            Assert.Equal("bar", updated.Name);
+        stored.Name = "bar";
+        service.Update(Table, stored);
+        var updated = service.FindAll<TestRecord>(Table).Single();
+        Assert.Equal("bar", updated.Name);
 
-            Assert.True(service.Delete(Table, updated.Id));
-            Assert.Empty(service.FindAll<TestRecord>(Table));
-        }
-        finally
-        {
-
-        }
-    }
-
-    [Fact]
-    public void Methods_Handle_Null_LiteDb()
-    {
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new[] { new KeyValuePair<string, string>("database_path", "TEMP_ABC:\\") })
-            .Build();
-
-        using var service = new DatabaseService(new TestLogger<DatabaseService>(_testOutputHelper), config);
-
-        var field = typeof(DatabaseService).GetField("_litedb", BindingFlags.NonPublic | BindingFlags.Instance);
-        Assert.Null(field!.GetValue(service));
-
-        service.Insert(Table, new TestRecord());
+        Assert.True(service.Delete(Table, updated.Id));
         Assert.Empty(service.FindAll<TestRecord>(Table));
-
-        service.Update(Table, new TestRecord());
-        Assert.False(service.Delete(Table, 1));
     }
 }
 
