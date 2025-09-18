@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using Discord;
+using Microsoft.Extensions.Primitives;
 using TsDiscordBot.Core;
 using TsDiscordBot.Core.Game;
 using TsDiscordBot.Core.Game.BlackJack;
@@ -75,7 +76,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
             _messageId = messageId;
         }
 
-        private string BuildPlayerCardsString()
+        private string BuildPlayerCardsEmotes()
         {
             StringBuilder playerCards = new StringBuilder();
 
@@ -97,20 +98,29 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
             return playerCards.ToString();
         }
 
-        private string BuildDealerCardsString()
+        private string BuildDealerCardsEmotes()
         {
+            StringBuilder cards = new StringBuilder();
+
             if (_game.IsFinished)
             {
-                int dealerScore = BlackJackGame.CalculateScore(_game.DealerCards);
-                return $"つむぎ[{dealerScore}]";
+                cards.Append(_emoteDatabase.GetEmote(_game.PlayerCards[0]));
+                for (int i = 1; i < _game.DealerCards.Count - 1; i++)
+                {
+                    var card = _game.DealerCards[i];
+                    cards.Append(_emoteDatabase.GetFlipAnimationEmote(card));
+                }
             }
             else
             {
                 string dealerCard = _emoteDatabase.GetFlipAnimationEmote(_game.DealerVisibleCard);
                 string backGround = _emoteDatabase.GetBackgroundCardEmote();
 
-                return $"{dealerCard}{backGround}";
+                cards.Append(dealerCard);
+                cards.Append(backGround);
             }
+
+            return cards.ToString();
         }
 
         private string BuildDealerScoreString()
@@ -161,7 +171,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
         {
             var result = new GameUi();
 
-            var emote = _emoteDatabase.FindEmoteByName("Flip_BG");
+            var emote = _emoteDatabase.FindEmoteByName("BG","Flip_");
 
             result.MessageEmbed = new MessageEmbed[1];
             result.MessageEmbed[0] = new MessageEmbed
@@ -173,12 +183,12 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
                     new EmbedField
                     {
                         Name = BuildDealerScoreString(),
-                        Value = BuildDealerCardsString(),
+                        Value = BuildDealerCardsEmotes(),
                     },
                     new EmbedField
                     {
                         Name = BuildPlayerScoreString(),
-                        Value = BuildPlayerCardsString(),
+                        Value = BuildPlayerCardsEmotes(),
                     }
                 ],
                 Footer = _footer ?? "ゲームが進行中です",

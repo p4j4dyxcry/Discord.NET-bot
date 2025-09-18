@@ -23,6 +23,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse
                     Cash = 0,
                     UserId = userId,
                 };
+                databaseService.Insert(AmuseCash.TableName, cash);
             }
 
             cash.Cash += difference;

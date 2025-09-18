@@ -104,7 +104,7 @@ namespace TsDiscordBot.Discord.Services
 
         private string FinEmoteInternalAsString(string name)
         {
-            var e = FindEmoteByName(name);
+            var e = FindEmoteByName(name, string.Empty);
 
             if (e is not null)
             {
@@ -114,7 +114,7 @@ namespace TsDiscordBot.Discord.Services
             return string.Empty;
         }
 
-        public GuildEmote? FindEmoteByName(string name)
+        public GuildEmote? FindEmoteByName(string name, string prefix)
         {
             var guilds = (EmojiGuilds.Length > 0)
                 ? EmojiGuilds.Select(id => _discordSocketClient.GetGuild(id)).Where(g => g != null)!
@@ -125,7 +125,7 @@ namespace TsDiscordBot.Discord.Services
                 _logger.LogInformation($"Searching for Emotes from {guild.Name}");
                 foreach (var e in guild.Emotes)
                 {
-                    if (TryMatchEmoteName(name, out string _, "flip_"))
+                    if (TryMatchEmoteName(name, out string _, prefix))
                     {
                         return e;
                     }
