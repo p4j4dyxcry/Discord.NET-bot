@@ -1,10 +1,11 @@
 ﻿using LiteDB;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using TsDiscordBot.Core.Database;
 
 namespace TsDiscordBot.Discord.Services;
 
-public class DatabaseService : IDisposable
+public class DatabaseService : IDatabaseService, IDisposable
 {
     private readonly ILogger _logger;
     private readonly LiteDatabase? _litedb;
