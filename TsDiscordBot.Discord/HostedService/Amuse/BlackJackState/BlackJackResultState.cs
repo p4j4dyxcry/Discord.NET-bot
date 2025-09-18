@@ -1,5 +1,4 @@
-﻿using TsDiscordBot.Core;
-using TsDiscordBot.Core.Database;
+﻿using TsDiscordBot.Core.Database;
 using TsDiscordBot.Core.Game;
 using TsDiscordBot.Core.Game.BlackJack;
 using TsDiscordBot.Discord.Amuse;
@@ -35,7 +34,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
             var userCash = _databaseService.GetUserCash(_play.UserId);
             if (userCash < previousBet)
             {
-                _nextBet = previousBet;
+                _nextBet = 100;
             }
 
             // Pay bet.
@@ -62,6 +61,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
         public async Task<IState<BlackJackGame>> GetNextStateAsync(string actionId)
         {
             await _cancellationTokenSource.CancelAsync();
+            _cancellationTokenSource.Dispose();
             if (actionId == BlackJackActions.Replay)
             {
                 _play.Bet = _nextBet;
@@ -81,7 +81,23 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
 
         public Task<GameUi> GetGameUiAsync()
         {
+            string title = string.Empty;
+
+            if (Game.Result?.Outcome == GameOutcome.PlayerWin)
+            {
+                title = $"あなたの勝ち!{Game.Result.Payout}GAL円GET";
+            }
+            else if (Game.Result?.Outcome == GameOutcome.DealerWin)
+            {
+                title = $"あなたの負け";
+            }
+            else if (Game.Result?.Outcome == GameOutcome.Push)
+            {
+                title = $"引き分け";
+            }
+
             var result = new BlackJackUIBuilder(Game, _emoteDatabase, _play.MessageId)
+                .WithTitle(title)
                 .WithFooter($"{_nextBet}GAL円をBETして再選する？")
                 .EnableRetryButton()
                 .EnableQuitButton()

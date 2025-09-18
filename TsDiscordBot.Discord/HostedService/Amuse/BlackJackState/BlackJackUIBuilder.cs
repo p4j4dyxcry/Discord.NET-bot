@@ -131,65 +131,30 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
         {
             int playerScore = BlackJackGame.CalculateScore(_game.PlayerCards);
 
-            return $"あなた[{playerScore} + ?]";
+            return $"あなた[{playerScore}]";
         }
 
         private IEnumerable<MessageComponent> BuildButtons()
         {
             if (_enableHitButton)
-            {
-                yield return new MessageComponent
-                {
-                    ActionId = StateMachineUtil.MakeActionId(BlackJackActions.Hit,_messageId),
-                    Content = "ヒット",
-                    Kind = ComponentKind.Button,
-                    ButtonStyle = ButtonStyle.Primary,
-                };
-            }
-
+                yield return Button(BlackJackActions.Hit, "ヒット", ButtonStyle.Primary);
             if (_enableStandButton)
-            {
-                yield return new MessageComponent
-                {
-                    ActionId = StateMachineUtil.MakeActionId(BlackJackActions.Stand,_messageId),
-                    Content = "スタンド",
-                    Kind = ComponentKind.Button,
-                    ButtonStyle = ButtonStyle.Secondary,
-                };
-            }
-
+                yield return Button(BlackJackActions.Stand, "スタンド", ButtonStyle.Secondary);
             if (_enableDoubleDownButton)
-            {
-                yield return new MessageComponent
-                {
-                    ActionId = StateMachineUtil.MakeActionId(BlackJackActions.DoubleDown,_messageId),
-                    Content = "ダブルダウン",
-                    Kind = ComponentKind.Button,
-                    ButtonStyle = ButtonStyle.Danger,
-                };
-            }
-
+                yield return Button(BlackJackActions.DoubleDown, "ダブルダウン", ButtonStyle.Danger);
             if (_enableRetryButton)
-            {
-                yield return new MessageComponent
-                {
-                    ActionId = StateMachineUtil.MakeActionId(BlackJackActions.Replay,_messageId),
-                    Content = "もう1回",
-                    Kind = ComponentKind.Button,
-                    ButtonStyle = ButtonStyle.Primary,
-                };
-            }
-
+                yield return Button(BlackJackActions.Replay, "もう1回", ButtonStyle.Primary);
             if (_enableQuitButton)
-            {
-                yield return new MessageComponent
+                yield return Button(BlackJackActions.Quit, "やめる", ButtonStyle.Secondary);
+
+            MessageComponent Button(string action, string label, ButtonStyle style)
+                => new()
                 {
-                    ActionId = StateMachineUtil.MakeActionId(BlackJackActions.Quit,_messageId),
-                    Content = "やめる",
+                    ActionId = StateMachineUtil.MakeActionId(action, _messageId),
+                    Content = label,
                     Kind = ComponentKind.Button,
-                    ButtonStyle = ButtonStyle.Secondary,
+                    ButtonStyle = style,
                 };
-            }
         }
 
         public GameUi Build()
