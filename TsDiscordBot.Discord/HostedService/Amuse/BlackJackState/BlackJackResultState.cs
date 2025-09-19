@@ -29,6 +29,9 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
 
         public Task OnEnterAsync()
         {
+            // Payout.
+            _databaseService.AddUserCash(_play.UserId, Game.Result?.Payout ?? 0);
+
             _nextBet = _play.Bet;
             var previousBet = _play.Bet;
             var userCash = _databaseService.GetUserCash(_play.UserId);
@@ -36,9 +39,6 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
             {
                 _nextBet = 100;
             }
-
-            // Pay bet.
-            _databaseService.AddUserCash(_play.UserId, Game.Result?.Payout ?? 0);
 
             // 1分後自動キャンセル
             Task.Run(async () =>
@@ -98,7 +98,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
 
             var result = new BlackJackUIBuilder(Game, _emoteDatabase, _play.MessageId)
                 .WithTitle(title)
-                .WithFooter($"{_nextBet}GAL円をBETして再選する？")
+                .WithFooter($"{_nextBet}GAL円をBETして再戦する？")
                 .EnableRetryButton()
                 .EnableQuitButton()
                 .Build();
