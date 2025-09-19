@@ -125,7 +125,7 @@ namespace TsDiscordBot.Discord.Services
                 _logger.LogInformation($"Searching for Emotes from {guild.Name}");
                 foreach (var e in guild.Emotes)
                 {
-                    if (TryMatchEmoteName(name, out string _, prefix))
+                    if (e.Name == $"{prefix}{name}")
                     {
                         return e;
                     }
