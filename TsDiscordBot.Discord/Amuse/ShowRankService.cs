@@ -1,4 +1,5 @@
 using System.Text;
+using Discord.WebSocket;
 using TsDiscordBot.Core.Messaging;
 using TsDiscordBot.Discord.Framework;
 using TsDiscordBot.Discord.Services;
@@ -8,16 +9,27 @@ namespace TsDiscordBot.Discord.Amuse;
 public class ShowRankService : IAmuseService
 {
     private readonly DatabaseService _databaseService;
+    private readonly DiscordSocketClient _discordSocketClient;
 
-    public ShowRankService(DatabaseService databaseService)
+    public ShowRankService(DatabaseService databaseService, DiscordSocketClient discordSocketClient)
     {
         _databaseService = databaseService;
+        _discordSocketClient = discordSocketClient;
     }
 
     public Task ExecuteAsync(IMessageData message)
     {
-        var users = _databaseService
-            .FindAll<AmuseCash>(AmuseCash.TableName)
+        var guild = _discordSocketClient.GetGuild(message.GuildId);
+
+        var usersQuery = _databaseService
+            .FindAll<AmuseCash>(AmuseCash.TableName);
+
+        if (guild is not null)
+        {
+            usersQuery = usersQuery.Where(x => guild.GetUser(x.UserId) is not null);
+        }
+
+        var users = usersQuery
             .OrderByDescending(x => x.Cash)
             .ToArray();
 

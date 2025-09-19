@@ -1,4 +1,5 @@
 using System.Text;
+using Discord.WebSocket;
 using TsDiscordBot.Core.Messaging;
 using TsDiscordBot.Discord.Framework;
 using TsDiscordBot.Discord.Services;
@@ -8,21 +9,32 @@ namespace TsDiscordBot.Discord.Amuse;
 public class ShowTopWinRateService : IAmuseService
 {
     private readonly DatabaseService _databaseService;
+    private readonly DiscordSocketClient _discordSocketClient;
     private readonly string _gameKind;
     private readonly string _gameName;
 
-    public ShowTopWinRateService(string gameKind, string gameName, DatabaseService databaseService)
+    public ShowTopWinRateService(string gameKind, string gameName, DatabaseService databaseService, DiscordSocketClient discordSocketClient)
     {
         _gameKind = gameKind;
         _gameName = gameName;
         _databaseService = databaseService;
+        _discordSocketClient = discordSocketClient;
     }
 
     public Task ExecuteAsync(IMessageData message)
     {
-        var records = _databaseService
+        var guild = _discordSocketClient.GetGuild(message.GuildId);
+
+        var recordsQuery = _databaseService
             .FindAll<AmuseGameRecord>(AmuseGameRecord.TableName)
-            .Where(x => x.GameKind == _gameKind && x.TotalPlays > 0)
+            .Where(x => x.GameKind == _gameKind && x.TotalPlays > 0);
+
+        if (guild is not null)
+        {
+            recordsQuery = recordsQuery.Where(x => guild.GetUser(x.UserId) is not null);
+        }
+
+        var records = recordsQuery
             .OrderByDescending(x => (double)x.WinCount / x.TotalPlays)
             .ThenByDescending(x => x.TotalPlays)
             .Take(10)

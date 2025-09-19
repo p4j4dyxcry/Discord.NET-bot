@@ -1,3 +1,4 @@
+using Discord.WebSocket;
 using TsDiscordBot.Discord.Services;
 
 namespace TsDiscordBot.Discord.Amuse;
@@ -5,10 +6,12 @@ namespace TsDiscordBot.Discord.Amuse;
 public class AmuseCommandParser : IAmuseCommandParser
 {
     private readonly DatabaseService _databaseService;
+    private readonly DiscordSocketClient _discordSocketClient;
 
-    public AmuseCommandParser(DatabaseService databaseService)
+    public AmuseCommandParser(DatabaseService databaseService, DiscordSocketClient discordSocketClient)
     {
         _databaseService = databaseService;
+        _discordSocketClient = discordSocketClient;
     }
 
     public IAmuseService? Parse(string content)
@@ -57,28 +60,28 @@ public class AmuseCommandParser : IAmuseCommandParser
                 {
                     if (parts[2].Equals("bj", StringComparison.OrdinalIgnoreCase))
                     {
-                        return new ShowTopWinRateService("BJ", "ブラックジャック", _databaseService);
+                        return new ShowTopWinRateService("BJ", "ブラックジャック", _databaseService, _discordSocketClient);
                     }
 
                     if (parts[2].Equals("dice", StringComparison.OrdinalIgnoreCase))
                     {
-                        return new ShowTopWinRateService("DI", "サイコロゲーム", _databaseService);
+                        return new ShowTopWinRateService("DI", "サイコロゲーム", _databaseService, _discordSocketClient);
                     }
 
                     if (parts[2].Equals("hl", StringComparison.OrdinalIgnoreCase) ||
                         parts[2].Equals("highlow", StringComparison.OrdinalIgnoreCase) ||
                         parts[2].Equals("highandlow", StringComparison.OrdinalIgnoreCase))
                     {
-                        return new ShowTopWinRateService("HL", "ハイ＆ロー", _databaseService);
+                        return new ShowTopWinRateService("HL", "ハイ＆ロー", _databaseService, _discordSocketClient);
                     }
                 }
 
-                return new ShowTopCashService(_databaseService);
+                return new ShowTopCashService(_databaseService, _discordSocketClient);
             }
 
             if (parts[1].Equals("rank", StringComparison.OrdinalIgnoreCase))
             {
-                return new ShowRankService(_databaseService);
+                return new ShowRankService(_databaseService, _discordSocketClient);
             }
 
             if (parts[1].Equals("winrate", StringComparison.OrdinalIgnoreCase))
