@@ -68,7 +68,7 @@ public class AmuseGameManager
                 return;
             }
 
-            if (CanBuildGame(amusePlay))
+            if (!CanBuildGame(amusePlay))
             {
                 return;
             }
