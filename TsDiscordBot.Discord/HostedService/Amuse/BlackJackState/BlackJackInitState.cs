@@ -1,5 +1,4 @@
-﻿using TsDiscordBot.Core;
-using TsDiscordBot.Core.Database;
+﻿using TsDiscordBot.Core.Database;
 using TsDiscordBot.Core.Game;
 using TsDiscordBot.Core.Game.BlackJack;
 using TsDiscordBot.Discord.Amuse;
@@ -7,7 +6,8 @@ using TsDiscordBot.Discord.Services;
 
 namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
 {
-    public class BlackJackInitState : IState<BlackJackGame>
+
+    public class BlackJackInitGameState : IGameState
     {
         public BlackJackGame Game { get; }
 
@@ -15,8 +15,8 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
         private readonly AmusePlay _play;
         private readonly IDatabaseService _databaseService;
         private readonly EmoteDatabase _emoteDatabase;
-        private BlackJackInProgressState _innerState;
-        public BlackJackInitState(int bet, AmusePlay play,
+        private BlackJackInProgressGameState _innerGameState;
+        public BlackJackInitGameState(int bet, AmusePlay play,
             IDatabaseService databaseService,
             EmoteDatabase emoteDatabase)
         {
@@ -25,10 +25,10 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
             _databaseService = databaseService;
             _emoteDatabase = emoteDatabase;
             Game = new BlackJackGame(bet);
-            _innerState = new BlackJackInProgressState(Game, play, _databaseService, emoteDatabase);
+            _innerGameState = new BlackJackInProgressGameState(Game, play, _databaseService, emoteDatabase);
         }
 
-        public Task<IState<BlackJackGame>> GetNextStateAsync(string actionId)
+        public Task<IGameState> GetNextStateAsync(string actionId)
         {
             if (actionId == BlackJackActions.DoubleDown)
             {
@@ -38,7 +38,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
                 }
             }
 
-            return _innerState.GetNextStateAsync(actionId);
+            return _innerGameState.GetNextStateAsync(actionId);
         }
 
         public Task<GameUi> GetGameUiAsync()
@@ -83,13 +83,6 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
 
         public Task OnEnterAsync()
         {
-            // Starting game.
-            _play.Started = true;
-            _databaseService.Update(AmusePlay.TableName, _play);
-
-            // Pay bet.
-            _databaseService.AddUserCash(_play.UserId, -_bet);
-
             return Task.CompletedTask;
         }
     }

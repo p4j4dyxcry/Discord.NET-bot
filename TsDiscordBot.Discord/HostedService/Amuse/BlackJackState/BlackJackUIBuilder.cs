@@ -160,7 +160,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
             MessageComponent Button(string action, string label, ButtonStyle style)
                 => new()
                 {
-                    ActionId = StateMachineUtil.MakeActionId(action, _messageId),
+                    ActionId = GameMessageUtil.MakeActionId(action, _messageId),
                     Content = label,
                     Kind = ComponentKind.Button,
                     ButtonStyle = style,

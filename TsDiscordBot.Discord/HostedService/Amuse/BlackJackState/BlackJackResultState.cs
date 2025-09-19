@@ -6,7 +6,7 @@ using TsDiscordBot.Discord.Services;
 
 namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
 {
-    public class BlackJackResultState : IState<BlackJackGame>
+    public class BlackJackResultGameState : IGameState
     {
         private readonly AmusePlay _play;
         private readonly IDatabaseService _databaseService;
@@ -15,7 +15,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
         private int _nextBet = 100;
         public BlackJackGame Game { get; }
 
-        public BlackJackResultState(
+        public BlackJackResultGameState(
             BlackJackGame game,
             AmusePlay play,
             IDatabaseService databaseService,
@@ -58,7 +58,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
             return Task.CompletedTask;
         }
 
-        public async Task<IState<BlackJackGame>> GetNextStateAsync(string actionId)
+        public async Task<IGameState> GetNextStateAsync(string actionId)
         {
             await _cancellationTokenSource.CancelAsync();
             _cancellationTokenSource.Dispose();
@@ -67,13 +67,13 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
                 _play.Bet = _nextBet;
                 _databaseService.Update(AmusePlay.TableName, _play);
 
-                return new BlackJackInitState(_nextBet, _play, _databaseService, _emoteDatabase);
+                return new BlackJackInitGameState(_nextBet, _play, _databaseService, _emoteDatabase);
             }
 
             if (actionId == BlackJackActions.Quit)
             {
                 _databaseService.Delete(AmusePlay.TableName, _play.Id);
-                return new BlackJackExitState();
+                return new BlackJackExitGameState();
             }
 
             return this;
@@ -107,20 +107,9 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
         }
     }
 
-    public class BlackJackExitState : IState<BlackJackGame>
+    public class BlackJackExitGameState : QuitGameState
     {
-        public BlackJackGame Game { get; } = new(0);
-        public Task OnEnterAsync()
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task<IState<BlackJackGame>> GetNextStateAsync(string actionId)
-        {
-            return Task.FromResult<IState<BlackJackGame>>(this);
-        }
-
-        public Task<GameUi> GetGameUiAsync()
+        public override Task<GameUi> GetGameUiAsync()
         {
             return Task.FromResult(new GameUi()
             {

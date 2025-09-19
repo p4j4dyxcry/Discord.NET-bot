@@ -7,13 +7,13 @@ using TsDiscordBot.Discord.Services;
 
 namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
 {
-    public class BlackJackInProgressState : IState<BlackJackGame>
+    public class BlackJackInProgressGameState : IGameState
     {
         private readonly AmusePlay _play;
         private readonly IDatabaseService _databaseService;
         private readonly EmoteDatabase _emoteDatabase;
         public BlackJackGame Game { get; }
-        public BlackJackInProgressState(
+        public BlackJackInProgressGameState(
             BlackJackGame game,
             AmusePlay play,
             IDatabaseService databaseService,
@@ -25,7 +25,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
             Game = game;
         }
 
-        public Task<IState<BlackJackGame>> GetNextStateAsync(string actionId)
+        public Task<IGameState> GetNextStateAsync(string actionId)
         {
             if (actionId == BlackJackActions.Hit)
             {
@@ -38,11 +38,11 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
 
             if (Game.IsFinished && Game.Result is not null)
             {
-                return Task.FromResult<IState<BlackJackGame>>(new BlackJackResultState(Game, _play, _databaseService, _emoteDatabase));
+                return Task.FromResult<IGameState>(new BlackJackResultGameState(Game, _play, _databaseService, _emoteDatabase));
             }
             else
             {
-                return Task.FromResult<IState<BlackJackGame>>(this);
+                return Task.FromResult<IGameState>(this);
             }
         }
 

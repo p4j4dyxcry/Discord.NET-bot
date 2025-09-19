@@ -9,15 +9,42 @@ namespace TsDiscordBot.Core.Game
         public MessageEmbed[] MessageEmbed { get; set; } = [];
     }
 
-    public interface IState<T>
+    public interface IGameState
     {
-        public T Game { get; }
         public Task OnEnterAsync();
-        public Task<IState<T>> GetNextStateAsync(string actionId);
+        public Task<IGameState> GetNextStateAsync(string actionId);
         public Task<GameUi> GetGameUiAsync();
     }
 
-    public static class StateMachineUtil
+    public interface IGameState<out T> : IGameState
+    {
+        public T Game { get; }
+        public Task OnEnterAsync();
+        public Task<IGameState> GetNextStateAsync(string actionId);
+        public Task<GameUi> GetGameUiAsync();
+    }
+
+    public class QuitGameState : IGameState
+    {
+        public static QuitGameState Default { get; } = new ();
+
+        public Task OnEnterAsync()
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<IGameState> GetNextStateAsync(string actionId)
+        {
+            return Task.FromResult<IGameState>(this);
+        }
+
+        public virtual Task<GameUi> GetGameUiAsync()
+        {
+            return Task.FromResult(new GameUi());
+        }
+    }
+
+    public static class GameMessageUtil
     {
         public static string MakeActionId(string actionIdName, ulong messageId)
         {
