@@ -53,7 +53,7 @@ public class HighLowResultState : IGameState
             .WithFooter(footer)
             .WithCard(currentCard)
             .WithNextCard(nextCard)
-            .WithColor(MessageColor.FromRgb(219, 79, 46))
+            .WithColor(MessageColor.FromRgb(184, 210, 46))
             .EnableRetryButton()
             .Build();
 
