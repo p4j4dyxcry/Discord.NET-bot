@@ -46,6 +46,25 @@ public class BlackJackGameTests
     }
 
     [Fact]
+    public void Hit_BothBusts_ResultsInPush()
+    {
+        var deck = new Deck([
+            new Card(Rank.Ten, Suit.Hearts),
+            new Card(Rank.Seven, Suit.Spades),
+            new Card(Rank.Nine, Suit.Clubs),
+            new Card(Rank.Seven, Suit.Hearts),
+            new Card(Rank.King, Suit.Diamonds),
+            new Card(Rank.Nine, Suit.Diamonds)
+        ]);
+        var game = new BlackJackGame(10, deck);
+        game.Hit();
+
+        Assert.True(game.IsFinished);
+        Assert.Equal(GameOutcome.Push, game.Result!.Outcome);
+        Assert.Equal(10, game.Result.Payout);
+    }
+
+    [Fact]
     public void Stand_PlayerHigherScore_Wins()
     {
         var deck = new Deck([
