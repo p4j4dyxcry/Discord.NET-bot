@@ -110,8 +110,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
             }
             else
             {
-                string dealerCard;
-                dealerCard = _game.PlayerCards.Count > 2 ?
+                string dealerCard = _game.PlayerCards.Count is 2 ?
                     _emoteDatabase.GetFlipAnimationEmote(_game.DealerVisibleCard) :
                     _emoteDatabase.GetEmote(_game.DealerVisibleCard);
 
