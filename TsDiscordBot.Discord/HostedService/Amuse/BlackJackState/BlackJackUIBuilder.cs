@@ -193,7 +193,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
         {
             var result = new GameUi();
 
-            var emote = _emoteDatabase.FindEmoteByName("BG","flip_");
+            var emote = _emoteDatabase.FindEmoteByName("BG","");
 
             result.MessageEmbed = new MessageEmbed[1];
             result.MessageEmbed[0] = new MessageEmbed
