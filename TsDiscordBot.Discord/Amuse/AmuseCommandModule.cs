@@ -61,4 +61,41 @@ public class AmuseCommandModule : InteractionModuleBase<SocketInteractionContext
         _databaseService.Delete(AmuseChannel.TableName, existing.Id);
         await RespondAsync("amuseを無効にしたよ！");
     }
+
+    [SlashCommand("amuse-god", "指定したユーザーの所持金を増加させます。")]
+    [RequireUserPermission(GuildPermission.Administrator)]
+    public async Task IncreaseCashAsync(IGuildUser user, long amount)
+    {
+        if (amount <= 0)
+        {
+            await RespondAsync("付与する金額は1GAL円以上を指定してね！", ephemeral: true);
+            return;
+        }
+
+        var utcNow = DateTime.UtcNow;
+
+        var cash = _databaseService
+            .FindAll<AmuseCash>(AmuseCash.TableName)
+            .FirstOrDefault(x => x.UserId == user.Id);
+
+        if (cash is null)
+        {
+            cash = new AmuseCash
+            {
+                UserId = user.Id,
+                Cash = amount,
+                LastUpdatedAtUtc = utcNow
+            };
+
+            _databaseService.Insert(AmuseCash.TableName, cash);
+        }
+        else
+        {
+            cash.Cash += amount;
+            cash.LastUpdatedAtUtc = utcNow;
+            _databaseService.Update(AmuseCash.TableName, cash);
+        }
+
+        await RespondAsync($"{user.Mention}さんに{amount}GAL円を付与しました！現在の所持金は{cash.Cash}GAL円です。");
+    }
 }
