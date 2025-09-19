@@ -36,7 +36,7 @@ public class HighLowDecisionWinState : IGameState
         string footer = "ゲームを続行する？";
 
         string? currentCard = _context.EmoteDatabase.FindEmoteByCard(_previousCard, false)?.Url;
-        string? nextCard = _context.EmoteDatabase.FindEmoteByCard(_drawnCard, true)?.Url;
+        string? nextCard = _context.EmoteDatabase.FindEmoteByCard(_drawnCard, false)?.Url;
 
         var result = builder
             .WithHeader(header)
