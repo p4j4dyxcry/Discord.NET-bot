@@ -60,6 +60,11 @@ namespace TsDiscordBot.Discord.HostedService.Amuse
                 return(AmusePlay.MessageId,GameProgress.Invalid);
             }
 
+            if (component.User.Id != AmusePlay.UserId)
+            {
+                return (AmusePlay.MessageId,GameProgress.Invalid);
+            }
+
             var action = parts[0];
 
             await component.DeferAsync();

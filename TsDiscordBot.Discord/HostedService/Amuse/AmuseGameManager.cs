@@ -5,6 +5,7 @@ using TsDiscordBot.Core.Database;
 using TsDiscordBot.Core.Game;
 using TsDiscordBot.Discord.Amuse;
 using TsDiscordBot.Discord.HostedService.Amuse.BlackJackState;
+using TsDiscordBot.Discord.HostedService.Amuse.HighLowState;
 using TsDiscordBot.Discord.Services;
 
 namespace TsDiscordBot.Discord.HostedService.Amuse
@@ -28,17 +29,14 @@ public class AmuseGameManager
             _emoteDatabase = emoteDatabase;
         }
 
-        public bool IsStarted(AmusePlay amusePlay)
-        {
-            return amusePlay.Started;
-        }
-
         public Task CheckSessionAsync()
         {
-            if (DateTime.Now - _lastChecked > _checkSessionInterval)
+            var now = DateTime.UtcNow;
+            if (now - _lastChecked < _checkSessionInterval)
             {
                 return Task.CompletedTask;
             }
+            _lastChecked = now;
 
             var sessions = _sessions.ToArray();
             var sessionInDatabase = _databaseService.FindAll<AmusePlay>(AmusePlay.TableName)
@@ -100,21 +98,17 @@ public class AmuseGameManager
 
         private bool CanBuildGame(AmusePlay amusePlay)
         {
-            if (amusePlay.GameKind == "BJ")
-            {
-                return true;
-            }
-
-            return false;
+            return amusePlay.GameKind is "BJ" or "HL";
         }
 
         private IGameState BuildGame(AmusePlay amusePlay)
         {
-            if (amusePlay.GameKind == "BJ")
+            return amusePlay.GameKind switch
             {
-                return new BlackJackInitGameState(amusePlay.Bet, amusePlay, _databaseService, _emoteDatabase);
-            }
-            return QuitGameState.Default;
+                "BJ" => new BlackJackInitGameState(amusePlay.Bet, amusePlay, _databaseService, _emoteDatabase),
+                "HL" => new HighLowGuessGameState(new HighLowGameContext(amusePlay, _databaseService, _emoteDatabase, _discordSocketClient)),
+                _ => QuitGameState.Default
+            };
         }
 
         public async Task OnUpdateMessageAsync(SocketMessageComponent component)

@@ -6,17 +6,18 @@ using TsDiscordBot.Discord.Services;
 
 namespace TsDiscordBot.Discord.HostedService.Amuse
 {
-    public class BlackJackBackgroundLogic2 : IAmuseBackgroundLogic
+    public class AmuseGameBackgroundLogic : IAmuseBackgroundLogic
     {
         private readonly ILogger _logger;
         private readonly AmuseGameManager _amuseGameManager;
-        public BlackJackBackgroundLogic2(
+
+        public AmuseGameBackgroundLogic(
             IDatabaseService databaseService,
             ILogger logger,
             DiscordSocketClient client,
             EmoteDatabase emoteDatabase)
         {
-            _amuseGameManager = new AmuseGameManager(client, databaseService,emoteDatabase);
+            _amuseGameManager = new AmuseGameManager(client, databaseService, emoteDatabase);
 
             _logger = logger;
         }

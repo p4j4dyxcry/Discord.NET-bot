@@ -38,9 +38,10 @@ public class HighLowGame
             ? next.Rank > CurrentCard.Rank
             : next.Rank < CurrentCard.Rank;
 
-        CurrentCard = next;
+
         if (correct)
         {
+            CurrentCard = next;
             Streak++;
             return new GuessResult(true, next, Streak >= MaxStreak);
         }
@@ -62,7 +63,7 @@ public class HighLowGame
     public int CalculatePayout(int streak)
     {
         // インデックス = 連勝数 に対応
-        int[] table = [0, 1, 2, 4, 7, 10, 15, 20, 30, 50, 100];
+        double[] table = [0, 1, 1.5, 2, 2.5, 4, 6, 8, 10, 13, 16];
 
         if (streak <= 0)
             return 0; // 0以下は無効
@@ -70,7 +71,7 @@ public class HighLowGame
         // テーブル外に出たら最後の要素を使う
         int index = streak < table.Length ? streak : table.Length - 1;
 
-        return Bet * table[index];
+        return (int)(Bet * table[index]);
     }
 }
 

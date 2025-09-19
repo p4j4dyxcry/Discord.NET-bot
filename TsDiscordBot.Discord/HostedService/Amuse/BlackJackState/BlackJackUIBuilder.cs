@@ -11,7 +11,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
 {
     public class BlackJackUIBuilder
     {
-        public BlackJackGame _game;
+        private readonly BlackJackGame _game;
         private readonly EmoteDatabase _emoteDatabase;
         private readonly ulong _messageId;
         private string? _footer;

@@ -22,9 +22,8 @@ public class GameBackgroundService : BackgroundService
 
         _amuseBackgroundLogics =
         [
-            new BlackJackBackgroundLogic2(databaseService, logger, client,emoteDatabase),
-            new DiceBackgroundLogic(databaseService, client),
-            new HighLowBackgroundLogic(databaseService, client,emoteDatabase)
+            new AmuseGameBackgroundLogic(databaseService, logger, client, emoteDatabase),
+            new DiceBackgroundLogic(databaseService, client)
         ];
     }
 

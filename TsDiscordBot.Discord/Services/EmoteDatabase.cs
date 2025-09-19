@@ -114,6 +114,19 @@ namespace TsDiscordBot.Discord.Services
             return string.Empty;
         }
 
+        public GuildEmote? FindEmoteByCard(Card? card, bool isAnimation)
+        {
+            if (card is null)
+            {
+                return null;
+            }
+
+            string key = MakeKey(card.Value.Rank, card.Value.Suit);
+            string prefix = isAnimation ? "flip_" : string.Empty;
+
+            return FindEmoteByName(key, prefix);
+        }
+
         public GuildEmote? FindEmoteByName(string name, string prefix)
         {
             var guilds = (EmojiGuilds.Length > 0)
