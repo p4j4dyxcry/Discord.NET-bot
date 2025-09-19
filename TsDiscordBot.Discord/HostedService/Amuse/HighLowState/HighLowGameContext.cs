@@ -55,45 +55,4 @@ public class HighLowGameContext
 
         return rank + suit;
     }
-
-    public int DetermineReplayBet()
-    {
-        var cash = DatabaseService
-            .FindAll<AmuseCash>(AmuseCash.TableName)
-            .FirstOrDefault(x => x.UserId == Play.UserId);
-
-        if (cash is null || cash.Cash < Play.Bet)
-        {
-            return 100;
-        }
-
-        return Play.Bet;
-    }
-
-    public void UpdateGameRecord(bool win)
-    {
-        var record = DatabaseService
-            .FindAll<AmuseGameRecord>(AmuseGameRecord.TableName)
-            .FirstOrDefault(x => x.UserId == Play.UserId && x.GameKind == Play.GameKind);
-
-        if (record is null)
-        {
-            record = new AmuseGameRecord
-            {
-                UserId = Play.UserId,
-                GameKind = Play.GameKind,
-                TotalPlays = 0,
-                WinCount = 0
-            };
-            DatabaseService.Insert(AmuseGameRecord.TableName, record);
-        }
-
-        record.TotalPlays++;
-        if (win)
-        {
-            record.WinCount++;
-        }
-
-        DatabaseService.Update(AmuseGameRecord.TableName, record);
-    }
 }

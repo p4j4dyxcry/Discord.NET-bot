@@ -22,7 +22,7 @@ public class HighLowResultState : IGameState
 
     public Task OnEnterAsync()
     {
-        _context.UpdateGameRecord(true);
+        _context.DatabaseService.UpdateGameRecord(_context.Play, true);
 
         _context.DatabaseService.AddUserCash(_context.Play.UserId, _payOut);
 
@@ -40,7 +40,7 @@ public class HighLowResultState : IGameState
         description.AppendLine($"連勝数 {_context.Game.Streak}");
         description.AppendLine($"{_payOut} GAL円 ゲット!");
 
-        var bet = _context.DetermineReplayBet();
+        var bet = _context.DatabaseService.DetermineReplayBet(_context.Play);
         string footer = $"{bet} GAL円 Betしてもう一度遊ぶ？";
 
         string? currentCard = _context.EmoteDatabase.FindEmoteByCard(_previousCard, false)?.Url;
@@ -64,7 +64,7 @@ public class HighLowResultState : IGameState
     {
         if (actionId == HighLowActions.Replay)
         {
-            var bet = _context.DetermineReplayBet();
+            var bet = _context.DatabaseService.DetermineReplayBet(_context.Play);
             _context.DatabaseService.AddUserCash(_context.Play.UserId, -bet);
             _context.ResetGame(bet);
             _context.DatabaseService.Update(AmusePlay.TableName, _context.Play);

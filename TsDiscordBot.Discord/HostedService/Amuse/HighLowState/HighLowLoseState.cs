@@ -19,7 +19,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.HighLowState
         }
         public Task OnEnterAsync()
         {
-            _context.UpdateGameRecord(false);
+            _context.DatabaseService.UpdateGameRecord(_context.Play, false);
             return Task.CompletedTask;
         }
 
@@ -33,7 +33,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.HighLowState
             StringBuilder description = new StringBuilder();
             description.AppendLine($"{_context.Game.CalculatePayout()} GAL円は没収です!");
 
-            var bet = _context.DetermineReplayBet();
+            var bet = _context.DatabaseService.DetermineReplayBet(_context.Play);
             string footer = $"{bet} GAL円 Betしてもう一度遊ぶ？";
 
             string? currentCard = _context.EmoteDatabase.FindEmoteByCard(_previousCard, false)?.Url;
@@ -57,7 +57,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.HighLowState
         {
             if (actionId == HighLowActions.Replay)
             {
-                var bet = _context.DetermineReplayBet();
+                var bet = _context.DatabaseService.DetermineReplayBet(_context.Play);
                 _context.DatabaseService.AddUserCash(_context.Play.UserId, -bet);
                 _context.ResetGame(bet);
                 _context.DatabaseService.Update(AmusePlay.TableName, _context.Play);

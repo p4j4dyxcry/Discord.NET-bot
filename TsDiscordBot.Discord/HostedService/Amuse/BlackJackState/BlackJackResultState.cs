@@ -40,6 +40,8 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
                 _nextBet = 100;
             }
 
+            _databaseService.UpdateGameRecord(_play, Game.Result?.Outcome == GameOutcome.PlayerWin);
+
             // 1分後自動キャンセル
             Task.Run(async () =>
             {

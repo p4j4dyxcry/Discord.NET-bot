@@ -51,5 +51,46 @@ namespace TsDiscordBot.Discord.HostedService.Amuse
 
             return cash.Cash;
         }
+
+        public static void UpdateGameRecord(this IDatabaseService databaseService, AmusePlay play, bool win)
+        {
+            var record = databaseService
+                .FindAll<AmuseGameRecord>(AmuseGameRecord.TableName)
+                .FirstOrDefault(x => x.UserId == play.UserId && x.GameKind == play.GameKind);
+
+            if (record is null)
+            {
+                record = new AmuseGameRecord
+                {
+                    UserId = play.UserId,
+                    GameKind = play.GameKind,
+                    TotalPlays = 0,
+                    WinCount = 0
+                };
+                databaseService.Insert(AmuseGameRecord.TableName, record);
+            }
+
+            record.TotalPlays++;
+            if (win)
+            {
+                record.WinCount++;
+            }
+
+            databaseService.Update(AmuseGameRecord.TableName, record);
+        }
+
+        public static int DetermineReplayBet(this IDatabaseService databaseService, AmusePlay play)
+        {
+            var cash = databaseService
+                .FindAll<AmuseCash>(AmuseCash.TableName)
+                .FirstOrDefault(x => x.UserId == play.UserId);
+
+            if (cash is null || cash.Cash < play.Bet)
+            {
+                return 100;
+            }
+
+            return play.Bet;
+        }
     }
 }
