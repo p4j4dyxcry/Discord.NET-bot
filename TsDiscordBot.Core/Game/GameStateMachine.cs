@@ -16,14 +16,6 @@ namespace TsDiscordBot.Core.Game
         public Task<GameUi> GetGameUiAsync();
     }
 
-    public interface IGameState<out T> : IGameState
-    {
-        public T Game { get; }
-        public Task OnEnterAsync();
-        public Task<IGameState> GetNextStateAsync(string actionId);
-        public Task<GameUi> GetGameUiAsync();
-    }
-
     public class QuitGameState : IGameState
     {
         public static QuitGameState Default { get; } = new ();
