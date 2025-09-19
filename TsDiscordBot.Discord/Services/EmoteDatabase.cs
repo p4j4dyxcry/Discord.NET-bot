@@ -99,12 +99,12 @@ namespace TsDiscordBot.Discord.Services
 
         public string GetFlipAnimationEmote(Card card)
         {
-            return FinEmoteInternalAsString(MakeKey(card.Rank, card.Suit));
+            return FinEmoteInternalAsString(MakeKey(card.Rank, card.Suit),"Flip_");
         }
 
-        private string FinEmoteInternalAsString(string name)
+        private string FinEmoteInternalAsString(string name, string prefix = "")
         {
-            var e = FindEmoteByName(name, string.Empty);
+            var e = FindEmoteByName(name, prefix);
 
             if (e is not null)
             {
