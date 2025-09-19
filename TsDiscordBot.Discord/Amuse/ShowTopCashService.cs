@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Discord.WebSocket;
 using TsDiscordBot.Core.Messaging;
@@ -43,7 +44,8 @@ public class ShowTopCashService : IAmuseService
         for (var i = 0; i < topUsers.Length; i++)
         {
             var rank = i + 1;
-            sb.AppendLine($"{rank}. <@{topUsers[i].UserId}>　{topUsers[i].Cash}GAL円");
+            var formattedCash = topUsers[i].Cash.ToString("N0", CultureInfo.InvariantCulture);
+            sb.AppendLine($"{rank}. <@{topUsers[i].UserId}>　`{formattedCash}` GAL円");
         }
 
         var options = new MessageSendOptions
