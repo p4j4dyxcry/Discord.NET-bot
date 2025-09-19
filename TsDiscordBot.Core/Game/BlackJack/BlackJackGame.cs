@@ -110,6 +110,11 @@ public class BlackJackGame
         var player = CalculateScore(_playerHand);
         var dealer = CalculateScore(_dealerHand);
 
+        if (player > 21 && dealer > 21)
+        {
+            return GameOutcome.Push;
+        }
+
         if (player > 21)
         {
             return GameOutcome.DealerWin;
