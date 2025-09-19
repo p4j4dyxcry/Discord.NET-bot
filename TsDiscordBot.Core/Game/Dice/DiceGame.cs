@@ -19,7 +19,7 @@ public class DiceGame
     public DiceGame(int bet, int? dealerRoll = null, int? playerRoll = null, Random? random = null)
     {
         Bet = bet;
-        _random = random ?? new Random();
+        _random = random ?? Random.Shared;
         var dealer = dealerRoll ?? _random.Next(1, 7);
         var player = playerRoll ?? _random.Next(1, 7);
         var outcome = DetermineOutcome(dealer, player);

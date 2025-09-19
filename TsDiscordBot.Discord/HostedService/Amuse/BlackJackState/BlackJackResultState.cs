@@ -66,6 +66,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
             {
                 _play.Bet = _nextBet;
                 _databaseService.Update(AmusePlay.TableName, _play);
+                _databaseService.AddUserCash(_play.UserId, -_play.Bet);
 
                 return new BlackJackInitGameState(_nextBet, _play, _databaseService, _emoteDatabase);
             }
@@ -73,7 +74,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
             if (actionId == BlackJackActions.Quit)
             {
                 _databaseService.Delete(AmusePlay.TableName, _play.Id);
-                return new BlackJackExitGameState();
+                return new QuitGameState();
             }
 
             return this;
@@ -104,17 +105,6 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
                 .Build();
 
             return Task.FromResult(result);
-        }
-    }
-
-    public class BlackJackExitGameState : QuitGameState
-    {
-        public override Task<GameUi> GetGameUiAsync()
-        {
-            return Task.FromResult(new GameUi()
-            {
-                Content = "また遊んでね！"
-            });
         }
     }
 }

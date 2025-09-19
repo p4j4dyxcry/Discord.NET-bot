@@ -1,7 +1,6 @@
-using System.Linq;
 using Discord.WebSocket;
 using TsDiscordBot.Core.Database;
-using TsDiscordBot.Core.Game.BlackJack;
+using TsDiscordBot.Core.Game;
 using TsDiscordBot.Core.Game.HighLow;
 using TsDiscordBot.Discord.Amuse;
 using TsDiscordBot.Discord.Services;
@@ -37,12 +36,6 @@ public class HighLowGameContext
 
     public string FormatCard(Card card)
     {
-        var result = EmoteDatabase.GetEmote(card);
-        if (!string.IsNullOrWhiteSpace(result))
-        {
-            return result;
-        }
-
         var rank = card.Rank switch
         {
             Rank.Ace => "A",

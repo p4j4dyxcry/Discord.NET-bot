@@ -6,7 +6,6 @@ using TsDiscordBot.Discord.Services;
 
 namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
 {
-
     public class BlackJackInitGameState : IGameState
     {
         public BlackJackGame Game { get; }

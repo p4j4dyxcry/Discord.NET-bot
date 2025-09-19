@@ -29,17 +29,14 @@ public class AmuseGameManager
             _emoteDatabase = emoteDatabase;
         }
 
-        public bool IsStarted(AmusePlay amusePlay)
-        {
-            return amusePlay.Started;
-        }
-
         public Task CheckSessionAsync()
         {
-            if (DateTime.Now - _lastChecked > _checkSessionInterval)
+            var now = DateTime.UtcNow;
+            if (now - _lastChecked < _checkSessionInterval)
             {
                 return Task.CompletedTask;
             }
+            _lastChecked = now;
 
             var sessions = _sessions.ToArray();
             var sessionInDatabase = _databaseService.FindAll<AmusePlay>(AmusePlay.TableName)

@@ -21,24 +21,32 @@ public class HighLowGuessGameState : IGameState
 
     public Task<GameUi> GetGameUiAsync()
     {
-        var builder = new StringBuilder();
-        builder.AppendLine($"<@{_context.Play.UserId}> さん、");
-        builder.AppendLine($"{_context.Game.CalculateNextStreakPayout()}GAL円 賭けて勝負だよ！！");
-        builder.AppendLine($"現在のカード: {_context.FormatCard(_context.Game.CurrentCard)}");
-        builder.AppendLine($"現在の連勝数: {_context.Game.Streak}");
-        builder.AppendLine("次のカードはハイ？ロー？");
+        HighLowUiBuilder builder = new HighLowUiBuilder(_context.Play.MessageId);
 
-        var components = new[]
-        {
-            CreateButton(HighLowActions.High, "ハイ", ButtonStyle.Primary),
-            CreateButton(HighLowActions.Low, "ロー", ButtonStyle.Primary)
-        };
+        string header = $"High and Low: Bet[{_context.Game.Bet}]";
 
-        return Task.FromResult(new GameUi
-        {
-            Content = builder.ToString(),
-            MessageComponents = components
-        });
+        string title = $"カードは{_context.FormatCard(_context.Game.CurrentCard)}より大きい？";
+        StringBuilder description = new StringBuilder();
+        description.AppendLine($"現在の連勝数 {_context.Game.Streak}");
+        description.AppendLine($"正解すると {_context.Game.CalculateNextStreakPayout()} GAL円");
+
+        string footer = "ゲームが進行中";
+
+        string? currentCard = _context.EmoteDatabase.FindEmoteByCard(_context.Game.CurrentCard, false)?.Url;
+        string? nextCard = _context.EmoteDatabase.FindEmoteByName("BG", string.Empty)?.Url;
+
+        var result = builder
+            .WithHeader(header)
+            .WithTitle(title)
+            .WithDescription(description.ToString())
+            .WithFooter(footer)
+            .WithCard(currentCard)
+            .WithNextCard(nextCard)
+            .WithColor(MessageColor.FromRgb(255,217,0))
+            .EnableHighLowButton()
+            .Build();
+
+        return Task.FromResult(result);
     }
 
     public Task<IGameState> GetNextStateAsync(string actionId)
@@ -54,36 +62,26 @@ public class HighLowGuessGameState : IGameState
                 if (result.MaxReached)
                 {
                     return Task.FromResult<IGameState>(
-                        HighLowResultGameState.CreateWinFromMax(
-                            _context,
+                        new HighLowResultState(_context,
                             previous,
-                            result.DrawnCard));
+                            result.DrawnCard,
+                            _context.Game.CalculatePayout()));
                 }
 
                 return Task.FromResult<IGameState>(
-                    new HighLowDecisionGameState(
+                    new HighLowDecisionWinState(
                         _context,
+                        previous,
                         result.DrawnCard));
             }
 
             return Task.FromResult<IGameState>(
-                HighLowResultGameState.CreateLoss(
+                new HighLowDecisionLoseState(
                     _context,
                     previous,
                     result.DrawnCard));
         }
 
         return Task.FromResult<IGameState>(this);
-    }
-
-    private MessageComponent CreateButton(string action, string label, ButtonStyle style)
-    {
-        return new MessageComponent
-        {
-            Kind = ComponentKind.Button,
-            Content = label,
-            ButtonStyle = style,
-            ActionId = GameMessageUtil.MakeActionId(action, _context.Play.MessageId)
-        };
     }
 }

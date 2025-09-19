@@ -32,7 +32,10 @@ namespace TsDiscordBot.Core.Game
 
         public virtual Task<GameUi> GetGameUiAsync()
         {
-            return Task.FromResult(new GameUi());
+            return Task.FromResult(new GameUi
+            {
+                Content = "また遊んでね！"
+            });
         }
     }
 
