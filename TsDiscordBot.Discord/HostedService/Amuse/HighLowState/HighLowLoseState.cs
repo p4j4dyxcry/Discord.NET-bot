@@ -37,7 +37,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.HighLowState
             string footer = $"{bet} GAL円 Betしてもう一度遊ぶ？";
 
             string? currentCard = _context.EmoteDatabase.FindEmoteByCard(_previousCard, false)?.Url;
-            string? nextCard = _context.EmoteDatabase.FindEmoteByCard(_drawnCard, true)?.Url;
+            string? nextCard = _context.EmoteDatabase.FindEmoteByCard(_drawnCard, false)?.Url;
 
             var result = builder
                 .WithHeader(header)
