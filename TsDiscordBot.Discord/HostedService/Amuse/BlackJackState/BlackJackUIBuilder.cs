@@ -173,17 +173,40 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
                 };
         }
 
+        private MessageColor BuildColor()
+        {
+            if (_game.Result?.Outcome == GameOutcome.DealerWin)
+            {
+                // 朱色
+                return MessageColor.FromRgb(219, 79, 46);
+            }
+            else if (_game.Result?.Outcome == GameOutcome.PlayerWin)
+            {
+                // 黄緑
+                return MessageColor.FromRgb(184, 210, 0);
+            }
+            else if (_game.Result?.Outcome == GameOutcome.Push)
+            {
+                // オイスターホワイト
+                return MessageColor.FromRgb(248, 245, 227);
+            }
+
+            // 黄色
+            return MessageColor.FromRgb(255,217,0);
+        }
+
         public GameUi Build()
         {
             var result = new GameUi();
 
-            var emote = _emoteDatabase.FindEmoteByName("BG","Flip_");
+            var emote = _emoteDatabase.FindEmoteByName("BG","flip_");
 
             result.MessageEmbed = new MessageEmbed[1];
             result.MessageEmbed[0] = new MessageEmbed
             {
                 Author = _title ?? $"BlackJack: Bet[{_game.Bet}]" ,
                 AuthorAvatarUrl = emote?.Url,
+                Color = BuildColor(),
                 Fields =
                 [
                     new EmbedField
