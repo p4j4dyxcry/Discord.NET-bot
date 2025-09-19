@@ -48,7 +48,7 @@ public class BlackJackGame
         {
             PlayDealerTurn();
             IsFinished = true;
-            Result = BuildResult(GameOutcome.DealerWin);
+            Result = BuildResult(DetermineOutcome());
         }
     }
 
@@ -77,7 +77,7 @@ public class BlackJackGame
         {
             PlayDealerTurn();
             IsFinished = true;
-            Result = BuildResult(GameOutcome.DealerWin);
+            Result = BuildResult(DetermineOutcome());
             return;
         }
 
