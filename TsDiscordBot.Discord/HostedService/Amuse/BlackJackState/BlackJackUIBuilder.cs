@@ -1,7 +1,4 @@
 ﻿using System.Text;
-using Discord;
-using Microsoft.Extensions.Primitives;
-using TsDiscordBot.Core;
 using TsDiscordBot.Core.Game;
 using TsDiscordBot.Core.Game.BlackJack;
 using TsDiscordBot.Core.Messaging;
@@ -113,7 +110,16 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
             }
             else
             {
-                string dealerCard = _emoteDatabase.GetFlipAnimationEmote(_game.DealerVisibleCard);
+                string dealerCard = string.Empty;
+                if (_game.PlayerCards.Count > 2)
+                {
+                    _emoteDatabase.GetFlipAnimationEmote(_game.DealerVisibleCard);
+                }
+                else
+                {
+                    _emoteDatabase.GetEmote(_game.DealerVisibleCard);
+                }
+
                 string backGround = _emoteDatabase.GetBackgroundCardEmote();
 
                 cards.Append(dealerCard);
