@@ -1,4 +1,5 @@
-﻿using Discord.WebSocket;
+﻿using Discord;
+using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 using TsDiscordBot.Core.Game;
 
@@ -87,16 +88,33 @@ namespace TsDiscordBot.Discord.Services
 
         public string GetBackgroundCardEmote()
         {
-            return FindEmoteInternal("BG");
+            return FinEmoteInternalAsString("BG");
 
         }
 
         public string GetEmote(Card card)
         {
-            return FindEmoteInternal(MakeKey(card.Rank, card.Suit));
+            return FinEmoteInternalAsString(MakeKey(card.Rank, card.Suit));
         }
 
-        private string FindEmoteInternal(string name)
+        public string GetFlipAnimationEmote(Card card)
+        {
+            return FinEmoteInternalAsString(MakeKey(card.Rank, card.Suit));
+        }
+
+        private string FinEmoteInternalAsString(string name)
+        {
+            var e = FindEmoteByName(name, string.Empty);
+
+            if (e is not null)
+            {
+                return $"<:{e.Name}:{e.Id}>";
+            }
+
+            return string.Empty;
+        }
+
+        public GuildEmote? FindEmoteByName(string name, string prefix)
         {
             var guilds = (EmojiGuilds.Length > 0)
                 ? EmojiGuilds.Select(id => _discordSocketClient.GetGuild(id)).Where(g => g != null)!
@@ -107,14 +125,14 @@ namespace TsDiscordBot.Discord.Services
                 _logger.LogInformation($"Searching for Emotes from {guild.Name}");
                 foreach (var e in guild.Emotes)
                 {
-                    if (e.Name == name)
+                    if (TryMatchEmoteName(name, out string _, prefix))
                     {
-                        return $"<:{e.Name}:{e.Id}>";
+                        return e;
                     }
                 }
             }
 
-            return string.Empty;
+            return null;
         }
 
 

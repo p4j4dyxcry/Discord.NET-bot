@@ -34,6 +34,8 @@ public class BlackJackGame
         _dealerHand.Add(_deck.Draw());
     }
 
+    public bool CanHit => !IsFinished && CalculateScore(PlayerCards) < 21;
+
     public void Hit()
     {
         if (IsFinished)
