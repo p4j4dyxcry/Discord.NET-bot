@@ -1,3 +1,4 @@
+using System.Globalization;
 using TsDiscordBot.Core.Messaging;
 using TsDiscordBot.Discord.Framework;
 using TsDiscordBot.Discord.Services;
@@ -63,34 +64,40 @@ public class DailyBonusService : IAmuseService
         if (jstNow.Month == 2 && jstNow.Day == 14)
         {
             const long amount = 5000;
-            return (amount, $"{mention}さん、今日はバレンタインね！チョコ代わりにどうぞ！{amount}GAL円だよ～！");
+            return (amount, $"{mention}さん、今日はバレンタインね！チョコ代わりにどうぞ！{FormatAmount(amount)}だよ～！");
         }
 
         if (jstNow.Month == 12 && (jstNow.Day == 24 || jstNow.Day == 25))
         {
             const long amount = 5000;
-            return (amount, $"{mention}さん、メリークリスマス！プレゼントに{amount}GAL円どうぞ！");
+            return (amount, $"{mention}さん、メリークリスマス！プレゼントに{FormatAmount(amount)}どうぞ！");
         }
 
         if (jstNow.Month == 12 && jstNow.Day == 31)
         {
             const long amount = 3000;
-            return (amount, $"{mention}さん、今日は大晦日ね！特別{amount}GAL円だよ～！");
+            return (amount, $"{mention}さん、今日は大晦日ね！特別{FormatAmount(amount)}だよ～！");
         }
 
         if (jstNow.Month == 1 && jstNow.Day == 1)
         {
             const long amount = 3000;
-            return (amount, $"{mention}さん、あけましておめでとう！お年玉として{amount}GAL円だよ～！");
+            return (amount, $"{mention}さん、あけましておめでとう！お年玉として{FormatAmount(amount)}だよ～！");
         }
 
         if (jstNow.Day == 7 || jstNow.Day == 17 || jstNow.Day == 27)
         {
             const long amount = 3000;
-            return (amount, $"{mention}さん、今日は7のつく日だから特別{amount}GAL円ね！");
+            return (amount, $"{mention}さん、今日は7のつく日だから特別{FormatAmount(amount)}ね！");
         }
 
-        return (DefaultBonusAmount, $"{mention}さん、今日もきてくれてありがとう！はい{DefaultBonusAmount}GAL円だよ～！");
+        return (DefaultBonusAmount, $"{mention}さん、今日もきてくれてありがとう！はい{FormatAmount(DefaultBonusAmount)}だよ～！");
+    }
+
+    private static string FormatAmount(long amount)
+    {
+        var formatted = amount.ToString("N0", CultureInfo.InvariantCulture);
+        return $"`{formatted}` GAL円";
     }
 }
 
