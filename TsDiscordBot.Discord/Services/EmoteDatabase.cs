@@ -108,7 +108,7 @@ namespace TsDiscordBot.Discord.Services
 
             if (e is not null)
             {
-                return $"<:{e.Name}:{e.Id}>";
+                return e.ToString();
             }
 
             return string.Empty;
