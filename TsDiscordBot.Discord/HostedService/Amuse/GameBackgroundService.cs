@@ -11,20 +11,14 @@ public class GameBackgroundService : BackgroundService
     private readonly DiscordSocketClient _client;
     private readonly ILogger<GameBackgroundService> _logger;
     private readonly DatabaseService _databaseService;
-
-    private readonly IAmuseBackgroundLogic[] _amuseBackgroundLogics;
+    private readonly AmuseGameManager _amuseGameManager;
 
     public GameBackgroundService(DiscordSocketClient client, ILogger<GameBackgroundService> logger, DatabaseService databaseService,EmoteDatabase emoteDatabase)
     {
         _client = client;
         _logger = logger;
         _databaseService = databaseService;
-
-        _amuseBackgroundLogics =
-        [
-            new AmuseGameBackgroundLogic(databaseService, logger, client, emoteDatabase),
-            new DiceBackgroundLogic(databaseService, client)
-        ];
+        _amuseGameManager = new AmuseGameManager(client, databaseService, emoteDatabase);
     }
 
 
@@ -36,23 +30,14 @@ public class GameBackgroundService : BackgroundService
         {
             try
             {
-                var plays = _databaseService
-                    .FindAll<AmusePlay>(AmusePlay.TableName)
-                    .ToArray();
-
-                foreach (var logic in _amuseBackgroundLogics)
+                await ExecuteWithRetryAsync(async () =>
                 {
-                    try
-                    {
-                        await logic.ProcessAsync(plays);
-                    }
-                    catch (Exception e)
-                    {
-                        _logger.LogError(e, $"Failed to {logic.GetType()}.ProcessAsync");
-                    }
+                    var plays = _databaseService
+                        .FindAll<AmusePlay>(AmusePlay.TableName)
+                        .ToArray();
 
-                }
-
+                    await _amuseGameManager.ProcessAsync(plays);
+                }, stoppingToken);
             }
             catch (Exception e)
             {
@@ -67,15 +52,39 @@ public class GameBackgroundService : BackgroundService
 
     private async Task OnButtonExecuted(SocketMessageComponent component)
     {
-        foreach (var logic in _amuseBackgroundLogics)
+        try
         {
+            await _amuseGameManager.OnUpdateMessageAsync(component);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to process amuse button execution");
+        }
+    }
+
+    private async Task ExecuteWithRetryAsync(Func<Task> operation, CancellationToken stoppingToken)
+    {
+        const int maxRetries = 3;
+        var delay = TimeSpan.FromSeconds(1);
+
+        for (var attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            stoppingToken.ThrowIfCancellationRequested();
+
             try
             {
-                await logic.OnButtonExecutedAsync(component);
+                await operation();
+                return;
             }
-            catch (Exception e)
+            catch (OperationCanceledException)
             {
-                _logger.LogError(e, $"Failed to {logic.GetType()}.OnButtonExecutedAsync");
+                throw;
+            }
+            catch (Exception ex) when (attempt < maxRetries)
+            {
+                _logger.LogWarning(ex, "Attempt {Attempt} to process amuse games failed. Retrying in {Delay}.", attempt, delay);
+                await Task.Delay(delay, stoppingToken);
+                delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, 8));
             }
         }
     }

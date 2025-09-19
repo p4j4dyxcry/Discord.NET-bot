@@ -3,6 +3,7 @@ using Discord;
 using Discord.WebSocket;
 using TsDiscordBot.Core.Database;
 using TsDiscordBot.Core.Game;
+using TsDiscordBot.Core.Game.Dice;
 using TsDiscordBot.Discord.Amuse;
 using TsDiscordBot.Discord.HostedService.Amuse.BlackJackState;
 using TsDiscordBot.Discord.HostedService.Amuse.HighLowState;
@@ -15,10 +16,22 @@ public class AmuseGameManager
         private readonly DiscordSocketClient _discordSocketClient;
         private readonly IDatabaseService _databaseService;
         private readonly EmoteDatabase _emoteDatabase;
-        private TimeSpan _checkSessionInterval = TimeSpan.FromSeconds(5);
+        private readonly ConcurrentDictionary<ulong, DiceSession> _diceSessions = new();
+        private readonly TimeSpan _checkSessionInterval = TimeSpan.FromSeconds(5);
         private DateTime _lastChecked = DateTime.MinValue;
 
-        private ConcurrentDictionary<ulong, GameStateMachine> _sessions  = new();
+        private readonly ConcurrentDictionary<ulong, GameStateMachine> _sessions  = new();
+        private record DiceSession(AmusePlay Play, DiceGame Game, int Step, DateTime LastUpdate);
+
+        private static readonly string[] DiceCharacters =
+        {
+            "\u2680",
+            "\u2681",
+            "\u2682",
+            "\u2683",
+            "\u2684",
+            "\u2685"
+        };
         public AmuseGameManager(
             DiscordSocketClient discordSocketClient,
             IDatabaseService databaseService,
@@ -29,7 +42,23 @@ public class AmuseGameManager
             _emoteDatabase = emoteDatabase;
         }
 
-        public Task CheckSessionAsync()
+        public async Task ProcessAsync(AmusePlay[] amusePlays)
+        {
+            foreach (var amusePlay in amusePlays)
+            {
+                if (amusePlay.GameKind == "DI")
+                {
+                    await ProcessDiceGameAsync(amusePlay);
+                    continue;
+                }
+
+                await TryStartNewGameIfNot(amusePlay);
+            }
+
+            await CheckSessionAsync(amusePlays);
+        }
+
+        private Task CheckSessionAsync(IEnumerable<AmusePlay> amusePlays)
         {
             var now = DateTime.UtcNow;
             if (now - _lastChecked < _checkSessionInterval)
@@ -38,28 +67,28 @@ public class AmuseGameManager
             }
             _lastChecked = now;
 
-            var sessions = _sessions.ToArray();
-            var sessionInDatabase = _databaseService.FindAll<AmusePlay>(AmusePlay.TableName)
-                .ToDictionary(x => x.Id);
+            var activeSessions = amusePlays.ToDictionary(x => x.Id);
 
-            foreach (var session in sessions)
+            foreach (var session in _sessions.ToArray())
             {
-                if (!sessionInDatabase.ContainsKey(session.Value.AmusePlay.Id))
+                if (!activeSessions.ContainsKey(session.Value.AmusePlay.Id))
                 {
                     _sessions.TryRemove(session.Value.AmusePlay.MessageId, out _);
+                }
+            }
+
+            foreach (var diceSession in _diceSessions.ToArray())
+            {
+                if (!activeSessions.ContainsKey(diceSession.Value.Play.Id))
+                {
+                    _diceSessions.TryRemove(diceSession.Key, out _);
                 }
             }
 
             return Task.CompletedTask;
         }
 
-        public async Task UpdateGameAsync(AmusePlay amusePlay)
-        {
-            await TryStartNewGameIfNot(amusePlay);
-            await CheckSessionAsync();
-        }
-
-        public async Task TryStartNewGameIfNot(AmusePlay amusePlay)
+        private async Task TryStartNewGameIfNot(AmusePlay amusePlay)
         {
             if (amusePlay.Started)
             {
@@ -132,13 +161,118 @@ public class AmuseGameManager
             if (_sessions.TryRemove(messageId, out var data))
             {
                 _databaseService.Delete(AmusePlay.TableName, data.AmusePlay.Id);
+                return;
+            }
+
+            if (_diceSessions.TryRemove(messageId, out var diceSession))
+            {
+                _databaseService.Delete(AmusePlay.TableName, diceSession.Play.Id);
             }
         }
 
         private void StopGame(AmusePlay amusePlay)
         {
             _sessions.TryRemove(amusePlay.MessageId, out _);
+            _diceSessions.TryRemove(amusePlay.MessageId, out _);
             _databaseService.Delete(AmusePlay.TableName, amusePlay.Id);
+        }
+
+        private static async Task UpdateDiceMessageAsync(IUserMessage message, DiceGame game, AmusePlay play, bool revealPlayer)
+        {
+            var builder = new System.Text.StringBuilder();
+            builder.AppendLine($"<@{play.UserId}> さん、");
+            builder.AppendLine($"{play.Bet}GAL円 賭けて勝負だよ！！");
+            builder.AppendLine($"- つむぎ: {DiceCharacters[game.Result.DealerRoll - 1]}[{game.Result.DealerRoll}]");
+
+            if (revealPlayer)
+            {
+                builder.AppendLine($"- あなた: {DiceCharacters[game.Result.PlayerRoll - 1]}[{game.Result.PlayerRoll}]");
+                var outcome = game.Result.Outcome switch
+                {
+                    DiceOutcome.PlayerWin => "勝利",
+                    DiceOutcome.DealerWin => "敗北",
+                    _ => "引き分け"
+                };
+                builder.AppendLine($"結果: {outcome}！");
+                if (game.Result.Outcome == DiceOutcome.PlayerWin)
+                {
+                    builder.AppendLine($"{game.Result.Payout}GAL円ゲット！");
+                }
+            }
+            else
+            {
+                builder.AppendLine("- あなた: ??");
+            }
+
+            await message.ModifyAsync(msg =>
+            {
+                msg.Content = builder.ToString();
+                msg.Components = new ComponentBuilder().Build();
+            });
+        }
+
+        private async Task ProcessDiceGameAsync(AmusePlay play)
+        {
+            if (play.MessageId == 0)
+            {
+                _databaseService.Delete(AmusePlay.TableName, play.Id);
+                return;
+            }
+
+            if (!_diceSessions.TryGetValue(play.MessageId, out var session))
+            {
+                if (play.Started)
+                {
+                    return;
+                }
+
+                var game = new DiceGame(play.Bet);
+                session = new DiceSession(play, game, 0, DateTime.UtcNow);
+                _diceSessions[play.MessageId] = session;
+                play.Started = true;
+                _databaseService.Update(AmusePlay.TableName, play);
+
+                _databaseService.AddUserCash(play.UserId, -play.Bet);
+                return;
+            }
+
+            if (DateTime.UtcNow - session.LastUpdate < TimeSpan.FromSeconds(1))
+            {
+                return;
+            }
+
+            if (_discordSocketClient.GetChannel(session.Play.ChannelId) is not IMessageChannel channel)
+            {
+                return;
+            }
+
+            if (await channel.GetMessageAsync(session.Play.MessageId) is not IUserMessage userMessage)
+            {
+                return;
+            }
+
+            if (session.Step == 0)
+            {
+                await UpdateDiceMessageAsync(userMessage, session.Game, session.Play, false);
+                _diceSessions[play.MessageId] = session with { Step = 1, LastUpdate = DateTime.UtcNow };
+                return;
+            }
+
+            if (session.Step == 1)
+            {
+                await UpdateDiceMessageAsync(userMessage, session.Game, session.Play, true);
+
+                var result = session.Game.Result;
+                if (result.Payout != 0)
+                {
+                    _databaseService.AddUserCash(session.Play.UserId, result.Payout);
+                }
+
+                _databaseService.UpdateGameRecord(session.Play, result.Outcome == DiceOutcome.PlayerWin);
+
+                _databaseService.Delete(AmusePlay.TableName, session.Play.Id);
+                _diceSessions.TryRemove(session.Play.MessageId, out _);
+            }
         }
     }
 }
