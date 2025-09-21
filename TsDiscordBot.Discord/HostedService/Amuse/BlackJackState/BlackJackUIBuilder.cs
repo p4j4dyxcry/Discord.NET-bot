@@ -101,7 +101,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.BlackJackState
 
             if (_game.IsFinished)
             {
-                cards.Append(_emoteDatabase.GetEmote(_game.PlayerCards[0]));
+                cards.Append(_emoteDatabase.GetEmote(_game.DealerCards[0]));
                 for (int i = 1; i < _game.DealerCards.Count; i++)
                 {
                     var card = _game.DealerCards[i];
