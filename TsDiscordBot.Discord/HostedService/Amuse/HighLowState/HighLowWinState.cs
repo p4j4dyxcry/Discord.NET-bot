@@ -5,13 +5,13 @@ using TsDiscordBot.Core.Messaging;
 
 namespace TsDiscordBot.Discord.HostedService.Amuse.HighLowState;
 
-public class HighLowDecisionWinState : IGameState
+public class HighLowWinState : IGameState
 {
     private readonly HighLowGameContext _context;
     private readonly Card _previousCard;
     private readonly Card _drawnCard;
 
-    public HighLowDecisionWinState(HighLowGameContext context, Card previousCard, Card drawnCard)
+    public HighLowWinState(HighLowGameContext context, Card previousCard, Card drawnCard)
     {
         _context = context;
         _previousCard = previousCard;
@@ -75,7 +75,7 @@ public class HighLowDecisionWinState : IGameState
                 }
 
                 return Task.FromResult<IGameState>(
-                    new HighLowDecisionWinState(
+                    new HighLowWinState(
                         _context,
                         previous,
                         result.DrawnCard));

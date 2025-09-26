@@ -69,7 +69,7 @@ public class HighLowGuessGameState : IGameState
                 }
 
                 return Task.FromResult<IGameState>(
-                    new HighLowDecisionWinState(
+                    new HighLowWinState(
                         _context,
                         previous,
                         result.DrawnCard));
