@@ -74,6 +74,8 @@ public class AnonymousRelayService : IHostedService
 
         string? content = string.IsNullOrWhiteSpace(message.Content) ? null : message.Content;
 
+        await message.CreateAttachmentSourceIfNotCachedAsync();
+
         await message.DeleteAsync();
 
         var client = await _webHookService.GetOrCreateWebhookClientAsync(message.ChannelId, "anonymous-relay");

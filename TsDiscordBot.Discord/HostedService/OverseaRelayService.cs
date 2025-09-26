@@ -92,6 +92,8 @@ public class OverseaRelayService : IHostedService
             avatarUrl = message.AvatarUrl;
         }
 
+        await message.CreateAttachmentSourceIfNotCachedAsync();
+
         List<Task> tasks =
         [
             Task.Run(async () =>
