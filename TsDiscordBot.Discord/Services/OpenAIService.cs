@@ -25,7 +25,7 @@ namespace TsDiscordBot.Discord.Services
                 apiKey = config["open_ai_api_key"];
             }
 
-            _client = new(model: "gpt-5-mini", apiKey: apiKey);
+            _client = new(model: "gpt-5.6-luna", apiKey: apiKey);
 
             var systemPrompt = Envs.OPENAI_PROMPT;
             if (string.IsNullOrWhiteSpace(systemPrompt))
