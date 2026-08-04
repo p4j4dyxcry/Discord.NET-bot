@@ -10,7 +10,7 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.HighLowState
         private readonly ulong _messageId;
 
         private bool _enableHighLowButton;
-        private bool _enableContinueButton;
+        private bool _enableDropButton;
         private bool _enableRetryButton;
 
         private string? _header;
@@ -52,9 +52,9 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.HighLowState
             return this;
         }
 
-        public HighLowUiBuilder EnableContinueButton()
+        public HighLowUiBuilder EnableDropButton()
         {
-            _enableContinueButton = true;
+            _enableDropButton = true;
             return this;
         }
 
@@ -95,10 +95,9 @@ namespace TsDiscordBot.Discord.HostedService.Amuse.HighLowState
                 yield return Button(HighLowActions.High, "ハイ", ButtonStyle.Primary);
                 yield return Button(HighLowActions.Low, "ロー", ButtonStyle.Secondary);
             }
-            if (_enableContinueButton)
+            if (_enableDropButton)
             {
-                yield return Button(HighLowActions.Continue, "続ける", ButtonStyle.Primary);
-                yield return Button(HighLowActions.Stop, "終了", ButtonStyle.Secondary);
+                yield return Button(HighLowActions.Drop, "ドロップ", ButtonStyle.Secondary);
             }
 
             if (_enableRetryButton)
